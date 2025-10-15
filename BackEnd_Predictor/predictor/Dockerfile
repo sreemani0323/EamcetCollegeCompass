@@ -5,12 +5,17 @@ COPY pom.xml .
 COPY src /app/src
 RUN mvn clean package -DskipTests
 
-# --- Stage 2: Runtime Stage (Final PATH Fix) ---
-FROM eclipse-temurin:25-jdk
+# --- Stage 2: Runtime Stage (FINAL PATH/IMAGE FIX) ---
+# ⭐ FINAL FIX: Using the generic, full OpenJDK image for maximum path compatibility.
+FROM openjdk:25-jdk
 WORKDIR /app
 
+# Define JAVA_HOME for the shell to find the executable (required for some older shells)
+ENV JAVA_HOME="/usr/local/openjdk-25"
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Copy the built JAR using the correct final name
 COPY --from=builder /app/target/predictor.jar app.jar
 
-# ⭐ DEFINITIVE FIX: Use the specific internal path relative to JAVA_HOME
-# This path is almost guaranteed to be correct for this base image.
-ENTRYPOINT ["/opt/java/openjdk/bin/java", "-jar", "app.jar"]
+# Use the standard command, which should now work due to the ENV setup
+ENTRYPOINT ["java", "-jar", "app.jar"]
