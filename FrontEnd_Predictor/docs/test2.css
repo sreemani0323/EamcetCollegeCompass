@@ -1,0 +1,628 @@
+/* =========================================================
+    PROFESSIONAL LIGHT THEME — FINAL VERSION
+    Changes include: Sticky Summary, Probability Legend, Corrected Data Quality Switch CSS.
+    ========================================================= */
+
+/* VARIABLES */
+:root
+{
+    --color-primary: #5c6bc0;           /* Indigo */
+    --color-accent: #00bcd4;            /* Aqua */
+    --color-text-dark: #263238;         /* Primary text/headers */
+    --color-text-light: #e0e0e0;        /* White text for dark backgrounds */
+    --color-heading-light: #263238;     /* Headers in light mode */
+    --color-muted-light: #6b7280;       /* Muted gray for labels */
+    --bg-light: #ffffff;                /* Main background */
+    --card-light: #ffffff;              /* Card background */
+    --success-light: #16a34a;           /* Green for success */
+    --warning-light: #f59e0b;           /* Amber for warning */
+    --danger-light: #ef4444;            /* Red for danger/disclaimer */
+    --bg-dark: #121212;                 /* Deep dark background (for dark mode toggle state) */
+    --card-dark: #1e1e1e;               /* Dark card background */
+    --radius: 8px;
+    --shadow-light: 0 4px 12px rgba(16,24,40,0.06); /* Lighter shadow */
+    --transition: 0.22s ease;
+}
+
+/* BASE: Start in Light Mode by default */
+*
+{
+    box-sizing:border-box
+}
+html,body
+{
+    height:100%
+}
+body
+{
+    margin:0;
+    font-family: "Roboto", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: var(--bg-light);
+    color: var(--color-text-dark);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    transition: background var(--transition), color var(--transition);
+}
+
+/* --- LIGHT MODE (PRIMARY STYLES) --- */
+.container
+{
+    width:100%; max-width:1100px; margin:32px auto; padding:28px; border-radius:12px;
+    background: var(--card-light);
+    box-shadow: var(--shadow-light);
+    border: 1px solid #e6eef5;
+    transition: background var(--transition), box-shadow var(--transition);
+}
+.header-content
+{
+    display:flex; align-items:center; gap:12px; justify-content:space-between; margin-bottom:18px; 
+    padding-bottom:8px; border-bottom:1px solid #e6eef5;
+}
+h1
+{
+    font-family:"Montserrat", "Segoe UI", sans-serif; font-size:24px; margin:0; color:var(--color-heading-light); letter-spacing:0.8px
+}
+h1 i
+{
+    color:var(--color-accent);
+}
+.top-controls
+{
+    display:flex; justify-content:flex-end; margin-bottom:12px
+}
+.lang-control
+{
+    display:flex; align-items:center; gap:8px
+}
+.lang-control label
+{
+    font-size:13px; color:var(--color-muted-light);
+}
+
+/* --- FORM CONTROLS & INPUT CONSISTENCY --- */
+.form-group label
+{
+    font-weight:500; font-size:13px; color:var(--color-muted-light)
+}
+.form-group input[type="number"], 
+.multiselect-input, 
+.predict-form select,
+.lang-control select,
+#sortBy 
+{ 
+    padding:12px 14px; 
+    border-radius:8px;
+    font-size:15px; 
+    background: #fff;
+    border:1px solid #d1d5db;
+    color:var(--color-text-dark);
+    transition:box-shadow var(--transition), border-color var(--transition);
+}
+.form-group input:focus, .multiselect-input:hover
+{
+    border-color:var(--color-primary); box-shadow:0 0 0 2px rgba(92, 107, 192, 0.2);
+}
+
+/* FIX: Hide the checkboxes visually for the single-select fields */
+.multiselect-dropdown[data-single-select="true"] .options-list label {
+    position: relative; 
+    padding-left: 10px;
+}
+.multiselect-dropdown[data-single-select="true"] input[type="checkbox"] {
+    display: none; 
+}
+
+
+/* Multiselect specific styles */
+.multiselect-dropdown
+{
+    position:relative
+}
+.multiselect-input
+{
+    display:flex; justify-content:space-between; align-items:center; gap:8px; cursor:pointer;
+}
+.multiselect-input .selected-items
+{
+    display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%
+}
+.multiselect-options-container
+{
+    position:absolute; left:0; right:0; margin-top:8px; background:var(--card-light); border-radius:8px; 
+    padding:6px; box-shadow:0 8px 30px rgba(16,24,40,0.08); z-index:50; border:1px solid #e6eef5; 
+    max-height:220px; overflow:auto; display:none;
+}
+.multiselect-dropdown.open .multiselect-options-container
+{
+    display:block
+}
+.options-list label
+{
+    display:flex; align-items:center; gap:8px; padding:8px 10px; cursor:pointer; border-radius:6px; color:var(--color-text-dark);
+}
+.options-list label:hover
+{
+    background:rgba(0,0,0,0.04)
+}
+.select-all-label
+{
+    font-weight:600; border-bottom:1px solid rgba(0,0,0,0.06); padding-bottom:8px; margin-bottom:8px; display:flex; align-items:center; gap:8px; color:var(--color-text-dark)
+}
+
+/* Form structure */
+.predict-form
+{
+    display:grid; grid-template-columns: repeat(2, 1fr); gap:16px 24px; align-items:start; margin-bottom:24px;
+}
+.span-2
+{
+    grid-column: 1 / -1
+}
+.form-actions
+{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:10px;
+}
+.left-actions
+{
+    display:flex; gap:12px; align-items:center
+}
+
+/* Buttons */
+.btn-primary, .btn-secondary
+{
+    padding:11px 20px; border-radius:8px; border:0; font-weight:700; cursor:pointer; font-size:15px;
+    transition: transform var(--transition), box-shadow var(--transition); letter-spacing: 0.2px;
+}
+.btn-primary
+{
+    background:var(--color-accent); color:white;
+}
+.btn-primary:hover
+{
+    transform:translateY(-2px); box-shadow:0 4px 12px rgba(0, 188, 212, 0.4);
+}
+.btn-secondary
+{
+    background:var(--color-muted-light); color:white;
+}
+.btn-secondary:hover
+{
+    background:#757575; transform:translateY(-2px);
+}
+
+/* Download Icon */
+.right-actions
+{
+    display:flex; align-items:center; gap:12px
+}
+.download-icon-wrap
+{
+    display:flex; align-items:center; justify-content:center; padding:8px; border-radius:50%; background:rgba(0,0,0,0.05);
+}
+#downloadIcon
+{
+    font-size:18px; color:var(--color-accent); cursor:pointer; transition:transform var(--transition), color var(--transition)
+}
+#downloadIcon:hover
+{
+    transform:translateY(-2px); color:var(--color-primary)
+}
+
+/* --- RED DISCLAIMER BOX --- */
+.disclaimer
+{
+    margin-top:16px; 
+    padding:16px 20px; 
+    border-radius:8px; 
+    background:#fef2f2; 
+    border-left:4px solid var(--danger-light); 
+    color:var(--danger-light); 
+    font-weight: 500;
+}
+.disclaimer p
+{
+    margin:0; font-size:13px; line-height:1.5
+}
+
+/* --- DARK MODE TOGGLE SWITCH (Header Toggle) --- */
+.dark-mode-toggle 
+{
+    position: relative;
+    width: 60px; height: 30px; 
+}
+/* Hide the original header checkbox completely */
+.dark-mode-toggle input[type="checkbox"] {
+    opacity: 0; width: 0; height: 0;
+}
+
+/* Toggle Switch Label styles (Header) */
+.toggle-label 
+{
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--color-primary); 
+    transition: var(--transition);
+    border-radius: 30px;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 5px;
+}
+
+.toggle-checkbox:checked + .toggle-label 
+{
+    background-color: var(--color-accent); 
+}
+
+.toggle-label:before 
+{
+    position: absolute;
+    content: "\f186"; 
+    font-family: 'Font Awesome 6 Free'; font-weight: 900;
+    height: 24px; width: 24px; left: 3px; bottom: 3px;
+    background-color: white;
+    transition: var(--transition);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--color-primary); 
+    font-size: 14px;
+}
+
+.toggle-checkbox:checked + .toggle-label:before 
+{
+    transform: translateX(30px);
+    content: "\f185"; 
+    color: var(--color-accent); 
+}
+
+/* --- NEW FEATURE STYLES --- */
+
+/* 1. STICKY SUMMARY BAR */
+.sticky-summary {
+    position: sticky;
+    top: 0; /* Stick to the top of the viewport */
+    z-index: 10;
+    margin-top: 10px;
+    padding: 15px 20px;
+    background: var(--card-light);
+    border: 1px solid #e6eef5;
+    border-radius: var(--radius);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: background var(--transition);
+}
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px 15px;
+    font-size: 14px;
+}
+.summary-grid strong {
+    font-weight: 600;
+}
+
+
+/* 2. PROBABILITY LEGEND */
+.probability-legend {
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    border: 1px dashed #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    background: rgba(92, 107, 192, 0.05); 
+    color: var(--color-text-dark);
+}
+.probability-legend strong {
+    font-weight: 700;
+    margin-right: 15px;
+}
+.probability-legend span {
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+
+/* 3. DATA QUALITY SWITCH (Missing Data) - Corrected CSS for Visibility */
+
+/* Hide the default checkbox input completely using the ID/Type selector */
+#showMissingData[type="checkbox"] {
+    opacity: 0; 
+    width: 0; 
+    height: 0;
+    pointer-events: none;
+    position: absolute; /* Ensures it doesn't take up layout space */
+}
+
+/* Style the main wrapper label to enable flex display and correct text visibility */
+.switch-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    user-select: none;
+    width: 100%; 
+    justify-content: flex-start;
+    padding: 0; /* Ensure no extra padding pushes it out of alignment */
+}
+
+/* Style the slider (The visual track and thumb are separate spans) */
+.switch-slider {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    background-color: #ccc;
+    border-radius: 10px;
+    transition: background-color var(--transition);
+    flex-shrink: 0;
+}
+.switch-slider:before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: transform var(--transition);
+    border-radius: 50%;
+}
+
+/* Text Label: Target the sibling span that holds the text */
+.switch-label span:last-child {
+    font-size: 14px;
+    color: var(--color-text-dark); /* Ensure text is dark in light mode */
+    font-weight: 500;
+}
+
+/* Activation styles (Using adjacent sibling selector) */
+#showMissingData:checked + .switch-slider {
+    background-color: var(--color-primary);
+}
+#showMissingData:checked + .switch-slider:before {
+    transform: translateX(20px);
+}
+
+
+/* --- RESULTS SECTION --- */
+#results
+{
+    margin-top:24px
+}
+.results-controls
+{
+    display:flex; gap:12px; align-items:center; justify-content:flex-end; margin-bottom:16px
+}
+
+/* College Card Styles (Light Mode) */
+.college-list
+{
+    display:flex; flex-direction:column; gap:20px
+}
+.college-card
+{
+    border-radius:12px; padding:24px; background: var(--card-light);
+    box-shadow: var(--shadow-light); border:1px solid rgba(0,0,0,0.08);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+.college-card:hover
+{
+    transform:translateY(-4px); box-shadow: 0 8px 24px rgba(16,24,40,0.12);
+}
+
+.college-card h3
+{
+    color:var(--color-primary); border-bottom-color:rgba(0,0,0,0.1); font-size:22px;
+    display:flex; 
+    gap:12px; 
+    font-family:"Montserrat",sans-serif; padding-bottom:12px; font-weight: 700;
+    position: relative; 
+    padding-right: 120px; 
+}
+
+.college-title-span
+{
+    max-width: 100%; 
+    white-space: normal; 
+    line-height: 1.2;
+}
+
+.college-links
+{
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin-left:auto; 
+    display:flex; align-items:center; gap:10px;
+}
+
+.college-card .branch-info
+{
+    color:var(--color-primary); font-size: 15px; font-weight: 500; padding: 10px 0; margin: 0;
+}
+.college-links a
+{
+    color:var(--color-primary); 
+}
+.college-links a i
+{
+    color:var(--color-accent);
+}
+
+.college-details-grid
+{
+    display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px 30px; align-items:start; padding:16px 0;
+}
+.college-details-grid > div
+{
+    display:flex; flex-direction:column; gap:4px; border-left: 2px solid rgba(0,0,0,0.05); padding-left:14px;
+}
+.college-details-grid strong
+{
+    font-size:12px; font-weight: 400; color:var(--color-muted-light); text-transform:uppercase; letter-spacing:0.5px;
+}
+.college-details-grid .value-display
+{
+    font-size:18px; font-weight:700; color:var(--color-text-dark); line-height:1.2;
+}
+
+.probability-display.high-prob
+{
+    color:var(--success-light);
+}
+.probability-display.medium-prob
+{
+    color:var(--warning-light);
+}
+.probability-display.low-prob
+{
+    color:var(--danger-light);
+}
+.placement-quality .value-display
+{
+    color:var(--success-light);
+}
+
+.college-card-footer
+{
+    display:flex; gap:12px; align-items:center; justify-content:space-between; margin:0; 
+    padding-top:16px; border-top:1px solid rgba(0,0,0,0.08); color:var(--color-muted-light); font-size:13px; font-weight: 500;
+}
+.college-card-footer span strong
+{
+    color: var(--color-text-dark); font-size: 14px; font-weight: 600;
+}
+
+
+/* --- DARK MODE OVERRIDES --- */
+body.dark-mode
+{
+    background: var(--bg-dark);
+    color: var(--color-text-light);
+}
+body.dark-mode .container
+{
+    background: var(--card-dark);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+body.dark-mode h1
+{
+    color: white;
+}
+body.dark-mode .header-content
+{
+    border-bottom-color:rgba(255,255,255,0.08);
+}
+body.dark-mode .form-group label
+{
+    color: #9e9e9e;
+}
+body.dark-mode .form-group input[type="number"], body.dark-mode .multiselect-input, body.dark-mode .predict-form select, body.dark-mode .lang-control select, body.dark-mode #sortBy
+{
+    background: var(--card-dark); border-color: rgba(255,255,255,0.1); color: var(--color-text-light);
+}
+body.dark-mode .multiselect-options-container
+{
+    background:var(--card-dark); box-shadow:0 10px 30px rgba(0,0,0,0.5); border-color:rgba(255,255,255,0.1);
+}
+body.dark-mode .options-list label
+{
+    color: var(--color-text-light);
+}
+body.dark-mode .options-list label:hover
+{
+    background: rgba(255,255,255,0.08);
+}
+body.dark-mode .select-all-label
+{
+    color: white; border-bottom-color: rgba(255,255,255,0.1);
+}
+
+body.dark-mode .disclaimer
+{
+    background:rgba(239, 68, 68, 0.08); color:var(--danger);
+}
+
+body.dark-mode .college-card 
+{
+    background: var(--card-dark); border-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+}
+body.dark-mode .college-card h3
+{
+    color:white; border-bottom-color:rgba(255,255,255,0.1);
+}
+body.dark-mode .college-details-grid > div
+{
+    border-left-color: rgba(255,255,255,0.05);
+}
+body.dark-mode .college-details-grid .value-display
+{
+    color: white;
+}
+body.dark-mode .college-card-footer
+{
+    color: #9e9e9e; border-top-color: rgba(255,255,255,0.08);
+}
+body.dark-mode .college-card-footer span strong
+{
+    color: var(--color-text-light);
+}
+
+body.dark-mode .sticky-summary {
+    background: var(--card-dark);
+    border-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+body.dark-mode .probability-legend {
+    background: rgba(92, 107, 192, 0.15); 
+    border-color: rgba(255, 255, 255, 0.1);
+}
+body.dark-mode .switch-label span:last-child {
+    color: var(--color-text-light);
+}
+
+body.dark-mode .switch-slider {
+    background-color: #555;
+}
+body.dark-mode #showMissingData:checked + .switch-slider {
+    background-color: var(--color-accent);
+}
+
+/* responsive tweaks */
+@media (max-width:900px)
+{
+    .predict-form{grid-template-columns: 1fr; }
+    .span-2{grid-column: auto}
+    .college-details-grid{grid-template-columns: 1fr 1fr}
+    .college-details-grid > div{border-left: none; padding-left: 0;}
+    .college-card h3{font-size:18px; padding-right: 0;} /* Remove right padding on mobile */
+    .college-links{position: static; margin-top: 8px;} /* Stack link below title on mobile */
+    .summary-grid{grid-template-columns: 1fr 1fr} /* Tighter grid for summary on mobile */
+}
+@media (max-width:600px)
+{
+    .college-details-grid{grid-template-columns: 1fr}
+    .college-card-footer{flex-direction: column; align-items: flex-start; gap: 8px;}
+    .summary-grid{grid-template-columns: 1fr}
+}
+
+
+/* loading spinner and footer */
+.loading-spinner
+{
+    position:fixed; left:0; top:0; right:0; bottom:0; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.65); z-index:9999
+}
+.spinner
+{
+    border:8px solid rgba(255,255,255,0.08); border-top:8px solid var(--color-accent); border-radius:50%; width:56px; height:56px; animation:spin 1s linear infinite
+}
+@keyframes spin
+{
+    to{transform:rotate(360deg)}
+}
+footer
+{
+    margin-top: auto; padding: 20px 0; text-align: center; color: var(--color-muted-light); font-size: 14px;
+}
+#messagePopup
+{
+    position:fixed; right:20px; top:20px; background:var(--color-primary); color:#fff; padding:10px 14px; border-radius:8px; z-index:10001; box-shadow:0 8px 20px rgba(0,0,0,0.3);
+}

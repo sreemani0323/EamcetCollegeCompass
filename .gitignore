@@ -1,0 +1,20 @@
+# IDE and Build Output Directories
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+/out/
+# Java/Maven Build Output
+*.class
+*.jar
+*.war
+*.ear
+/target/
+/bin/
+# Maven/Gradle Wrappers
+!**/src/main/**/resources/**
+!**/src/main/**/webapp/**
+!**/src/test/**/resources/**
+# Log files
+*.log
