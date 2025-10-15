@@ -5,13 +5,11 @@ COPY pom.xml .
 COPY src /app/src
 RUN mvn clean package -DskipTests
 
-# --- Stage 2: Runtime Stage (ROBUST FIX) ---
-# Use the official JDK image—it has the best tools and path configuration
-FROM eclipse-temurin:25-jdk
+# --- Stage 2: Runtime Stage (CLEANED) ---
+FROM openjdk:25-jdk-slim
 WORKDIR /app
-
 COPY --from=builder /app/target/predictor.jar app.jar
 
-# ⭐ CRITICAL FIX: Use the 'shell' form of ENTRYPOINT to ensure the command runs via bash.
-# This often loads the environment properly where the exec form fails.
-ENTRYPOINT ["/bin/bash", "-c", "java -jar app.jar"]
+# ⭐ CRITICAL FIX: REMOVE ENTRYPOINT. Let the image's default run command (CMD) take over.
+# We define the command here as CMD to ensure it is executed correctly.
+CMD ["java", "-jar", "app.jar"]
