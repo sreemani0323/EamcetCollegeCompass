@@ -1,5 +1,4 @@
 # --- Stage 1: Build Stage (Compiles the application) ---
-# Use a Maven image with a known-to-exist JDK 25 tag for compilation
 FROM maven:4.0.0-rc-4-eclipse-temurin-25-noble AS builder
 WORKDIR /app
 
@@ -11,13 +10,11 @@ COPY src /app/src
 RUN mvn clean package -DskipTests
 
 # --- Stage 2: Runtime Stage (Runs the final application) ---
-# Use a lighter JRE 25 image to keep the final container small
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 
-# ⭐ CRITICAL FIX: Copy the JAR using the specific name 'predictor.jar'
+# Copy the built JAR using the correct final name
 COPY --from=builder /app/target/predictor.jar app.jar
 
-# Set the command to run the application when the container starts
-# The application runs inside the container on port 8080 (as configured in application.properties)
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# ⭐ FINAL FIX: Use the absolute path to the Java executable to avoid 'command not found' (status 127) error.
+ENTRYPOINT ["/usr/bin/java", "-jar", "app.jar"]
