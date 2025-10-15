@@ -1,14 +1,14 @@
-# --- Stage 2: Runtime Stage (FINAL DEFINITIVE FIX) ---
-# Use the robust JRE image
+# --- Stage 1: Build Stage (UNCHANGED) ---
+FROM maven:4.0.0-rc-4-eclipse-temurin-25-noble AS builder
+WORKDIR /app
+COPY pom.xml .
+COPY src /app/src
+RUN mvn clean package -DskipTests
+
+# --- Stage 2: Runtime Stage (FINAL PATH FIX) ---
 FROM eclipse-temurin:25-jre-focal
 WORKDIR /app
-
-# ⭐ CRITICAL FIX: Set JAVA_HOME and update PATH to ensure 'java' is found.
-ENV JAVA_HOME="/opt/java/openjdk"
-ENV PATH="$JAVA_HOME/bin:$PATH"
-
-# Copy the built JAR using the correct final name
 COPY --from=builder /app/target/predictor.jar app.jar
 
-# Set the command to run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# ⭐ FINAL PATH: Using the standard package installation path structure
+ENTRYPOINT ["/usr/lib/jvm/java-25-openjdk/bin/java", "-jar", "app.jar"]
