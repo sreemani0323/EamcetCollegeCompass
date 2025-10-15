@@ -1,28 +1,24 @@
-/* =========================================================
-    PROFESSIONAL LIGHT THEME — FINAL VERSION
-    Changes include: Sticky Summary, Probability Legend, Corrected Data Quality Switch CSS.
-    ========================================================= */
-
 /* VARIABLES */
 :root
 {
-    --color-primary: #5c6bc0;           /* Indigo */
-    --color-accent: #00bcd4;            /* Aqua */
-    --color-text-dark: #263238;         /* Primary text/headers */
-    --color-text-light: #e0e0e0;        /* White text for dark backgrounds */
-    --color-heading-light: #263238;     /* Headers in light mode */
-    --color-muted-light: #6b7280;       /* Muted gray for labels */
-    --bg-light: #ffffff;                /* Main background */
-    --card-light: #ffffff;              /* Card background */
-    --success-light: #16a34a;           /* Green for success */
-    --warning-light: #f59e0b;           /* Amber for warning */
-    --danger-light: #ef4444;            /* Red for danger/disclaimer */
-    --bg-dark: #121212;                 /* Deep dark background (for dark mode toggle state) */
-    --card-dark: #1e1e1e;               /* Dark card background */
+    --color-primary: #5c6bc0;            /* Indigo */
+    --color-accent: #00bcd4;             /* Aqua */
+    --color-text-dark: #263238;          /* Primary text/headers */
+    --color-text-light: #e0e0e0;         /* White text for dark backgrounds */
+    --color-heading-light: #263238;      /* Headers in light mode */
+    --color-muted-light: #6b7280;        /* Muted gray for labels */
+    --bg-light: #ffffff;                 /* Main background */
+    --card-light: #ffffff;               /* Card background */
+    --success-light: #16a34a;            /* Green for success */
+    --warning-light: #f59e0b;            /* Amber for warning */
+    --danger-light: #ef4444;             /* Red for danger/disclaimer */
+    --bg-dark: #121212;                  /* Deep dark background (for dark mode toggle state) */
+    --card-dark: #1e1e1e;                /* Dark card background */
     --radius: 8px;
     --shadow-light: 0 4px 12px rgba(16,24,40,0.06); /* Lighter shadow */
     --transition: 0.22s ease;
 }
+
 
 /* BASE: Start in Light Mode by default */
 *
@@ -43,6 +39,7 @@ body
     -moz-osx-font-smoothing:grayscale;
     transition: background var(--transition), color var(--transition);
 }
+
 
 /* --- LIGHT MODE (PRIMARY STYLES) --- */
 .container
@@ -79,6 +76,7 @@ h1 i
     font-size:13px; color:var(--color-muted-light);
 }
 
+
 /* --- FORM CONTROLS & INPUT CONSISTENCY --- */
 .form-group label
 {
@@ -103,6 +101,7 @@ h1 i
     border-color:var(--color-primary); box-shadow:0 0 0 2px rgba(92, 107, 192, 0.2);
 }
 
+
 /* FIX: Hide the checkboxes visually for the single-select fields */
 .multiselect-dropdown[data-single-select="true"] .options-list label {
     position: relative; 
@@ -111,6 +110,7 @@ h1 i
 .multiselect-dropdown[data-single-select="true"] input[type="checkbox"] {
     display: none; 
 }
+
 
 
 /* Multiselect specific styles */
@@ -149,6 +149,7 @@ h1 i
     font-weight:600; border-bottom:1px solid rgba(0,0,0,0.06); padding-bottom:8px; margin-bottom:8px; display:flex; align-items:center; gap:8px; color:var(--color-text-dark)
 }
 
+
 /* Form structure */
 .predict-form
 {
@@ -166,6 +167,7 @@ h1 i
 {
     display:flex; gap:12px; align-items:center
 }
+
 
 /* Buttons */
 .btn-primary, .btn-secondary
@@ -190,6 +192,7 @@ h1 i
     background:#757575; transform:translateY(-2px);
 }
 
+
 /* Download Icon */
 .right-actions
 {
@@ -208,6 +211,7 @@ h1 i
     transform:translateY(-2px); color:var(--color-primary)
 }
 
+
 /* --- RED DISCLAIMER BOX --- */
 .disclaimer
 {
@@ -224,6 +228,7 @@ h1 i
     margin:0; font-size:13px; line-height:1.5
 }
 
+
 /* --- DARK MODE TOGGLE SWITCH (Header Toggle) --- */
 .dark-mode-toggle 
 {
@@ -235,6 +240,7 @@ h1 i
     opacity: 0; width: 0; height: 0;
 }
 
+
 /* Toggle Switch Label styles (Header) */
 .toggle-label 
 {
@@ -245,10 +251,12 @@ h1 i
     display: flex; align-items: center; justify-content: space-between; padding: 0 5px;
 }
 
+
 .toggle-checkbox:checked + .toggle-label 
 {
     background-color: var(--color-accent); 
 }
+
 
 .toggle-label:before 
 {
@@ -264,6 +272,7 @@ h1 i
     font-size: 14px;
 }
 
+
 .toggle-checkbox:checked + .toggle-label:before 
 {
     transform: translateX(30px);
@@ -271,11 +280,13 @@ h1 i
     color: var(--color-accent); 
 }
 
+
 /* --- NEW FEATURE STYLES --- */
+
 
 /* 1. STICKY SUMMARY BAR */
 .sticky-summary {
-    position: sticky;
+    position: static; /* Changed from sticky to static so it scrolls normally */
     top: 0; /* Stick to the top of the viewport */
     z-index: 10;
     margin-top: 10px;
@@ -295,6 +306,7 @@ h1 i
 .summary-grid strong {
     font-weight: 600;
 }
+
 
 
 /* 2. PROBABILITY LEGEND */
@@ -317,7 +329,9 @@ h1 i
 }
 
 
+
 /* 3. DATA QUALITY SWITCH (Missing Data) - Corrected CSS for Visibility */
+
 
 /* Hide the default checkbox input completely using the ID/Type selector */
 #showMissingData[type="checkbox"] {
@@ -327,6 +341,7 @@ h1 i
     pointer-events: none;
     position: absolute; /* Ensures it doesn't take up layout space */
 }
+
 
 /* Style the main wrapper label to enable flex display and correct text visibility */
 .switch-label {
@@ -340,6 +355,7 @@ h1 i
     justify-content: flex-start;
     padding: 0; /* Ensure no extra padding pushes it out of alignment */
 }
+
 
 /* Style the slider (The visual track and thumb are separate spans) */
 .switch-slider {
@@ -364,12 +380,14 @@ h1 i
     border-radius: 50%;
 }
 
+
 /* Text Label: Target the sibling span that holds the text */
 .switch-label span:last-child {
     font-size: 14px;
     color: var(--color-text-dark); /* Ensure text is dark in light mode */
     font-weight: 500;
 }
+
 
 /* Activation styles (Using adjacent sibling selector) */
 #showMissingData:checked + .switch-slider {
@@ -378,6 +396,7 @@ h1 i
 #showMissingData:checked + .switch-slider:before {
     transform: translateX(20px);
 }
+
 
 
 /* --- RESULTS SECTION --- */
@@ -389,6 +408,7 @@ h1 i
 {
     display:flex; gap:12px; align-items:center; justify-content:flex-end; margin-bottom:16px
 }
+
 
 /* College Card Styles (Light Mode) */
 .college-list
@@ -406,6 +426,7 @@ h1 i
     transform:translateY(-4px); box-shadow: 0 8px 24px rgba(16,24,40,0.12);
 }
 
+
 .college-card h3
 {
     color:var(--color-primary); border-bottom-color:rgba(0,0,0,0.1); font-size:22px;
@@ -416,12 +437,14 @@ h1 i
     padding-right: 120px; 
 }
 
+
 .college-title-span
 {
     max-width: 100%; 
     white-space: normal; 
     line-height: 1.2;
 }
+
 
 .college-links
 {
@@ -431,6 +454,7 @@ h1 i
     margin-left:auto; 
     display:flex; align-items:center; gap:10px;
 }
+
 
 .college-card .branch-info
 {
@@ -444,6 +468,7 @@ h1 i
 {
     color:var(--color-accent);
 }
+
 
 .college-details-grid
 {
@@ -462,6 +487,7 @@ h1 i
     font-size:18px; font-weight:700; color:var(--color-text-dark); line-height:1.2;
 }
 
+
 .probability-display.high-prob
 {
     color:var(--success-light);
@@ -479,6 +505,7 @@ h1 i
     color:var(--success-light);
 }
 
+
 .college-card-footer
 {
     display:flex; gap:12px; align-items:center; justify-content:space-between; margin:0; 
@@ -488,6 +515,7 @@ h1 i
 {
     color: var(--color-text-dark); font-size: 14px; font-weight: 600;
 }
+
 
 
 /* --- DARK MODE OVERRIDES --- */
@@ -535,10 +563,12 @@ body.dark-mode .select-all-label
     color: white; border-bottom-color: rgba(255,255,255,0.1);
 }
 
+
 body.dark-mode .disclaimer
 {
     background:rgba(239, 68, 68, 0.08); color:var(--danger);
 }
+
 
 body.dark-mode .college-card 
 {
@@ -566,6 +596,7 @@ body.dark-mode .college-card-footer span strong
     color: var(--color-text-light);
 }
 
+
 body.dark-mode .sticky-summary {
     background: var(--card-dark);
     border-color: rgba(255, 255, 255, 0.05);
@@ -579,12 +610,14 @@ body.dark-mode .switch-label span:last-child {
     color: var(--color-text-light);
 }
 
+
 body.dark-mode .switch-slider {
     background-color: #555;
 }
 body.dark-mode #showMissingData:checked + .switch-slider {
     background-color: var(--color-accent);
 }
+
 
 /* responsive tweaks */
 @media (max-width:900px)
@@ -603,6 +636,7 @@ body.dark-mode #showMissingData:checked + .switch-slider {
     .college-card-footer{flex-direction: column; align-items: flex-start; gap: 8px;}
     .summary-grid{grid-template-columns: 1fr}
 }
+
 
 
 /* loading spinner and footer */

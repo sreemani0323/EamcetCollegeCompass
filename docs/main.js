@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
-    const savedTheme = localStorage.getItem("theme") || 'dark';
+    const savedTheme = localStorage.getItem("theme") || 'light'; // Changed default to 'light'
     setTheme(savedTheme);
 
     darkModeSwitch.addEventListener("change", () => {
