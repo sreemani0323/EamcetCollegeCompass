@@ -1,6 +1,6 @@
 package com.Eamcet.predictor.service;
 
-import com.Eamcet.predictor.model.College;
+import com.Eamcet.predictor.model.RawTable;
 import com.Eamcet.predictor.repository.CollegeRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -123,10 +123,10 @@ public class CollegePredictorService {
         final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, showMissingData);
 
         // 2. Fetch Colleges based on structural filters
-        Specification<College> spec = buildSpecifications(filters.userDistricts, filters.userRegions, filters.userTiers);
-        List<College> colleges = repo.findAll(spec);
+        Specification<RawTable> spec = buildSpecifications(filters.userDistricts, filters.userRegions, filters.userTiers);
+        List<RawTable> rawTables = repo.findAll(spec);
 
-        if (colleges.isEmpty()) {
+        if (rawTables.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -134,19 +134,19 @@ public class CollegePredictorService {
         final String displayCategory = filters.userCategories.isEmpty() ? "oc_boys" : filters.userCategories.iterator().next();
 
         // 4. Stream, Filter, Map, and Collect
-        List<CollegeResult> finalResults = colleges.stream()
+        List<CollegeResult> finalResults = rawTables.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
-                .map(college -> {
+                .map(rawTable -> {
                     // Map the College entity to a CollegeResult DTO
-                    Integer cutoff = getCutoffForCategory(college, displayCategory);
+                    Integer cutoff = getCutoffForCategory(rawTable, displayCategory);
 
                     return new CollegeResult(
-                            college.getInstitution_name(), college.getRegion(), college.getPlace(),
-                            college.getAffl(), college.getBranchCode(), cutoff, college.getInstcode(),
+                            rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
+                            rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
                             null, // Probability is NULL for search-only
-                            college.getDistrict(), college.getTier(),
-                            college.getHighestPackage(), college.getAveragePackage(),
-                            college.getPlacementDriveQuality(),
+                            rawTable.getDistrict(), rawTable.getTier(),
+                            rawTable.getHighestPackage(), rawTable.getAveragePackage(),
+                            rawTable.getPlacementDriveQuality(),
                             displayCategory
                     );
                 })
@@ -189,15 +189,15 @@ public class CollegePredictorService {
         final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, showMissingData);
 
         // 2. Fetch Colleges (Filtered by structural filters first)
-        Specification<College> spec = buildSpecifications(filters.userDistricts, filters.userRegions, filters.userTiers);
-        List<College> colleges = repo.findAll(spec);
+        Specification<RawTable> spec = buildSpecifications(filters.userDistricts, filters.userRegions, filters.userTiers);
+        List<RawTable> rawTables = repo.findAll(spec);
 
-        if (colleges.isEmpty()) {
+        if (rawTables.isEmpty()) {
             return Collections.emptyList();
         }
 
         // 3. Pre-filter by Branch
-        final List<College> branchFilteredColleges = colleges.stream()
+        final List<RawTable> branchFilteredRawTables = rawTables.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
                 .collect(Collectors.toList());
 
@@ -206,13 +206,13 @@ public class CollegePredictorService {
                 .flatMap(currentBranch -> filters.effectiveCategories.stream()
                         .flatMap(currentCategory -> {
 
-                            final double medianCutoff = calculateMedianCutoff(branchFilteredColleges, currentCategory);
+                            final double medianCutoff = calculateMedianCutoff(branchFilteredRawTables, currentCategory);
 
-                            return branchFilteredColleges.stream()
-                                    .filter(college -> college.getBranchCode().equals(currentBranch))
-                                    .map(college -> {
+                            return branchFilteredRawTables.stream()
+                                    .filter(rawTable -> rawTable.getBranchCode().equals(currentBranch))
+                                    .map(rawTable -> {
 
-                                        Integer cutoff = getCutoffForCategory(college, currentCategory);
+                                        Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
                                         Double probability;
                                         boolean estimated = false;
 
@@ -251,11 +251,11 @@ public class CollegePredictorService {
 
                                         // Create DTO Result
                                         CollegeResult result = new CollegeResult(
-                                                college.getInstitution_name(), college.getRegion(), college.getPlace(),
-                                                college.getAffl(), college.getBranchCode(), cutoff, college.getInstcode(),
-                                                probability, college.getDistrict(), college.getTier(),
-                                                college.getHighestPackage(), college.getAveragePackage(),
-                                                college.getPlacementDriveQuality(),
+                                                rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
+                                                rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
+                                                probability, rawTable.getDistrict(), rawTable.getTier(),
+                                                rawTable.getHighestPackage(), rawTable.getAveragePackage(),
+                                                rawTable.getPlacementDriveQuality(),
                                                 currentCategory
                                         );
 
@@ -342,7 +342,7 @@ public class CollegePredictorService {
                 .collect(Collectors.toSet());
     }
 
-    private Specification<College> buildSpecifications(Set<String> districts, Set<String> regions, Set<String> tiers) {
+    private Specification<RawTable> buildSpecifications(Set<String> districts, Set<String> regions, Set<String> tiers) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -360,8 +360,8 @@ public class CollegePredictorService {
         };
     }
 
-    private double calculateMedianCutoff(List<College> colleges, String category) {
-        List<Integer> cutoffs = colleges.stream()
+    private double calculateMedianCutoff(List<RawTable> rawTables, String category) {
+        List<Integer> cutoffs = rawTables.stream()
                 .map(c -> getCutoffForCategory(c, category))
                 .filter(Objects::nonNull)
                 .sorted()
@@ -373,7 +373,7 @@ public class CollegePredictorService {
         return (cutoffs.get(count / 2 - 1) + cutoffs.get(count / 2)) / 2.0;
     }
 
-    private Integer getCutoffForCategory(College c, String category) {
+    private Integer getCutoffForCategory(RawTable c, String category) {
         if (category == null) return null;
 
         return switch (category.toLowerCase()) {

@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 
 @Entity
 // Enforcing the exact case for the table name
-@Table(name = "rawtable")
-public class College {
+@Table(name = "RawTable")
+public class RawTable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -83,7 +83,7 @@ public class College {
     @Column(name = "oc_ews_girls")
     private Integer ocEwsGirls;
 
-    public College() {}
+    public RawTable() {}
 
     // --- GETTERS AND SETTERS (Full Set) ---
     public Integer getSno() { return sno; }
