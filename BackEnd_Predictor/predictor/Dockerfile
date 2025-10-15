@@ -1,17 +1,14 @@
-# --- Stage 1: Build Stage (UNCHANGED) ---
-FROM maven:4.0.0-rc-4-eclipse-temurin-25-noble AS builder
-WORKDIR /app
-COPY pom.xml .
-COPY src /app/src
-RUN mvn clean package -DskipTests
-
-# --- Stage 2: Runtime Stage (FINAL FIX) ---
+# --- Stage 2: Runtime Stage (FINAL DEFINITIVE FIX) ---
+# Use the robust JRE image
 FROM eclipse-temurin:25-jre-focal
 WORKDIR /app
+
+# ⭐ CRITICAL FIX: Set JAVA_HOME and update PATH to ensure 'java' is found.
+ENV JAVA_HOME="/opt/java/openjdk"
+ENV PATH="$JAVA_HOME/bin:$PATH"
+
+# Copy the built JAR using the correct final name
 COPY --from=builder /app/target/predictor.jar app.jar
 
-# ⭐ DEFINITIVE FIX: Use the most robust absolute path format for Temurin JRE images.
-# We must ensure the 'java' executable is found using a known path structure.
-# The default location is often /usr/local/openjdk-XX/bin/java or similar.
-# Let's try the /usr/local path, which is often manually set by the image maintainer.
-ENTRYPOINT ["/usr/local/openjdk-25/bin/java", "-jar", "app.jar"]
+# Set the command to run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]
