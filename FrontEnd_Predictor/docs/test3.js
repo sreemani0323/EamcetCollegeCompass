@@ -673,7 +673,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // ⭐ FINAL UPDATED FETCH URL: Using the public Render placeholder structure
         // NOTE: You must replace [YOUR_RENDER_SERVICE_NAME] with your actual Render domain name.
-        fetch("https://[YOUR_RENDER_SERVICE_NAME].onrender.com/api/predict-colleges", {
+        fetch("https://theeamcetcollegeprediction-1.onrender.com/api/predict-colleges", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestData),
