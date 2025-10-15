@@ -5,13 +5,12 @@ COPY pom.xml .
 COPY src /app/src
 RUN mvn clean package -DskipTests
 
-# --- Stage 2: Runtime Stage (FINAL FIX: Jammy Base) ---
-# ⭐ FINAL FIX: Use the 'jammy' base image (Ubuntu LTS) for correct PATH setup
-FROM eclipse-temurin:25-jre-jammy
+# --- Stage 2: Runtime Stage ---
+FROM openjdk:25-jdk
 WORKDIR /app
 
-# Copy the built JAR using the correct final name
-COPY --from=builder /app/target/predictor.jar app.jar
+# ⭐ DEFINITIVE FIX: Use the wildcard to capture the file regardless of version/classifier.
+COPY --from=builder /app/target/*.jar app.jar
 
-# Use the simple execution command, trusting the Jammy image's PATH
+# Entrypoint should still be 'java -jar app.jar' (which is now correct)
 CMD ["java", "-jar", "app.jar"]
