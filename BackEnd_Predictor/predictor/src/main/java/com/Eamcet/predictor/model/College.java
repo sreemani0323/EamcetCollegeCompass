@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 @Entity
 // Enforcing the exact case for the table name
-@Table(name = "RawTable")
+@Table(name = "rawtable")
 public class College {
 
     @Id
