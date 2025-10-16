@@ -223,7 +223,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
-    const savedTheme = localStorage.getItem("theme") || 'light'; // Changed default to 'light'
+    // Changed default to 'light'
+    const savedTheme = localStorage.getItem("theme") || 'light'; 
     setTheme(savedTheme);
 
     darkModeSwitch.addEventListener("change", () => {
@@ -528,7 +529,13 @@ document.addEventListener("DOMContentLoaded", function () {
             const categoryDisplay = categoryText ? `(${categoryText})` : '';
 
             const collegeName = college.institution_name || college.name || "Unknown College";
-            const cutoffValue = college.cutoff !== null && college.cutoff !== undefined ? college.cutoff.toLocaleString() : "N/A";
+            
+            // ⭐ FINAL CUTOFF DISPLAY FIX: Show "Data Not Available" for null/zero.
+            // This is the correct logic to handle missing data and prevent 0 display.
+            const cutoffValue = (college.cutoff !== null && college.cutoff !== undefined && college.cutoff > 0) 
+                ? college.cutoff.toLocaleString() 
+                : "Data Not Available";
+                
             const probabilityValue = probability !== null && probability !== undefined ? `${probability.toFixed(0)}%` : "Can't say";
             const probClass = probability !== null ? getProbabilityClass(probability) : "";
             const avgPackage = formatPackage(college.averagePackage);
@@ -672,7 +679,6 @@ document.addEventListener("DOMContentLoaded", function () {
         requestData.showMissingData = showMissingData; // NEW: Pass the missing data flag
 
         // ⭐ FINAL UPDATED FETCH URL: Using the public Render placeholder structure
-        // NOTE: You must replace [YOUR_RENDER_SERVICE_NAME] with your actual Render domain name.
         fetch("https://theeamcetcollegeprediction-2.onrender.com/api/api/predict-colleges", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

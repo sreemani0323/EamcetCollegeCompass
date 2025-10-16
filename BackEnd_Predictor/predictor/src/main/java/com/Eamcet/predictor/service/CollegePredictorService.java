@@ -213,8 +213,9 @@ public class CollegePredictorService {
                                         Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
                                         Double probability = null;
 
-                                        // ⭐ CRITICAL FIX LOGIC: Display actual value. Calculation only runs if value is available.
+                                        Integer finalCutoff = cutoff; // Use actual DB value for display/calculation
 
+                                        // ⭐ FINAL FIX LOGIC: Ensure a non-null cutoff is used for calculation.
                                         if (cutoff != null) {
                                             // Case 1: True Cutoff exists in DB. Use it for calculation.
 
@@ -233,7 +234,6 @@ public class CollegePredictorService {
 
                                         } else if (medianCutoff != null) {
                                             // Case 2: Cutoff is NULL (Missing Data). Estimate probability based on median.
-                                            // This estimate is used for probability only, not for the cutoff display.
 
                                             Integer estimatedCutoff = medianCutoff.intValue();
 
@@ -246,19 +246,18 @@ public class CollegePredictorService {
                                                 probability = Math.max(5.0, probability);
                                             }
 
-                                            // Apply estimation penalty and final caps
+                                            // Apply estimation penalty
                                             probability = Math.max(5.0, Math.min(95.0, probability * 0.85));
 
-                                            // The cutoff displayed MUST be NULL to trigger "N/A" display on frontend.
+                                            // CRITICAL: Set displayed cutoff to null, as it's not the actual cutoff
                                             cutoff = null;
                                         }
-                                        // Case 3: Cutoff is null AND median is null. Probability remains null.
 
 
                                         // Create DTO Result
                                         CollegeResult result = new CollegeResult(
                                                 rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
-                                                rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(), // Cutoff is now NULL if missing
+                                                rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(), // Pass the DB value (or null) for display
                                                 probability, rawTable.getDistrict(), rawTable.getTier(),
                                                 rawTable.getHighestPackage(), rawTable.getAveragePackage(),
                                                 rawTable.getPlacementDriveQuality(),
@@ -269,7 +268,7 @@ public class CollegePredictorService {
                                     }); // End of college stream
                         }) // End of category flatMap
                 ) // End of branch flatMap
-                // Filter out results where the probability couldn't be calculated (i.e., truly missing data)
+                // Filter out results where the probability couldn't be calculated
                 .filter(result -> result.getProbability() != null)
                 .filter(result -> {
                     // Apply Quality and Missing Data Filters
@@ -283,11 +282,10 @@ public class CollegePredictorService {
         if (!predictableResults.isEmpty()) {
             predictableResults.sort(Comparator
                     // 1. PRIMARY SORT: Competitive Proximity (Absolute Difference ASC)
-                    // If cutoff is null (N/A), put it at the bottom (MAX_VALUE)
                     .comparingInt((CollegeResult cr) -> cr.getCutoff() != null ? Math.abs(cr.getCutoff() - rank) : Integer.MAX_VALUE)
 
                     // 2. SECONDARY SORT: Safety/Probability (Highest to Lowest)
-                    .thenComparing(CollegeResult::getProbability, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(CollegeResult::getProbability, Comparator.reverseOrder())
 
                     // 3. TERTIARY SORT: Quality/Tier (Tier 1 first)
                     .thenComparing((CollegeResult cr) -> TIER_SORT_MAP.getOrDefault(cr.getTier(), 99))
