@@ -177,7 +177,6 @@ public class CollegePredictorService {
 
     /**
      * PREDICTION FLOW: Original exhaustive search logic (rank > 0) with refined sorting and capping.
-     * Refactored to use flatMap/stream to eliminate external loops and fix lambda errors.
      */
     public List<CollegeResult> predict(
             final int rank, String branch, String category, String district, String region, String tier,
@@ -212,55 +211,63 @@ public class CollegePredictorService {
                                     .filter(rawTable -> rawTable.getBranchCode().equals(currentBranch))
                                     .map(rawTable -> {
 
-                                        Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
+                                        Integer dbCutoffValue = getCutoffForCategory(rawTable, currentCategory);
                                         Double probability = null;
                                         boolean estimated = false;
 
-                                        // ⭐ FIX: If cutoff is NULL, DO NOT proceed with prediction; return null probability.
-                                        if (cutoff == null) {
-                                            probability = null; // No cutoff means no prediction possible for this category/college
-                                        } else {
-                                            // Prediction calculation block continues only if cutoff is NOT null
-                                            if (rank <= cutoff) {
+                                        Integer finalCutoff = dbCutoffValue; // Initialize final cutoff with the true DB value
+
+                                        // ⭐ CRITICAL FIX LOGIC START: Only proceed with prediction if cutoff is available.
+                                        if (dbCutoffValue != null) {
+                                            // Case 1: True Cutoff exists in DB
+                                            if (rank <= dbCutoffValue) {
                                                 // Safe/Competitive zone
-                                                probability = 85.0 + 10.0 * (cutoff - rank) / (cutoff + 1.0);
+                                                probability = 85.0 + 10.0 * (dbCutoffValue - rank) / (dbCutoffValue + 1.0);
                                             } else {
                                                 // Stricter decay model for "Stretch" zone
-                                                int diff = rank - cutoff;
-
-                                                if (diff >= EFFECTIVE_MAX_DIFF) {
-                                                    // If difference is huge (6000+), force near the minimum
-                                                    probability = 5.0 + 3.0 * (EFFECTIVE_MAX_DIFF / (double)diff);
-                                                } else {
-                                                    // Smooth decay over EFFECTIVE_MAX_DIFF (from 50% down to 8%)
-                                                    probability = 50.0 - (42.0 * ((double)diff / EFFECTIVE_MAX_DIFF));
-                                                }
-
+                                                int diff = rank - dbCutoffValue;
+                                                probability = 50.0 - (42.0 * ((double)diff / EFFECTIVE_MAX_DIFF));
                                                 probability = Math.max(5.0, probability);
                                             }
 
-                                            if (estimated) probability *= 0.85;
+                                        } else {
+                                            // Case 2: Cutoff is NULL (Missing Data). Estimate using median.
+                                            finalCutoff = (int) medianCutoff;
+                                            estimated = true;
 
-                                            // Cap probability at 95.0%
+                                            // Recalculate probability using the estimated value
+                                            if (rank <= finalCutoff) {
+                                                probability = 85.0 + 10.0 * (finalCutoff - rank) / (finalCutoff + 1.0);
+                                            } else {
+                                                int diff = rank - finalCutoff;
+                                                probability = 50.0 - (42.0 * ((double)diff / EFFECTIVE_MAX_DIFF));
+                                                probability = Math.max(5.0, probability);
+                                            }
+
+                                            probability = estimated ? probability * 0.85 : probability; // Apply estimation penalty
+                                        }
+
+                                        // Final probability caps
+                                        if (probability != null) {
                                             probability = Math.max(5.0, Math.min(95.0, probability));
                                         }
+
 
                                         // Create DTO Result
                                         CollegeResult result = new CollegeResult(
                                                 rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
-                                                rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
+                                                rawTable.getAffl(), rawTable.getBranchCode(), finalCutoff, rawTable.getInstcode(),
                                                 probability, rawTable.getDistrict(), rawTable.getTier(),
                                                 rawTable.getHighestPackage(), rawTable.getAveragePackage(),
                                                 rawTable.getPlacementDriveQuality(),
                                                 currentCategory
                                         );
 
-                                        // Return the result for filtering later
                                         return result;
                                     }); // End of college stream
                         }) // End of category flatMap
                 ) // End of branch flatMap
-                .filter(result -> result.getProbability() != null) // Keep only results with a calculated probability
+                .filter(result -> result.getProbability() != null)
                 .filter(result -> {
                     // Apply Quality and Missing Data Filters
                     boolean passesQualityFilter = filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality());
@@ -273,7 +280,6 @@ public class CollegePredictorService {
         if (!predictableResults.isEmpty()) {
             predictableResults.sort(Comparator
                     // 1. PRIMARY SORT: Competitive Proximity (Absolute Difference ASC)
-                    // Must handle null cutoffs by treating them as MAX_VALUE for sorting purposes
                     .comparingInt((CollegeResult cr) -> cr.getCutoff() != null ? Math.abs(cr.getCutoff() - rank) : Integer.MAX_VALUE)
 
                     // 2. SECONDARY SORT: Safety/Probability (Highest to Lowest)
