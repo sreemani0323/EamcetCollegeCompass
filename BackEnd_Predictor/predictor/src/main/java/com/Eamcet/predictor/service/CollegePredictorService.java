@@ -213,21 +213,19 @@ public class CollegePredictorService {
                                     .map(rawTable -> {
 
                                         Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
-                                        Double probability;
+                                        Double probability = null;
                                         boolean estimated = false;
 
-                                        // Prediction calculation block
+                                        // ⭐ FIX: If cutoff is NULL, DO NOT proceed with prediction; return null probability.
                                         if (cutoff == null) {
-                                            cutoff = (int) medianCutoff;
-                                            estimated = true;
-                                        }
-
-                                        if (cutoff != null) {
+                                            probability = null; // No cutoff means no prediction possible for this category/college
+                                        } else {
+                                            // Prediction calculation block continues only if cutoff is NOT null
                                             if (rank <= cutoff) {
                                                 // Safe/Competitive zone
                                                 probability = 85.0 + 10.0 * (cutoff - rank) / (cutoff + 1.0);
                                             } else {
-                                                // ⭐ MODIFIED: Stricter decay model for "Stretch" zone
+                                                // Stricter decay model for "Stretch" zone
                                                 int diff = rank - cutoff;
 
                                                 if (diff >= EFFECTIVE_MAX_DIFF) {
@@ -245,8 +243,6 @@ public class CollegePredictorService {
 
                                             // Cap probability at 95.0%
                                             probability = Math.max(5.0, Math.min(95.0, probability));
-                                        } else {
-                                            probability = null;
                                         }
 
                                         // Create DTO Result
@@ -277,16 +273,17 @@ public class CollegePredictorService {
         if (!predictableResults.isEmpty()) {
             predictableResults.sort(Comparator
                     // 1. PRIMARY SORT: Competitive Proximity (Absolute Difference ASC)
-                    .comparingInt((CollegeResult cr) -> Math.abs(cr.getCutoff() - rank))
+                    // Must handle null cutoffs by treating them as MAX_VALUE for sorting purposes
+                    .comparingInt((CollegeResult cr) -> cr.getCutoff() != null ? Math.abs(cr.getCutoff() - rank) : Integer.MAX_VALUE)
 
                     // 2. SECONDARY SORT: Safety/Probability (Highest to Lowest)
-                    .thenComparing(CollegeResult::getProbability, Comparator.reverseOrder())
+                    .thenComparing(CollegeResult::getProbability, Comparator.nullsLast(Comparator.reverseOrder()))
 
                     // 3. TERTIARY SORT: Quality/Tier (Tier 1 first)
                     .thenComparing((CollegeResult cr) -> TIER_SORT_MAP.getOrDefault(cr.getTier(), 99))
 
                     // 4. QUATERNARY SORT: Cutoff (Highest to Lowest)
-                    .thenComparing(CollegeResult::getCutoff, Comparator.reverseOrder())
+                    .thenComparing(CollegeResult::getCutoff, Comparator.nullsLast(Comparator.reverseOrder()))
             );
         }
 
@@ -376,6 +373,7 @@ public class CollegePredictorService {
     private Integer getCutoffForCategory(RawTable c, String category) {
         if (category == null) return null;
 
+        // NOTE: This uses the Integer wrapper class, ensuring null is passed if the DB is null.
         return switch (category.toLowerCase()) {
             case "oc_boys" -> c.getOcBoys();
             case "oc_girls" -> c.getOcGirls();
