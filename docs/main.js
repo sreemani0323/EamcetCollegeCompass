@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // === Data Definitions for Multi-selects (UPDATED) ===
+    // === Data Definitions for Multi-selects (UNCHANGED) ===
     const optionData = {
         branches: [
             { value: "Civil Engineering", text: "Civil Engineering" },
@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
     let currentLang = "en";
 
-    // === Dark Mode Logic (UNCHANGED) ===
+    // === Dark Mode Logic (UPDATED) ===
     const setTheme = (theme) => {
         if (theme === "dark") {
             body.classList.add("dark-mode");
@@ -459,6 +459,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // === Rendering Logic (UPDATED) ===
     function filterAndRenderColleges() {
+        // ⭐ CRITICAL FIX: Get the current state of the missing data checkbox.
+        const showMissingData = showMissingDataCheckbox.checked;
+
         if (!rawData || rawData.length === 0) {
             collegeListDiv.innerHTML = `<p>${translations[currentLang].noDataText}</p>`;
             sortedData = null;
@@ -473,6 +476,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
             filteredData = filteredData.filter(college =>
                 college.placementDriveQuality && selectedQualities.includes(college.placementDriveQuality.toLowerCase())
+            );
+        }
+
+        // ⭐ FINAL CLIENT-SIDE FILTER: Filter out colleges with missing data IF the box is UNCHECKED.
+        if (!showMissingData) {
+            filteredData = filteredData.filter(college => 
+                // Checks that the cutoff is NOT null AND NOT 0 (the invalid case)
+                (college.cutoff !== null && college.cutoff !== 0) &&
+                college.averagePackage !== null && 
+                college.highestPackage !== null &&
+                college.placementDriveQuality !== null &&
+                college.placementDriveQuality !== "N/A"
             );
         }
 
@@ -531,7 +546,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const collegeName = college.institution_name || college.name || "Unknown College";
             
             // ⭐ FINAL CUTOFF DISPLAY FIX: Show "Data Not Available" for null/zero.
-            // This is the correct logic to handle missing data and prevent 0 display.
+            // This logic is designed to be defensive against the '0' bug.
             const cutoffValue = (college.cutoff !== null && college.cutoff !== undefined && college.cutoff > 0) 
                 ? college.cutoff.toLocaleString() 
                 : "Data Not Available";
@@ -589,6 +604,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     sortBySelect.addEventListener("change", filterAndRenderColleges);
+    showMissingDataCheckbox.addEventListener("change", filterAndRenderColleges); // Ensure filter runs when checkbox changes
+
 
     // === Display/Prediction Logic (UPDATED) ===
     function displayInputSummary(inputs) {
@@ -676,9 +693,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (region) requestData.region = region;
         if (tier) requestData.tier = tier;
         if (placementQualityFilter) requestData.placementQualityFilter = placementQualityFilter;
-        requestData.showMissingData = showMissingData; // NEW: Pass the missing data flag
+        requestData.showMissingData = showMissingData; // Pass the flag to the backend
 
-        // ⭐ FINAL UPDATED FETCH URL: Using the public Render placeholder structure
+        // ⭐ FINAL UPDATED FETCH URL: Use the final working URL
         fetch("https://theeamcetcollegeprediction-2.onrender.com/api/api/predict-colleges", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -701,6 +718,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Pass all request data, including the new flag
                 displayInputSummary(requestData); 
                 
+                // Run client-side filter and render
                 filterAndRenderColleges();
                 showSpinner(false);
             })
