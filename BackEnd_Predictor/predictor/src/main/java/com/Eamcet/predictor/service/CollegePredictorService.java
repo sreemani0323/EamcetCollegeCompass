@@ -204,35 +204,32 @@ public class CollegePredictorService {
                 .flatMap(currentBranch -> filters.effectiveCategories.stream()
                         .flatMap(currentCategory -> {
 
-                            final double medianCutoff = calculateMedianCutoff(branchFilteredRawTables, currentCategory);
+                            final Double medianCutoff = calculateMedianCutoff(branchFilteredRawTables, currentCategory); // Changed return type to Double
 
                             return branchFilteredRawTables.stream()
                                     .filter(rawTable -> rawTable.getBranchCode().equals(currentBranch))
                                     .map(rawTable -> {
 
-                                        Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
+                                        Integer dbCutoffValue = getCutoffForCategory(rawTable, currentCategory);
                                         Double probability = null;
 
-                                        Integer finalCutoff = cutoff; // Use actual DB value for display/calculation
+                                        Integer finalCutoff = dbCutoffValue;
 
-                                        // ⭐ LOGIC FIX: ONLY calculate probability if CUTOFF IS PRESENT.
-                                        if (cutoff != null) {
+                                        // ⭐ CRITICAL FIX LOGIC START: Calculate probability.
+                                        if (dbCutoffValue != null) {
                                             // Case 1: True Cutoff exists in DB
-                                            if (rank <= cutoff) {
+                                            if (rank <= dbCutoffValue) {
                                                 // Safe/Competitive zone
-                                                probability = 85.0 + 10.0 * (cutoff - rank) / (cutoff + 1.0);
+                                                probability = 85.0 + 10.0 * (dbCutoffValue - rank) / (dbCutoffValue + 1.0);
                                             } else {
                                                 // Stricter decay model for "Stretch" zone
-                                                int diff = rank - cutoff;
+                                                int diff = rank - dbCutoffValue;
                                                 probability = 50.0 - (42.0 * ((double)diff / EFFECTIVE_MAX_DIFF));
                                                 probability = Math.max(5.0, probability);
                                             }
-
-                                            // Final probability caps
-                                            probability = Math.max(5.0, Math.min(95.0, probability));
-                                        } else {
-                                            // Case 2: Cutoff is NULL (Missing Data). Calculate probability based on estimation logic.
-                                            finalCutoff = (int) medianCutoff; // Use median for calculation only
+                                        } else if (medianCutoff != null) {
+                                            // Case 2: Cutoff is NULL (Missing Data). Estimate using median.
+                                            finalCutoff = medianCutoff.intValue(); // Use median for calculation only
 
                                             // Recalculate probability using the estimated value (median)
                                             if (rank <= finalCutoff) {
@@ -246,16 +243,21 @@ public class CollegePredictorService {
                                             // Apply estimation penalty
                                             probability = Math.max(5.0, Math.min(95.0, probability * 0.85));
 
-                                            // Reset finalCutoff to null IF the user wants to hide missing data,
-                                            // but keep it as the estimated value to guide the user otherwise.
-                                            finalCutoff = null; // Display N/A or rely on frontend to handle null
+                                            finalCutoff = null; // Set display cutoff back to null (for N/A display)
+                                        }
+                                        // Case 3: Cutoff is null AND median is 0/null. Probability remains null.
+
+
+                                        // Final probability caps
+                                        if (probability != null) {
+                                            probability = Math.max(5.0, Math.min(95.0, probability));
                                         }
 
 
                                         // Create DTO Result
                                         CollegeResult result = new CollegeResult(
                                                 rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
-                                                rawTable.getAffl(), rawTable.getBranchCode(), finalCutoff, rawTable.getInstcode(),
+                                                rawTable.getAffl(), rawTable.getBranchCode(), dbCutoffValue, rawTable.getInstcode(), // Always use dbCutoffValue for the actual cutoff rank
                                                 probability, rawTable.getDistrict(), rawTable.getTier(),
                                                 rawTable.getHighestPackage(), rawTable.getAveragePackage(),
                                                 rawTable.getPlacementDriveQuality(),
@@ -266,6 +268,8 @@ public class CollegePredictorService {
                                     }); // End of college stream
                         }) // End of category flatMap
                 ) // End of branch flatMap
+                // Filter out results where the probability couldn't be calculated
+                .filter(result -> result.getProbability() != null)
                 .filter(result -> {
                     // Apply Quality and Missing Data Filters
                     boolean passesQualityFilter = filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality());
@@ -281,7 +285,7 @@ public class CollegePredictorService {
                     .comparingInt((CollegeResult cr) -> cr.getCutoff() != null ? Math.abs(cr.getCutoff() - rank) : Integer.MAX_VALUE)
 
                     // 2. SECONDARY SORT: Safety/Probability (Highest to Lowest)
-                    .thenComparing(CollegeResult::getProbability, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(CollegeResult::getProbability, Comparator.reverseOrder())
 
                     // 3. TERTIARY SORT: Quality/Tier (Tier 1 first)
                     .thenComparing((CollegeResult cr) -> TIER_SORT_MAP.getOrDefault(cr.getTier(), 99))
@@ -362,7 +366,8 @@ public class CollegePredictorService {
         };
     }
 
-    private double calculateMedianCutoff(List<RawTable> rawTables, String category) {
+    // ⭐ CRITICAL FIX: Changed return type to Double to allow NULL
+    private Double calculateMedianCutoff(List<RawTable> rawTables, String category) {
         List<Integer> cutoffs = rawTables.stream()
                 .map(c -> getCutoffForCategory(c, category))
                 .filter(Objects::nonNull)
@@ -370,8 +375,11 @@ public class CollegePredictorService {
                 .collect(Collectors.toList());
 
         int count = cutoffs.size();
-        if (count == 0) return 0;
-        if (count % 2 == 1) return cutoffs.get(count / 2);
+
+        // ⭐ FINAL FIX: Return null if no cutoffs are found (to prevent estimation errors)
+        if (count == 0) return null;
+
+        if (count % 2 == 1) return (double) cutoffs.get(count / 2);
         return (cutoffs.get(count / 2 - 1) + cutoffs.get(count / 2)) / 2.0;
     }
 
