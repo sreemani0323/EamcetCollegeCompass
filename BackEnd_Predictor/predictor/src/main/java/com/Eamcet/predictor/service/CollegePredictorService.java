@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import jakarta.persistence.criteria.Predicate;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class CollegePredictorService {
@@ -15,16 +16,13 @@ public class CollegePredictorService {
     private final CollegeRepository repo;
     private static final int REQUIRED_TOTAL_COUNT = 95;
 
-    private static final int EFFECTIVE_MAX_DIFF = 6000;
-
-    private static final int MINIMUM_CUTOFF_BUFFER = 10000;
-
     private static final Map<String, Integer> TIER_SORT_MAP = Map.of(
             "Tier 1", 1,
             "Tier 2", 2,
             "Tier 3", 3
     );
 
+    // --- (Sets for ALL_CATEGORIES and ALL_BRANCHES remain the same) ---
     private static final Set<String> ALL_CATEGORIES = Set.of(
             "oc_boys", "oc_girls", "sc_boys", "sc_girls", "st_boys", "st_girls",
             "bca_boys", "bca_girls", "bcb_boys", "bcb_girls", "bcc_boys", "bcc_girls",
@@ -42,27 +40,32 @@ public class CollegePredictorService {
             "CSE (Business Systems)", "Geo-Informatics Engineering"
     );
 
+
     public CollegePredictorService(CollegeRepository repo) {
         this.repo = repo;
     }
 
+    // NEW LOGIC: Added predictionTier to store "Assured", "Reachable", etc.
     public static class CollegeResult {
         private String name; private String region; private String place; private String affl;
         private String branch; private Integer cutoff; private String instcode; private Double probability;
         private String district; private String tier; private String category;
         private Double highestPackage; private Double averagePackage; private String placementDriveQuality;
+        private String predictionTier; // New field
 
         public CollegeResult(String name, String region, String place, String affl, String branch,
                              Integer cutoff, String instcode, Double probability, String district, String tier,
-                             Double highestPackage, Double averagePackage, String placementDriveQuality, String category) {
+                             Double highestPackage, Double averagePackage, String placementDriveQuality, String category, String predictionTier) {
             this.name = name; this.region = region; this.place = place; this.affl = affl;
             this.branch = branch; this.cutoff = cutoff; this.instcode = instcode;
             this.probability = probability; this.district = district; this.tier = tier;
             this.highestPackage = highestPackage; this.averagePackage = averagePackage;
             this.placementDriveQuality = placementDriveQuality;
             this.category = category;
+            this.predictionTier = predictionTier; // New field
         }
 
+        // --- (Getters for all fields, including the new one) ---
         public String getName() { return name; }
         public String getRegion() { return region; }
         public String getPlace() { return place; }
@@ -77,9 +80,11 @@ public class CollegePredictorService {
         public Double getAveragePackage() { return averagePackage; }
         public String getPlacementDriveQuality() { return placementDriveQuality; }
         public String getCategory() { return category; }
+        public String getPredictionTier() { return predictionTier; }
     }
 
     private static class FilterInput {
+        // --- (This class remains the same) ---
         Set<String> userBranches;
         Set<String> userCategories;
         Set<String> userDistricts;
@@ -105,6 +110,7 @@ public class CollegePredictorService {
 
 
     private List<CollegeResult> filterAndSearch(
+            // --- (This method remains the same, as it's for non-rank-based searches) ---
             String branch, String category, String district, String region, String tier,
             String placementQuality) {
 
@@ -127,11 +133,12 @@ public class CollegePredictorService {
                     return new CollegeResult(
                             rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
                             rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
-                            null,
+                            null, // No probability for filter search
                             rawTable.getDistrict(), rawTable.getTier(),
                             rawTable.getHighestPackage(), rawTable.getAveragePackage(),
                             rawTable.getPlacementDriveQuality(),
-                            displayCategory
+                            displayCategory,
+                            null // No prediction tier for filter search
                     );
                 })
                 .filter(result -> filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality()))
@@ -162,71 +169,78 @@ public class CollegePredictorService {
             return Collections.emptyList();
         }
 
-        final List<RawTable> branchFilteredRawTables = rawTables.stream()
+        List<CollegeResult> predictableResults = rawTables.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
+                .flatMap(rawTable -> filters.effectiveCategories.stream().map(currentCategory -> {
+                    Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
+
+                    // NEW LOGIC: Skip if cutoff data is unavailable, as prediction is impossible.
+                    if (cutoff == null || cutoff == 0) {
+                        return null;
+                    }
+
+                    Double probability = null;
+                    String predictionTier = null;
+
+                    // NEW LOGIC: Define boundaries for each prediction tier based on percentages.
+                    double assuredBoundary = cutoff * 0.95;
+                    double reachableBoundary = cutoff * 1.10;
+                    double ambitiousBoundary = cutoff * 1.25;
+
+                    if (rank <= assuredBoundary) {
+                        predictionTier = "Assured";
+                        // Probability from 85% to 99%
+                        double score = ((double) cutoff - rank) / cutoff;
+                        probability = 85.0 + 14.0 * score;
+                        probability = Math.min(99.0, probability); // Cap at 99%
+
+                    } else if (rank <= reachableBoundary) {
+                        predictionTier = "Reachable";
+                        // Probability from 40% to 85%
+                        double range = reachableBoundary - assuredBoundary;
+                        double score = (reachableBoundary - rank) / range;
+                        probability = 40.0 + 45.0 * score;
+
+                    } else if (rank <= ambitiousBoundary) {
+                        predictionTier = "Ambitious";
+                        // Probability from 5% to 40%
+                        double range = ambitiousBoundary - reachableBoundary;
+                        double score = (ambitiousBoundary - rank) / range;
+                        probability = 5.0 + 35.0 * score;
+
+                    }
+
+                    // If none of the above, probability remains null, and the college is filtered out.
+                    if (probability == null) {
+                        return null;
+                    }
+
+                    return new CollegeResult(
+                            rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
+                            rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
+                            probability, rawTable.getDistrict(), rawTable.getTier(),
+                            rawTable.getHighestPackage(), rawTable.getAveragePackage(),
+                            rawTable.getPlacementDriveQuality(),
+                            currentCategory,
+                            predictionTier
+                    );
+                }))
+                .filter(Objects::nonNull) // Filter out null results from the map
+                .filter(result -> filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality()))
                 .collect(Collectors.toList());
 
-        List<CollegeResult> predictableResults = filters.effectiveBranches.stream()
-                .flatMap(currentBranch -> filters.effectiveCategories.stream()
-                        .flatMap(currentCategory -> {
 
-                            return branchFilteredRawTables.stream()
-                                    .filter(rawTable -> rawTable.getBranchCode().equals(currentBranch))
-                                    .map(rawTable -> {
-
-                                        Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
-                                        Double probability = null;
-
-                                        final int minimumCutoffRank = rank - MINIMUM_CUTOFF_BUFFER;
-
-                                        if (cutoff != null && cutoff >= minimumCutoffRank) {
-
-                                            if (rank <= cutoff) {
-                                                probability = 85.0 + 10.0 * (cutoff - rank) / (cutoff + 1.0);
-                                            } else {
-                                                int diff = rank - cutoff;
-                                                probability = 50.0 - (42.0 * ((double)diff / EFFECTIVE_MAX_DIFF));
-                                                probability = Math.max(5.0, probability);
-                                            }
-
-                                            probability = Math.max(5.0, Math.min(95.0, probability));
-
-                                        }
-
-                                        CollegeResult result = new CollegeResult(
-                                                rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
-                                                rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
-                                                probability, rawTable.getDistrict(), rawTable.getTier(),
-                                                rawTable.getHighestPackage(), rawTable.getAveragePackage(),
-                                                rawTable.getPlacementDriveQuality(),
-                                                currentCategory
-                                        );
-
-                                        return result;
-                                    });
-                        })
-                )
-                .filter(result -> result.getProbability() != null)
-                .filter(result -> {
-                    boolean passesQualityFilter = filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality());
-                    return passesQualityFilter;
-                })
-                .collect(Collectors.toList());
-
-        if (!predictableResults.isEmpty()) {
-            predictableResults.sort(Comparator
-                    .comparingInt((CollegeResult cr) -> cr.getCutoff() != null ? Math.abs(cr.getCutoff() - rank) : Integer.MAX_VALUE)
-
-                    .thenComparing(CollegeResult::getProbability, Comparator.reverseOrder())
-
-                    .thenComparing((CollegeResult cr) -> TIER_SORT_MAP.getOrDefault(cr.getTier(), 99))
-
-                    .thenComparing(CollegeResult::getCutoff, Comparator.nullsLast(Comparator.reverseOrder()))
-            );
-        }
+        // NEW LOGIC: Updated sorting to prioritize probability, then college quality, then cutoff.
+        predictableResults.sort(
+                Comparator.comparing(CollegeResult::getProbability, Comparator.reverseOrder())
+                        .thenComparing(cr -> TIER_SORT_MAP.getOrDefault(cr.getTier(), 99))
+                        .thenComparing(CollegeResult::getCutoff, Comparator.nullsLast(Integer::compareTo))
+        );
 
         return predictableResults.stream().limit(REQUIRED_TOTAL_COUNT).collect(Collectors.toList());
     }
+
+    // --- (The helper methods setupFilters, buildSpecifications, parseCsvInput, and getCutoffForCategory remain the same) ---
 
     private FilterInput setupFilters(
             String branch, String category, String district, String region, String tier,
@@ -283,22 +297,6 @@ public class CollegePredictorService {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }
-
-    private Double calculateMedianCutoff(List<RawTable> rawTables, String category) {
-        List<Integer> cutoffs = rawTables.stream()
-                .map(c -> getCutoffForCategory(c, category))
-                .filter(Objects::nonNull)
-                .sorted()
-                .collect(Collectors.toList());
-
-        int count = cutoffs.size();
-
-        if (count == 0) return null;
-
-        if (count % 2 == 1) return (double) cutoffs.get(count / 2);
-        return (cutoffs.get(count / 2 - 1) + cutoffs.get(count / 2)) / 2.0;
-    }
-
 
     private Set<String> parseCsvInput(String csv) {
         if (csv == null || csv.isBlank()) {
