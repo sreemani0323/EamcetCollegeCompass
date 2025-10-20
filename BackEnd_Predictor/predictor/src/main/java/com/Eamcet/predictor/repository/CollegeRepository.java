@@ -7,6 +7,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CollegeRepository extends JpaRepository<RawTable, Integer>, JpaSpecificationExecutor<RawTable> {
-    // The previous @Query method is removed; filtering is now handled dynamically
-    // by the JpaSpecificationExecutor and the Service layer's buildSpecifications.
+
 }

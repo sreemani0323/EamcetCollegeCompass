@@ -3,9 +3,9 @@ package com.Eamcet.predictor.model;
 import jakarta.persistence.*;
 
 @Entity
-// Enforcing the exact case for the table name
 @Table(name = "RawTable")
-public class RawTable {
+public class RawTable
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,7 +35,6 @@ public class RawTable {
     @Column(name = "tier")
     private String tier;
 
-    // --- NEW PLACEMENT FIELDS ---
     @Column(name = "highest_package")
     private Double highestPackage;
 
@@ -45,7 +44,6 @@ public class RawTable {
     @Column(name = "placement_drive_quality")
     private String placementDriveQuality;
 
-    // --- CRITICAL CUTOFF FIELDS ---
     @Column(name = "oc_boys")
     private Integer ocBoys;
     @Column(name = "oc_girls")
@@ -83,73 +81,258 @@ public class RawTable {
     @Column(name = "oc_ews_girls")
     private Integer ocEwsGirls;
 
-    public RawTable() {}
+    public RawTable()
+    {
+    }
 
-    // --- GETTERS AND SETTERS (Full Set) ---
-    public Integer getSno() { return sno; }
-    public void setSno(Integer sno) { this.sno = sno; }
-    public String getInstcode() { return instcode; }
-    public void setInstcode(String instcode) { this.instcode = instcode; }
-    public String getInstitution_name() { return institution_name; }
-    public void setInstitution_name(String institution_name) { this.institution_name = institution_name; }
-    public String getDivision() { return division; }
-    public void setDivision(String division) { this.division = division; }
-    public String getRegion() { return region; }
-    public void setRegion(String region) { this.region = region; }
-    public String getDistrict() { return district; }
-    public void setDistrict(String district) { this.district = district; }
-    public String getPlace() { return place; }
-    public void setPlace(String place) { this.place = place; }
-    public String getAffl() { return affl; }
-    public void setAffl(String affl) { this.affl = affl; }
-    public String getBranchCode() { return branchCode; }
-    public void setBranchCode(String branchCode) { this.branchCode = branchCode; }
-    public String getTier() { return tier; }
-    public void setTier(String tier) { this.tier = tier; }
+    public Integer getSno()
+    {
+        return sno;
+    }
+    public void setSno(Integer sno)
+    {
+        this.sno = sno;
+    }
+    public String getInstcode()
+    {
+        return instcode;
+    }
+    public void setInstcode(String instcode)
+    {
+        this.instcode = instcode;
+    }
+    public String getInstitution_name()
+    {
+        return institution_name;
+    }
+    public void setInstitution_name(String institution_name)
+    {
+        this.institution_name = institution_name;
+    }
+    public String getDivision()
+    {
+        return division;
+    }
+    public void setDivision(String division)
+    {
+        this.division = division;
+    }
+    public String getRegion()
+    {
+        return region;
+    }
+    public void setRegion(String region)
+    {
+        this.region = region;
+    }
+    public String getDistrict()
+    {
+        return district;
+    }
+    public void setDistrict(String district)
+    {
+        this.district = district;
+    }
+    public String getPlace()
+    {
+        return place;
+    }
+    public void setPlace(String place)
+    {
+        this.place = place;
+    }
+    public String getAffl()
+    {
+        return affl;
+    }
+    public void setAffl(String affl)
+    {
+        this.affl = affl;
+    }
+    public String getBranchCode()
+    {
+        return branchCode;
+    }
+    public void setBranchCode(String branchCode)
+    {
+        this.branchCode = branchCode;
+    }
+    public String getTier()
+    {
+        return tier;
+    }
+    public void setTier(String tier)
+    {
+        this.tier = tier;
+    }
 
-    // NEW PLACEMENT GETTERS
-    public Double getHighestPackage() { return highestPackage; }
-    public void setHighestPackage(Double highestPackage) { this.highestPackage = highestPackage; }
-    public Double getAveragePackage() { return averagePackage; }
-    public void setAveragePackage(Double averagePackage) { this.averagePackage = averagePackage; }
-    public String getPlacementDriveQuality() { return placementDriveQuality; }
-    public void setPlacementDriveQuality(String placementDriveQuality) { this.placementDriveQuality = placementDriveQuality; }
+    public Double getHighestPackage()
+    {
+        return highestPackage;
+    }
+    public void setHighestPackage(Double highestPackage)
+    {
+        this.highestPackage = highestPackage;
+    }
+    public Double getAveragePackage()
+    {
+        return averagePackage;
+    }
+    public void setAveragePackage(Double averagePackage)
+    {
+        this.averagePackage = averagePackage;
+    }
+    public String getPlacementDriveQuality()
+    {
+        return placementDriveQuality;
+    }
+    public void setPlacementDriveQuality(String placementDriveQuality)
+    {
+        this.placementDriveQuality = placementDriveQuality;
+    }
 
-    // CUTOFF GETTERS/SETTERS
-    public Integer getOcBoys() { return ocBoys; }
-    public void setOcBoys(Integer ocBoys) { this.ocBoys = ocBoys; }
-    public Integer getOcGirls() { return ocGirls; }
-    public void setOcGirls(Integer ocGirls) { this.ocGirls = ocGirls; }
-    public Integer getScBoys() { return scBoys; }
-    public void setScBoys(Integer scBoys) { this.scBoys = scBoys; }
-    public Integer getScGirls() { return scGirls; }
-    public void setScGirls(Integer scGirls) { this.scGirls = scGirls; }
-    public Integer getStBoys() { return stBoys; }
-    public void setStBoys(Integer stBoys) { this.stBoys = stBoys; }
-    public Integer getStGirls() { return stGirls; }
-    public void setStGirls(Integer stGirls) { this.stGirls = stGirls; }
-    public Integer getBcaBoys() { return bcaBoys; }
-    public void setBcaBoys(Integer bcaBoys) { this.bcaBoys = bcaBoys; }
-    public Integer getBcaGirls() { return bcaGirls; }
-    public void setBcaGirls(Integer bcaGirls) { this.bcaGirls = bcaGirls; }
-    public Integer getBcbBoys() { return bcbBoys; }
-    public void setBcbBoys(Integer bcbBoys) { this.bcbBoys = bcbBoys; }
-    public Integer getBcbGirls() { return bcbGirls; }
-    public void setBcbGirls(Integer bcbGirls) { this.bcbGirls = bcbGirls; }
-    public Integer getBccBoys() { return bccBoys; }
-    public void setBccBoys(Integer bccBoys) { this.bccBoys = bccBoys; }
-    public Integer getBccGirls() { return bccGirls; }
-    public void setBccGirls(Integer bccGirls) { this.bccGirls = bccGirls; }
-    public Integer getBcdBoys() { return bcdBoys; }
-    public void setBcdBoys(Integer bcdBoys) { this.bcdBoys = bcdBoys; }
-    public Integer getBcdGirls() { return bcdGirls; }
-    public void setBcdGirls(Integer bcdGirls) { this.bcdGirls = bcdGirls; }
-    public Integer getBceBoys() { return bceBoys; }
-    public void setBceBoys(Integer bceBoys) { this.bceBoys = bceBoys; }
-    public Integer getBceGirls() { return bceGirls; }
-    public void setBceGirls(Integer bceGirls) { this.bceGirls = bceGirls; }
-    public Integer getOcEwsBoys() { return ocEwsBoys; }
-    public void setOcEwsBoys(Integer ocEwsBoys) { this.ocEwsBoys = ocEwsBoys; }
-    public Integer getOcEwsGirls() { return ocEwsGirls; }
-    public void setOcEwsGirls(Integer ocEwsGirls) { this.ocEwsGirls = ocEwsGirls; }
+    public Integer getOcBoys()
+    {
+        return ocBoys;
+    }
+    public void setOcBoys(Integer ocBoys)
+    {
+        this.ocBoys = ocBoys;
+    }
+    public Integer getOcGirls()
+    {
+        return ocGirls;
+    }
+    public void setOcGirls(Integer ocGirls)
+    {
+        this.ocGirls = ocGirls;
+    }
+    public Integer getScBoys()
+    {
+        return scBoys;
+    }
+    public void setScBoys(Integer scBoys)
+    {
+        this.scBoys = scBoys;
+    }
+    public Integer getScGirls()
+    {
+        return scGirls;
+    }
+    public void setScGirls(Integer scGirls)
+    {
+        this.scGirls = scGirls;
+    }
+    public Integer getStBoys()
+    {
+        return stBoys;
+    }
+    public void setStBoys(Integer stBoys)
+    {
+        this.stBoys = stBoys;
+    }
+    public Integer getStGirls()
+    {
+        return stGirls;
+    }
+    public void setStGirls(Integer stGirls)
+    {
+        this.stGirls = stGirls;
+    }
+    public Integer getBcaBoys()
+    {
+        return bcaBoys;
+    }
+    public void setBcaBoys(Integer bcaBoys)
+    {
+        this.bcaBoys = bcaBoys;
+    }
+    public Integer getBcaGirls()
+    {
+        return bcaGirls;
+    }
+    public void setBcaGirls(Integer bcaGirls)
+    {
+        this.bcaGirls = bcaGirls;
+    }
+    public Integer getBcbBoys()
+    {
+        return bcbBoys;
+    }
+    public void setBcbBoys(Integer bcbBoys)
+    {
+        this.bcbBoys = bcbBoys;
+    }
+    public Integer getBcbGirls()
+    {
+        return bcbGirls;
+    }
+    public void setBcbGirls(Integer bcbGirls)
+    {
+        this.bcbGirls = bcbGirls;
+    }
+    public Integer getBccBoys()
+    {
+        return bccBoys;
+    }
+    public void setBccBoys(Integer bccBoys)
+    {
+        this.bccBoys = bccBoys;
+    }
+    public Integer getBccGirls()
+    {
+        return bccGirls;
+    }
+    public void setBccGirls(Integer bccGirls)
+    {
+        this.bccGirls = bccGirls;
+    }
+    public Integer getBcdBoys()
+    {
+        return bcdBoys;
+    }
+    public void setBcdBoys(Integer bcdBoys)
+    {
+        this.bcdBoys = bcdBoys;
+    }
+    public Integer getBcdGirls()
+    {
+        return bcdGirls;
+    }
+    public void setBcdGirls(Integer bcdGirls)
+    {
+        this.bcdGirls = bcdGirls;
+    }
+    public Integer getBceBoys()
+    {
+        return bceBoys;
+    }
+    public void setBceBoys(Integer bceBoys)
+    {
+        this.bceBoys = bceBoys;
+    }
+    public Integer getBceGirls()
+    {
+        return bceGirls;
+    }
+    public void setBceGirls(Integer bceGirls)
+    {
+        this.bceGirls = bceGirls;
+    }
+    public Integer getOcEwsBoys()
+    {
+        return ocEwsBoys;
+    }
+    public void setOcEwsBoys(Integer ocEwsBoys)
+    {
+        this.ocEwsBoys = ocEwsBoys;
+    }
+    public Integer getOcEwsGirls()
+    {
+        return ocEwsGirls;
+    }
+    public void setOcEwsGirls(Integer ocEwsGirls)
+    {
+        this.ocEwsGirls = ocEwsGirls;
+    }
 }

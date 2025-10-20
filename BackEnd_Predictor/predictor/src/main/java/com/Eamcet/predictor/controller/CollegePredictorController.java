@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function; // Explicitly import Function
+import java.util.function.Function;
 
 @RestController
 @RequestMapping("/api")
@@ -23,7 +23,6 @@ public class CollegePredictorController {
 
     @PostMapping("/predict-colleges")
     public ResponseEntity<?> predict(@RequestBody Map<String, Object> payload) {
-        // Helper function for safe string extraction and normalization
         Function<String, String> extractAndNormalize = key ->
                 Optional.ofNullable(payload.get(key))
                         .filter(obj -> obj instanceof String)
@@ -34,7 +33,6 @@ public class CollegePredictorController {
         Integer rank = null;
 
         try {
-            // 1. Safely Extract RANK: Rank is now OPTIONAL
             Object rankObj = payload.get("rank");
             if (rankObj instanceof Number) {
                 int inputRank = ((Number) rankObj).intValue();
@@ -43,18 +41,13 @@ public class CollegePredictorController {
                 }
             }
 
-            // 2. Extract OPTIONAL fields
             String branch = extractAndNormalize.apply("branch");
-            String category = extractAndNormalize.apply("category"); // This is the combined Quota_Gender value
+            String category = extractAndNormalize.apply("category");
             String district = extractAndNormalize.apply("district");
             String region = extractAndNormalize.apply("region");
             String tier = extractAndNormalize.apply("tier");
             String placementQualityFilter = extractAndNormalize.apply("placementQualityFilter");
 
-            // ⭐ SHOW MISSING DATA LOGIC REMOVED: Since the filtering is now client-side,
-            // the service no longer needs this boolean flag.
-
-            // 3. CRITICAL VALIDATION: Ensure at least rank OR a filter is present
             boolean hasFilters = branch != null || category != null || district != null || region != null || tier != null || placementQualityFilter != null;
 
             if (rank == null && !hasFilters) {
@@ -64,7 +57,6 @@ public class CollegePredictorController {
                 ));
             }
 
-            // 4. Call the unified service method with the required 7 arguments
             List<CollegeResult> results = service.findColleges(
                     rank,
                     branch,
@@ -73,7 +65,6 @@ public class CollegePredictorController {
                     region,
                     tier,
                     placementQualityFilter
-                    // Removed 'showMissingData' argument to resolve compilation error
             );
 
             return ResponseEntity.ok(results);
