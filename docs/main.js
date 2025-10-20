@@ -89,11 +89,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const loadingSpinner = document.getElementById("loadingSpinner");
     const langSelect = document.getElementById("langSelect");
     
-    // NEW: Quota/Gender/Missing Data Variables
+    // NEW: Quota/Gender Variables (REMOVED UNNECESSARY 'showMissingDataCheckbox')
     const quotaInput = document.getElementById("quota");
     const genderInput = document.getElementById("gender");
     const finalCategoryInput = document.getElementById("category");
-    const showMissingDataCheckbox = document.getElementById("showMissingData");
 
     let rawData = [];
     let filteredData = [];
@@ -151,8 +150,7 @@ document.addEventListener("DOMContentLoaded", function () {
             labelDistrict: "District (Optional):", selectDistrict: "Select District", labelRegion: "Region (Optional):", selectRegion: "Select Region",
             labelTier: "Tier (Optional):", selectTier: "Select Tier", labelPlacementQuality: "Placement Drives Quality (Optional):", selectQuality: "Select Quality",
             
-            // NEW KEY: Missing Data Switch
-            showMissingDataLabel: "Show Colleges with Missing Data (Cutoff/Package/Quality)", 
+            // NOTE: showMissingDataLabel removed
             
             btnPredict: "Predict Colleges", btnClear: "Clear Filters", disclaimerStrong: "Disclaimer:",
             disclaimerText: "Prediction is based on previous years' cutoff data and trends. Actual cutoffs may vary due to factors such as applicants and seat availability.",
@@ -184,8 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
             labelDistrict: "జిల్లా (ఐచ్ఛికం):", selectDistrict: "జిల్లా ఎంచుకోండి", labelRegion: "ప్రాంతం (ఐచ్ఛికం):", selectRegion: "ప్రాంతం ఎంచుకోండి",
             labelTier: "టియర్ (ఐచ్ఛికం):", selectTier: "టియర్ ఎంచుకోండి", labelPlacementQuality: "ప్లేస్‌మెంట్ నాణ్యత (ఐచ్ఛికం):", selectQuality: "నాణ్యతను ఎంచుకోండి",
 
-            // NEW KEY: Missing Data Switch
-            showMissingDataLabel: "మిస్ అయిన డేటా ఉన్న కళాశాలలను చూపించు (కటాఫ్/ప్యాకేజ్/నాణ్యత)", 
+            // NOTE: showMissingDataLabel is REMOVED
 
             btnPredict: "కళాశాలలను అంచనా వేయి", btnClear: "ఫిల్టర్లు క్లియర్ చేయండి", disclaimerStrong: "అనుమతి:",
             disclaimerText: "గత సంవత్సరాల కటాఫ్ డేటా మరియు ట్రెండ్స్ ఆధారంగా అంచనా. వాస్తవ కటాఫ్లు దరఖాస్తుదారులు మరియు సీట్ల లభ్యతపై ఆధారపడి మారవచ్చు.",
@@ -237,6 +234,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // === Translation Logic (UNCHANGED) ===
     function translateUI() {
+        // ... (Translation logic remains unchanged)
         const elems = document.querySelectorAll("[data-lang-key]");
         elems.forEach((el) => {
             const key = el.getAttribute("data-lang-key");
@@ -287,6 +285,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // === Multi-select Logic (UPDATED) ===
     function updateSelectedItemsDisplay(dropdown, selectedValues, selectedTexts = []) {
+        // ... (Logic remains unchanged)
         const selectedItemsSpan = dropdown.querySelector(".selected-items");
         const placeholderKey = dropdown.getAttribute('data-placeholder-key');
         const placeholderText = translations[currentLang][placeholderKey] || "Select...";
@@ -301,6 +300,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function toggleDropdown(dropdown) {
+        // ... (Logic remains unchanged)
         document.querySelectorAll('.multiselect-dropdown.open').forEach(openDropdown => {
             if (openDropdown !== dropdown) {
                 openDropdown.classList.remove('open');
@@ -311,6 +311,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function initializeMultiselect(dropdown) {
+        // ... (Logic remains unchanged)
         const id = dropdown.getAttribute('data-id');
         const hiddenInput = document.getElementById(id);
         const optionsList = dropdown.querySelector('.options-list');
@@ -459,8 +460,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // === Rendering Logic (UPDATED) ===
     function filterAndRenderColleges() {
-        // ⭐ CRITICAL FIX: Get the current state of the missing data checkbox.
-        const showMissingData = showMissingDataCheckbox.checked;
+        // The showMissingData checkbox is REMOVED from the HTML
+        // We default to showing only complete data (filtering missing data out)
 
         if (!rawData || rawData.length === 0) {
             collegeListDiv.innerHTML = `<p>${translations[currentLang].noDataText}</p>`;
@@ -479,17 +480,17 @@ document.addEventListener("DOMContentLoaded", function () {
             );
         }
 
-        // ⭐ FINAL CLIENT-SIDE FILTER: Filter out colleges with missing data IF the box is UNCHECKED.
-        if (!showMissingData) {
-            filteredData = filteredData.filter(college => 
-                // Checks that the cutoff is NOT null AND NOT 0 (the invalid case)
-                (college.cutoff !== null && college.cutoff !== 0) &&
-                college.averagePackage !== null && 
-                college.highestPackage !== null &&
-                college.placementDriveQuality !== null &&
-                college.placementDriveQuality !== "N/A"
-            );
-        }
+        // ⭐ FINAL CLIENT-SIDE FILTER: Filter out all colleges with missing data.
+        // This implements the requirement: missing data is NEVER shown.
+        filteredData = filteredData.filter(college => 
+            // Checks that the cutoff is NOT null AND NOT 0 (the invalid case)
+            (college.cutoff !== null && college.cutoff !== 0) &&
+            college.averagePackage !== null && 
+            college.highestPackage !== null &&
+            college.placementDriveQuality !== null &&
+            college.placementDriveQuality !== "N/A"
+        );
+        
 
         const selectedSort = sortBySelect.value || (rawData[0].probability !== null ? "probability-desc" : "cutoff-asc");
         sortBySelect.value = selectedSort;
@@ -604,12 +605,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     sortBySelect.addEventListener("change", filterAndRenderColleges);
-    showMissingDataCheckbox.addEventListener("change", filterAndRenderColleges); // Ensure filter runs when checkbox changes
+    // showMissingDataCheckbox event listener is REMOVED
 
 
     // === Display/Prediction Logic (UPDATED) ===
     function displayInputSummary(inputs) {
-        const { rank, branch, category, district, region, tier, placementQualityFilter, showMissingData } = inputs;
+        // Removed showMissingData from parameter list
+        const { rank, branch, category, district, region, tier, placementQualityFilter } = inputs; 
         
         const getLabel = (value, dataSource) => {
             if (!value) return 'N/A';
@@ -643,7 +645,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <p><strong>Region(s):</strong> ${regionDisplay}</p>
                 <p><strong>Tier(s):</strong> ${tierDisplay}</p>
                 <p><strong>Placement Quality Filter(s):</strong> ${qualityDisplay}</p>
-                <p><strong>Missing Data:</strong> ${showMissingData ? 'Shown' : 'Hidden'}</p>
+                <!-- MISSING DATA LINE REMOVED HERE -->
             </div>
         `;
 
@@ -671,8 +673,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const region = document.getElementById("region").value || null;
         const tier = document.getElementById("tier").value || null;
         const placementQualityFilter = document.getElementById("placementQualityFilter").value || null;
-        const showMissingData = showMissingDataCheckbox.checked; // NEW FLAG
-        
+        // showMissingData variable REMOVED
+
         // 2. MODIFIED VALIDATION LOGIC
         const isRankValid = rank !== null && !isNaN(rank) && rank > 0;
         const hasFilters = branch || category || district || region || tier || placementQualityFilter;
@@ -693,7 +695,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (region) requestData.region = region;
         if (tier) requestData.tier = tier;
         if (placementQualityFilter) requestData.placementQualityFilter = placementQualityFilter;
-        requestData.showMissingData = showMissingData; // Pass the flag to the backend
+        // requestData.showMissingData REMOVED, as backend now assumes strict filter
 
         // ⭐ FINAL UPDATED FETCH URL: Use the final working URL
         fetch("https://theeamcetcollegeprediction-2.onrender.com/api/api/predict-colleges", {
@@ -745,8 +747,7 @@ document.addEventListener("DOMContentLoaded", function () {
         filteredData = [];
         sortedData = null;
         
-        // Reset the missing data checkbox to default (checked)
-        showMissingDataCheckbox.checked = true;
+        // Reset the missing data checkbox variable (removed)
 
         multiselectContainers.forEach(dropdown => {
             const hiddenInput = document.getElementById(dropdown.getAttribute('data-id'));
@@ -801,7 +802,6 @@ document.addEventListener("DOMContentLoaded", function () {
         a.href = url;
         a.download = "EAMCET_College_Predictions.csv";
         document.body.appendChild(a);
-        a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
