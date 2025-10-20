@@ -92,7 +92,7 @@ public class CollegePredictorService {
         Set<String> userQualities;
         Set<String> effectiveBranches;
         Set<String> effectiveCategories;
-        Boolean showMissingData;
+        // BOOLEAN showMissingData REMOVED
     }
 
     /**
@@ -100,13 +100,13 @@ public class CollegePredictorService {
      */
     public List<CollegeResult> findColleges(
             Integer rank, String branch, String category, String district, String region, String tier,
-            String placementQuality, Boolean showMissingData) {
+            String placementQuality) { // showMissingData parameter removed
 
         if (rank != null && rank > 0) {
-            return predict(rank, branch, category, district, region, tier, placementQuality, showMissingData);
+            return predict(rank, branch, category, district, region, tier, placementQuality);
         }
         else {
-            return filterAndSearch(branch, category, district, region, tier, placementQuality, showMissingData);
+            return filterAndSearch(branch, category, district, region, tier, placementQuality);
         }
     }
 
@@ -116,10 +116,10 @@ public class CollegePredictorService {
      */
     private List<CollegeResult> filterAndSearch(
             String branch, String category, String district, String region, String tier,
-            String placementQuality, Boolean showMissingData) {
+            String placementQuality) { // showMissingData parameter removed
 
         // 1. Parse and set up filters
-        final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, showMissingData);
+        final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality);
 
         // 2. Fetch Colleges based on structural filters
         Specification<RawTable> spec = buildSpecifications(filters.userDistricts, filters.userRegions, filters.userTiers);
@@ -149,16 +149,8 @@ public class CollegePredictorService {
                             displayCategory
                     );
                 })
-                .filter(result -> {
-                    // Apply Placement Quality Filter
-                    boolean passesQualityFilter = filters.userQualities.isEmpty() ||
-                            filters.userQualities.contains(result.getPlacementDriveQuality());
-
-                    // Apply Missing Data Filter (Uses the corrected logic)
-                    boolean passesMissingDataFilter = applyMissingDataFilter(result, filters.showMissingData);
-
-                    return passesQualityFilter && passesMissingDataFilter;
-                })
+                // ⭐ FINAL LOGIC: Apply Quality Filter (No missing data filter needed here)
+                .filter(result -> filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality()))
                 .collect(Collectors.toList());
 
 
@@ -175,16 +167,16 @@ public class CollegePredictorService {
     }
 
     /**
-     * PREDICTION FLOW: Calculates probability and handles missing cutoffs/filters.
+     * PREDICTION FLOW: Calculates probability, but filters out missing cutoffs.
      */
     public List<CollegeResult> predict(
             final int rank, String branch, String category, String district, String region, String tier,
-            String placementQuality, Boolean showMissingData) {
+            String placementQuality) { // showMissingData parameter removed
 
         if (rank <= 0) throw new IllegalArgumentException("Rank must be > 0");
 
         // 1. Parse and set up filters
-        final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, showMissingData);
+        final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality);
 
         // 2. Fetch Colleges (Filtered by structural filters first)
         Specification<RawTable> spec = buildSpecifications(filters.userDistricts, filters.userRegions, filters.userTiers);
@@ -204,8 +196,6 @@ public class CollegePredictorService {
                 .flatMap(currentBranch -> filters.effectiveCategories.stream()
                         .flatMap(currentCategory -> {
 
-                            final Double medianCutoff = calculateMedianCutoff(branchFilteredRawTables, currentCategory);
-
                             return branchFilteredRawTables.stream()
                                     .filter(rawTable -> rawTable.getBranchCode().equals(currentBranch))
                                     .map(rawTable -> {
@@ -213,11 +203,8 @@ public class CollegePredictorService {
                                         Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
                                         Double probability = null;
 
-                                        Integer finalCutoff = cutoff; // Use actual DB value for display/calculation
-
-                                        // ⭐ FINAL FIX LOGIC: Ensure a non-null cutoff is used for calculation.
+                                        // ⭐ FINAL LOGIC: Calculation proceeds ONLY if cutoff is present.
                                         if (cutoff != null) {
-                                            // Case 1: True Cutoff exists in DB. Use it for calculation.
 
                                             if (rank <= cutoff) {
                                                 // Safe/Competitive zone
@@ -231,33 +218,14 @@ public class CollegePredictorService {
 
                                             // Final probability caps
                                             probability = Math.max(5.0, Math.min(95.0, probability));
-
-                                        } else if (medianCutoff != null) {
-                                            // Case 2: Cutoff is NULL (Missing Data). Estimate probability based on median.
-
-                                            Integer estimatedCutoff = medianCutoff.intValue();
-
-                                            // Recalculate probability using the estimated value (median)
-                                            if (rank <= estimatedCutoff) {
-                                                probability = 85.0 + 10.0 * (estimatedCutoff - rank) / (estimatedCutoff + 1.0);
-                                            } else {
-                                                int diff = rank - estimatedCutoff;
-                                                probability = 50.0 - (42.0 * ((double)diff / EFFECTIVE_MAX_DIFF));
-                                                probability = Math.max(5.0, probability);
-                                            }
-
-                                            // Apply estimation penalty
-                                            probability = Math.max(5.0, Math.min(95.0, probability * 0.85));
-
-                                            // CRITICAL: Set displayed cutoff to null, as it's not the actual cutoff
-                                            cutoff = null;
                                         }
+                                        // If cutoff is null, probability remains null, and the record will be filtered out.
 
 
                                         // Create DTO Result
                                         CollegeResult result = new CollegeResult(
                                                 rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
-                                                rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(), // Pass the DB value (or null) for display
+                                                rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(), // Pass the original DB value (null if missing)
                                                 probability, rawTable.getDistrict(), rawTable.getTier(),
                                                 rawTable.getHighestPackage(), rawTable.getAveragePackage(),
                                                 rawTable.getPlacementDriveQuality(),
@@ -268,13 +236,13 @@ public class CollegePredictorService {
                                     }); // End of college stream
                         }) // End of category flatMap
                 ) // End of branch flatMap
-                // Filter out results where the probability couldn't be calculated
+                // ⭐ CRITICAL FILTER: Filter out results where the probability couldn't be calculated (null cutoff)
                 .filter(result -> result.getProbability() != null)
                 .filter(result -> {
-                    // Apply Quality and Missing Data Filters
+                    // Apply Quality Filter
                     boolean passesQualityFilter = filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality());
-                    boolean passesMissingDataFilter = applyMissingDataFilter(result, filters.showMissingData);
-                    return passesQualityFilter && passesMissingDataFilter;
+                    // NO Missing Data filter needed here, as the probability filter already removes records with null cutoffs.
+                    return passesQualityFilter;
                 })
                 .collect(Collectors.toList());
 
@@ -298,24 +266,10 @@ public class CollegePredictorService {
         return predictableResults.stream().limit(REQUIRED_TOTAL_COUNT).collect(Collectors.toList());
     }
 
-    // NEW HELPER METHOD: Apply filter for missing data (CORRECTED)
-    private boolean applyMissingDataFilter(CollegeResult result, boolean showMissingData) {
-        if (showMissingData) {
-            return true;
-        }
-
-        // When 'Show Missing Data' is OFF, filter out any result where the cutoff is NULL
-        return result.getCutoff() != null &&
-                result.getAveragePackage() != null &&
-                result.getHighestPackage() != null &&
-                result.getPlacementDriveQuality() != null &&
-                !result.getPlacementDriveQuality().equalsIgnoreCase("N/A");
-    }
-
-    // MODIFIED setupFilters signature and logic (UNCHANGED)
+    // MODIFIED setupFilters signature and logic (showMissingData parameter REMOVED)
     private FilterInput setupFilters(
             String branch, String category, String district, String region, String tier,
-            String placementQuality, Boolean showMissingData) {
+            String placementQuality) {
 
         FilterInput filters = new FilterInput();
 
@@ -329,7 +283,7 @@ public class CollegePredictorService {
         filters.effectiveBranches = filters.userBranches.isEmpty() ? ALL_BRANCHES : filters.userBranches;
         filters.effectiveCategories = filters.userCategories.isEmpty() ? ALL_CATEGORIES : filters.userCategories;
 
-        filters.showMissingData = showMissingData != null ? showMissingData : true;
+        // filters.showMissingData removed
 
         return filters;
     }
@@ -366,7 +320,7 @@ public class CollegePredictorService {
         };
     }
 
-    // CRITICAL FIX: Changed return type to Double to allow NULL
+    // This method is no longer used for estimation, but for safe data retrieval.
     private Double calculateMedianCutoff(List<RawTable> rawTables, String category) {
         List<Integer> cutoffs = rawTables.stream()
                 .map(c -> getCutoffForCategory(c, category))
@@ -376,7 +330,7 @@ public class CollegePredictorService {
 
         int count = cutoffs.size();
 
-        // FINAL FIX: Return null if no cutoffs are found (to prevent estimation errors)
+        // Return null if no cutoffs are found.
         if (count == 0) return null;
 
         if (count % 2 == 1) return (double) cutoffs.get(count / 2);
