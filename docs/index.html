@@ -4,206 +4,220 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>EAMCET College Predictor</title>
-
-    <!-- NOTE: Renamed to styles.css in a previous step -->
-    <link rel="stylesheet" href="style.css" /> 
-
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
 </head>
 <body>
-    <div class="main-content">
-        <div class="container">
-            <div class="header-content">
-                <h1 id="siteTitle">EAMCET Predictor <i class="fas fa-graduation-cap"></i></h1>
 
-                <div class="header-right">
-                    <div class="lang-control">
-                        <label for="langSelect">Language:</label>
-                        <select id="langSelect">
-                            <option value="en">English</option>
-                            <option value="te">తెలుగు</option>
-                        </select>
+    <header class="page-header">
+        <div class="header-container">
+            <a href="#" class="site-title-link">
+                <h1 id="siteTitle"><i class="fas fa-graduation-cap"></i> EAMCET Predictor</h1>
+            </a>
+            <div class="header-controls">
+                <div class="lang-control-wrapper">
+                    <i class="fa-solid fa-globe"></i>
+                    <select id="langSelect" aria-label="Select Language">
+                        <option value="en">English</option>
+                        <option value="te">తెలుగు</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down lang-arrow"></i>
+                </div>
+                <label class="dark-mode-toggle" for="darkModeSwitch" title="Toggle Dark/Light Mode">
+                    <input type="checkbox" id="darkModeSwitch" />
+                    <div class="toggle-display">
+                        <div class="toggle-circle">
+                            <i class="fa-solid fa-sun"></i>
+                            <i class="fa-solid fa-moon"></i>
+                        </div>
                     </div>
-                    <div class="dark-mode-toggle">
-                        <input type="checkbox" id="darkModeSwitch" class="toggle-checkbox" />
-                        <label for="darkModeSwitch" class="toggle-label" title="Toggle Dark/Light Mode"></label>
-                    </div>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero-section">
+            <div class="hero-content">
+                <h2>College Compass <i class="fa-solid fa-compass-drafting"></i></h2>
+                <p>Get instant college and branch predictions from your EAMCET rank.</p>
+                <div class="hero-rank-input">
+                    <i class="fa-solid fa-ranking-star"></i>
+                    <input type="number" id="rank" name="rank" placeholder="Enter your rank here (↓)" min="1" />
+                    <button type="button" id="predictButton" class="btn-primary" data-lang-key="btnPredict">
+                        Predict Now <i class="fa-solid fa-arrow-right"></i>
+                    </button>
                 </div>
             </div>
+        </section>
 
-            <!-- Removed .top-controls as it contained only the language selector, which is now in the header -->
-
+        <div class="container">
             <form id="predictForm" class="predict-form" autocomplete="off">
-                <div class="form-group span-2">
-                    <label for="rank" data-lang-key="labelRank">EAMCET Rank:</label>
-                    <input type="number" id="rank" name="rank" placeholder="Enter your rank" min="1" />
-                </div>
-
-                <div class="form-group">
-                    <label for="desiredBranch" data-lang-key="labelBranch">Desired Branch (Optional):</label>
-                    <div class="multiselect-dropdown" data-id="desiredBranch" data-placeholder-key="selectBranch">
-                        <div class="multiselect-input">
-                            <span class="selected-items" data-lang-key="selectBranch">Select Branch</span>
-                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                <h3 class="form-title" id="filtersHeader" role="button" tabindex="0" aria-expanded="false">
+                    <span><i class="fa-solid fa-sliders"></i> Refine Your Search</span>
+                    <i class="fa-solid fa-chevron-down toggle-icon"></i>
+                </h3>
+                
+                <div id="filtersContainer" class="filters-container">
+                    <div class="filters-content-wrapper">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="desiredBranch" data-lang-key="labelBranch">Branch Preference</label>
+                                <div class="multiselect-dropdown" data-id="desiredBranch" data-placeholder-key="selectBranch">
+                                    <div class="multiselect-input"><span class="selected-items" data-original-text="Select Branch">Select Branch</span><i class="fas fa-chevron-down dropdown-arrow"></i></div>
+                                    <div class="multiselect-options-container">
+                                        <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
+                                        <div class="options-list" data-source="branches"></div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="desiredBranch" name="desiredBranch" />
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="quota" data-lang-key="labelQuota">Reservation Quota</label>
+                                <div class="multiselect-dropdown" data-id="quota" data-placeholder-key="selectQuota" data-single-select="true" data-style="list">
+                                    <div class="multiselect-input"><span class="selected-items" data-original-text="Select Quota">Select Quota</span><i class="fas fa-chevron-down dropdown-arrow"></i></div>
+                                    <div class="multiselect-options-container"><div class="options-list" data-source="quotas"></div></div>
+                                </div>
+                                <input type="hidden" id="quota" name="quota" />
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="gender" data-lang-key="labelGender">Gender</label>
+                                <div class="multiselect-dropdown" data-id="gender" data-placeholder-key="selectGender" data-single-select="true" data-style="list">
+                                    <div class="multiselect-input"><span class="selected-items" data-original-text="Select Gender">Select Gender</span><i class="fas fa-chevron-down dropdown-arrow"></i></div>
+                                    <div class="multiselect-options-container"><div class="options-list" data-source="genders"></div></div>
+                                </div>
+                                <input type="hidden" id="gender" name="gender" />
+                            </div>
                         </div>
-                        <div class="multiselect-options-container">
-                            <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
-                            <div class="options-list" data-source="branches"></div>
+
+                        <div class="form-divider"><span>Advanced Filters</span></div>
+
+                        <div class="form-grid advanced-grid">
+                             <div class="form-group">
+                                <label for="region" data-lang-key="labelRegion"><i class="fa-solid fa-map"></i> Region</label>
+                                <div class="multiselect-dropdown" data-id="region" data-placeholder-key="selectRegion">
+                                     <div class="multiselect-input"><span class="selected-items" data-original-text="Select Region">Select Region</span><i class="fas fa-chevron-down dropdown-arrow"></i></div>
+                                    <div class="multiselect-options-container">
+                                        <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
+                                        <div class="options-list" data-source="regions"></div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="region" name="region" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="district" data-lang-key="labelDistrict"><i class="fa-solid fa-map-pin"></i> District</label>
+                                <div class="multiselect-dropdown" data-id="district" data-placeholder-key="selectDistrict">
+                                     <div class="multiselect-input"><span class="selected-items" data-original-text="Select District">Select District</span><i class="fas fa-chevron-down dropdown-arrow"></i></div>
+                                    <div class="multiselect-options-container">
+                                        <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
+                                        <div class="options-list" data-source="districts"></div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="district" name="district" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="tier" data-lang-key="labelTier"><i class="fa-solid fa-layer-group"></i> College Tier</label>
+                                <div class="multiselect-dropdown" data-id="tier" data-placeholder-key="selectTier">
+                                    <div class="multiselect-input"><span class="selected-items" data-original-text="Select Tier">Select Tier</span><i class="fas fa-chevron-down dropdown-arrow"></i></div>
+                                    <div class="multiselect-options-container">
+                                        <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
+                                        <div class="options-list" data-source="tiers"></div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="tier" name="tier" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="placementQualityFilter" data-lang-key="labelPlacementQuality"><i class="fa-solid fa-medal"></i> Placement Quality</label>
+                                <div class="multiselect-dropdown" data-id="placementQualityFilter" data-placeholder-key="selectQuality">
+                                    <div class="multiselect-input"><span class="selected-items" data-original-text="Select Quality">Select Quality</span><i class="fas fa-chevron-down dropdown-arrow"></i></div>
+                                    <div class="multiselect-options-container">
+                                        <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
+                                        <div class="options-list" data-source="placementQuality"></div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="placementQualityFilter" name="placementQualityFilter" />
+                            </div>
                         </div>
                     </div>
-                    <input type="hidden" id="desiredBranch" name="desiredBranch" value="" />
                 </div>
                 
-                <div class="form-group">
-                    <label for="quota" data-lang-key="labelQuota">Quota (Optional):</label>
-                    <div class="multiselect-dropdown" data-id="quota" data-placeholder-key="selectQuota" data-single-select="true">
-                        <div class="multiselect-input">
-                            <span class="selected-items" data-lang-key="selectQuota">Select Quota</span>
-                            <i class="fas fa-chevron-down dropdown-arrow"></i>
-                        </div>
-                        <div class="multiselect-options-container">
-                            <div class="options-list" data-source="quotas"></div> 
-                        </div>
-                    </div>
-                    <input type="hidden" id="quota" name="quota" value="" />
-                </div>
-                
-                <div class="form-group">
-                    <label for="gender" data-lang-key="labelGender">Gender (Optional):</label>
-                    <div class="multiselect-dropdown" data-id="gender" data-placeholder-key="selectGender" data-single-select="true">
-                        <div class="multiselect-input">
-                            <span class="selected-items" data-lang-key="selectGender">Select Gender</span>
-                            <i class="fas fa-chevron-down dropdown-arrow"></i>
-                        </div>
-                        <div class="multiselect-options-container">
-                            <div class="options-list" data-source="genders"></div> 
-                        </div>
-                    </div>
-                    <input type="hidden" id="gender" name="gender" value="" />
-                </div>
+                <input type="hidden" id="category" name="category" /> 
 
-                <input type="hidden" id="category" name="category" value="" /> 
-
-                <div class="form-group">
-                    <label for="district" data-lang-key="labelDistrict">District (Optional):</label>
-                    <div class="multiselect-dropdown" data-id="district" data-placeholder-key="selectDistrict">
-                        <div class="multiselect-input">
-                            <span class="selected-items" data-lang-key="selectDistrict">Select District</span>
-                            <i class="fas fa-chevron-down dropdown-arrow"></i>
-                        </div>
-                        <div class="multiselect-options-container">
-                            <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
-                            <div class="options-list" data-source="districts"></div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="district" name="district" value="" />
-                </div>
-
-                <div class="form-group">
-                    <label for="region" data-lang-key="labelRegion">Region (Optional):</label>
-                    <div class="multiselect-dropdown" data-id="region" data-placeholder-key="selectRegion">
-                        <div class="multiselect-input">
-                            <span class="selected-items" data-lang-key="selectRegion">Select Region</span>
-                            <i class="fas fa-chevron-down dropdown-arrow"></i>
-                        </div>
-                        <div class="multiselect-options-container">
-                            <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
-                            <div class="options-list" data-source="regions"></div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="region" name="region" value="" />
-                </div>
-
-                <div class="form-group">
-                    <label for="tier" data-lang-key="labelTier">Tier (Optional):</label>
-                    <div class="multiselect-dropdown" data-id="tier" data-placeholder-key="selectTier">
-                        <div class="multiselect-input">
-                            <span class="selected-items" data-lang-key="selectTier">Select Tier</span>
-                            <i class="fas fa-chevron-down dropdown-arrow"></i>
-                        </div>
-                        <div class="multiselect-options-container">
-                            <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
-                            <div class="options-list" data-source="tiers"></div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="tier" name="tier" value="" />
-                </div>
-
-                <div class="form-group">
-                    <label for="placementQualityFilter" data-lang-key="labelPlacementQuality">Placement Drives Quality (Optional):</label>
-                    <div class="multiselect-dropdown" data-id="placementQualityFilter" data-placeholder-key="selectQuality">
-                        <div class="multiselect-input">
-                            <span class="selected-items" data-lang-key="selectQuality">Select Quality</span>
-                            <i class="fas fa-chevron-down dropdown-arrow"></i>
-                        </div>
-                        <div class="multiselect-options-container">
-                            <label class="select-all-label"><input type="checkbox" class="select-all-checkbox" /> <span data-lang-key="selectAll">Select All</span></label>
-                            <div class="options-list" data-source="placementQuality"></div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="placementQualityFilter" name="placementQualityFilter" value="" />
-                </div>
-                
-                <!-- MISSING DATA CHECKBOX REMOVED HERE -->
-
-                <div class="form-group span-2 form-actions">
-                    <div class="left-actions">
-                        <button type="submit" id="predictButton" class="btn-primary" data-lang-key="btnPredict">Predict Colleges</button>
-                        <button type="button" id="clearButton" class="btn-secondary" data-lang-key="btnClear">Clear Filters</button>
-                    </div>
-
-                    <div class="right-actions">
-                        <div id="downloadMenu" class="download-menu" style="display:none;">
-                            <button id="savePdfButton" data-lang-key="btnSavePdf">Save as PDF</button>
-                            <button id="saveCsvButton" data-lang-key="btnSaveCsv">Save as CSV</button>
-                        </div>
-                        <div id="downloadIconContainer" class="download-icon-wrap">
-                            <i class="fas fa-download" id="downloadIcon" title="Download" aria-label="Download"></i>
-                        </div>
-                    </div>
+                <div class="form-actions">
+                    <button type="button" id="clearButton" class="btn-secondary" data-lang-key="btnClear">
+                        <i class="fa-solid fa-xmark"></i> Clear All Filters
+                    </button>
                 </div>
             </form>
-
+            
             <div class="disclaimer">
-                <p><strong data-lang-key="disclaimerStrong">Disclaimer:</strong> <span data-lang-key="disclaimerText">Predictions are based on 2024 cutoff data and historical admission trends. Actual cutoffs may vary depending on applicant performance, competition, and seat availability.</span></p>
+                <p><strong data-lang-key="disclaimerStrong">Disclaimer:</strong> <span data-lang-key="disclaimerText">Predictions are based on previous years' cutoff data and trends. Actual cutoffs may vary due to factors such as applicants and seat availability.</span></p>
             </div>
 
-            <div id="inputSummary" class="sticky-summary" style="display:none;"></div>
-
-            <div id="results">
-                <div class="results-controls" style="display:none;">
-                    <label for="sortBy" data-lang-key="sortLabel">Sort Results By:</label>
-                    <select id="sortBy">
-                        <option value="cutoff-asc" data-lang-key="sortCutoffAsc">Cutoff Rank (Low to High)</option>
-                        
-                        <option value="probability-desc" data-lang-key="sortProbabilityDesc">Probability (High to Low)</option>
-                        <option value="probability-asc" data-lang-key="sortProbabilityAsc">Probability (Low to High)</option>
-
-                        <option value="cutoff-desc" data-lang-key="sortCutoffDesc">Cutoff Rank (High to Low)</option>
-                        <option value="avgPackage-desc" data-lang-key="sortAvgPackageDesc">Average Package (High to Low)</option>
-                        <option value="avgPackage-asc" data-lang-key="sortAvgPackageAsc">Average Package (Low to High)</option>
-                        <option value="highestPackage-desc" data-lang-key="sortHighestPackageDesc">Highest Package (High to Low)</option>
-                        <option value="highestPackage-asc" data-lang-key="sortHighestPackageAsc">Highest Package (Low to High)</option>
-                        <option value="quality-desc" data-lang-key="sortQualityDesc">Placement Quality (Best to Worst)</option>
-                        <option value="quality-asc" data-lang-key="sortQualityAsc">Placement Quality (Worst to Best)</option>
-                    </select>
+            <div id="results" class="results-section">
+                <div id="resultsHeader" class="results-header" style="display: none;">
+                    <h2><i class="fa-solid fa-list-check"></i> Predicted Colleges</h2>
+                    <div class="results-actions">
+                        <div class="sort-control">
+                            <label for="sortBy" data-lang-key="sortLabel">Sort By:</label>
+                            <select id="sortBy">
+                                <option value="probability-desc" data-lang-key="sortProbabilityDesc">Probability (High to Low)</option>
+                                <option value="probability-asc" data-lang-key="sortProbabilityAsc">Probability (Low to High)</option>
+                                <option value="cutoff-asc" data-lang-key="sortCutoffAsc">Cutoff Rank (Low to High)</option>
+                                <option value="cutoff-desc" data-lang-key="sortCutoffDesc">Cutoff Rank (High to Low)</option>
+                                <option value="avgPackage-desc" data-lang-key="sortAvgPackageDesc">Average Package (High to Low)</option>
+                                <option value="avgPackage-asc" data-lang-key="sortAvgPackageAsc">Average Package (Low to High)</option>
+                                <option value="highestPackage-desc" data-lang-key="sortHighestPackageDesc">Highest Package (High to Low)</option>
+                                <option value="highestPackage-asc" data-lang-key="sortHighestPackageAsc">Highest Package (Low to High)</option>
+                                <option value="quality-desc" data-lang-key="sortQualityDesc">Placement Quality (Best to Worst)</option>
+                                <option value="quality-asc" data-lang-key="sortQualityAsc">Placement Quality (Worst to Best)</option>
+                            </select>
+                        </div>
+                         <div class="download-control">
+                            <button type="button" id="downloadBtn" class="btn-secondary">
+                                <i class="fa-solid fa-download"></i> Download
+                            </button>
+                            <div id="downloadMenu" class="download-menu">
+                                <button type="button" id="downloadPdfBtn" data-lang-key="btnSavePdf">Save as PDF</button>
+                                <button type="button" id="downloadCsvBtn" data-lang-key="btnSaveCsv">Save as CSV</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                <div id="collegeList" class="college-list"></div>
+                <div id="collegeList" class="college-list">
+                    <!-- JS renders empty state or results here -->
+                </div>
             </div>
         </div>
 
         <div id="loadingSpinner" class="loading-spinner" style="display:none;">
             <div class="spinner"></div>
         </div>
+        
+        <div class="scroll-buttons" id="scrollButtons">
+            <button id="scrollTopBtn" title="Scroll to Top"><i class="fa-solid fa-arrow-up"></i></button>
+            <button id="scrollBottomBtn" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
+        </div>
+    </main>
 
-        <footer>
-            <p>EAMCET Predictor | Nallimilli Mani © 2025</p>
-        </footer>
-    </div>
+    <footer class="page-footer">
+        <div class="footer-container">
+            <p>&copy; 2025 EAMCET Predictor by Nallimilli Mani. All rights reserved.</p>
+        </div>
+    </footer>
 
-    <!-- NOTE: Renamed to main.js in a previous step -->
+    <!-- Libraries for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="main.js"></script> 
 </body>
 </html>
+
