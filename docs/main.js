@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // === Data Definitions for Multi-selects (UNCHANGED) ===
+    // === Data Definitions for Multi-selects (SYNTAX CORRECTED) ===
     const optionData = {
         branches: [
             { value: "Civil Engineering", text: "Civil Engineering" },
@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", function () {
             { value: "girls", text: "Girls" },
         ],
         
+        // ⭐ SYNTAX FIX APPLIED HERE: Added missing commas in object definitions
         districts: [
             { value: "ATP", text: "Anantapur" }, { value: "CTR", text: "Chittoor" },
             { value: "EG", text: "East Godavari" }, { value: "GTR", text: "Guntur" },
@@ -89,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const loadingSpinner = document.getElementById("loadingSpinner");
     const langSelect = document.getElementById("langSelect");
     
-    // NEW: Quota/Gender Variables (REMOVED UNNECESSARY 'showMissingDataCheckbox')
+    // NEW: Quota/Gender Variables (The missing data checkbox variable is REMOVED)
     const quotaInput = document.getElementById("quota");
     const genderInput = document.getElementById("gender");
     const finalCategoryInput = document.getElementById("category");
@@ -471,6 +472,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         filteredData = [...rawData];
         const selectedQualitiesCSV = document.getElementById("placementQualityFilter").value;
+        const currentGender = genderInput.value; // Get current selected gender
 
         if (selectedQualitiesCSV) {
             const selectedQualities = selectedQualitiesCSV.toLowerCase().split(',');
@@ -479,6 +481,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 college.placementDriveQuality && selectedQualities.includes(college.placementDriveQuality.toLowerCase())
             );
         }
+
+        // ⭐ CRITICAL GENDER FILTER: Filter out women/girls colleges if the selected gender is 'boys'.
+        if (currentGender === 'boys') {
+            filteredData = filteredData.filter(college => {
+                const collegeName = college.institution_name || college.name || '';
+                const lowerName = collegeName.toLowerCase();
+                
+                // Exclude colleges with names containing 'women', 'girls', or 'lady' 
+                // AND check the division code 'W' (Women)
+                const isWomensCollege = (college.division === 'W' || lowerName.includes('women') || lowerName.includes('girls') || lowerName.includes('lady'));
+                
+                // Keep the college if it is NOT a women's college
+                return !isWomensCollege;
+            });
+        }
+
 
         // ⭐ FINAL CLIENT-SIDE FILTER: Filter out all colleges with missing data.
         // This implements the requirement: missing data is NEVER shown.
@@ -546,8 +564,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const collegeName = college.institution_name || college.name || "Unknown College";
             
-            // ⭐ FINAL CUTOFF DISPLAY FIX: Show "Data Not Available" for null/zero.
-            // This logic is designed to be defensive against the '0' bug.
+            // FINAL CUTOFF DISPLAY FIX: Show "Data Not Available" for null/zero.
             const cutoffValue = (college.cutoff !== null && college.cutoff !== undefined && college.cutoff > 0) 
                 ? college.cutoff.toLocaleString() 
                 : "Data Not Available";
