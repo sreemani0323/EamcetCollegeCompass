@@ -24,6 +24,7 @@ public class CollegePredictorService {
             "Tier 3", 3
     );
 
+    // Ensure all categories are in the correct 'quota_gender' format
     private static final Set<String> ALL_CATEGORIES = Set.of(
             "oc_boys", "oc_girls", "sc_boys", "sc_girls", "st_boys", "st_girls",
             "bca_boys", "bca_girls", "bcb_boys", "bcb_girls", "bcc_boys", "bcc_girls",
@@ -83,7 +84,7 @@ public class CollegePredictorService {
 
     private static class FilterInput {
         Set<String> userBranches;
-        Set<String> userCategories; // Not strictly used after effectiveCategories is set
+        Set<String> userCategories;
         Set<String> userDistricts;
         Set<String> userRegions;
         Set<String> userTiers;
@@ -104,11 +105,6 @@ public class CollegePredictorService {
         }
     }
 
-    /**
-     * Fetches all college-branch records from the database.
-     * This is used to provide data for the frontend analytics and map features.
-     * @return A list of all colleges with their general data.
-     */
     public List<CollegeDataDto> getAllColleges() {
         return repo.findAll()
                 .stream()
@@ -126,20 +122,27 @@ public class CollegePredictorService {
         List<College> colleges = repo.findAll(spec);
 
         if (colleges.isEmpty()) {
+            System.out.println("LOG: No colleges found in filterAndSearch.");
             return Collections.emptyList();
         }
 
-        // FIX 1: Use flatMap to generate a result for EVERY effective branch AND category combination.
-        // FIX 2: Filter out results where the cutoff is null.
+        // FIX: Use flatMap to generate a result for EVERY effective branch AND category combination.
+        // FIX: Filter out results where the cutoff is null/0.
         Stream<CollegeResult> resultsStream = colleges.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
                 .flatMap(college -> filters.effectiveCategories.stream().map(currentCategory -> {
-                    // This ensures we get oc_boys, oc_girls, etc. instead of just oc
                     Integer cutoff = getCutoffForCategory(college, currentCategory);
 
-                    // Prevents null cutoff in the final result set
-                    if (cutoff == null || cutoff == 0) {
-                        return null;
+                    if (cutoff == null || cutoff <= 0) {
+                        // LOGGING for diagnosis
+                        if (cutoff == null) {
+                            System.out.println("LOG: NULL Cutoff filtered in search for " + college.getInstitution_name() +
+                                    " Branch: " + college.getBranchCode() + " Category: " + currentCategory);
+                        } else {
+                            System.out.println("LOG: ZERO/Negative Cutoff filtered in search for " + college.getInstitution_name() +
+                                    " Branch: " + college.getBranchCode() + " Category: " + currentCategory + " Value: " + cutoff);
+                        }
+                        return null; // Return null to be filtered by Objects::nonNull
                     }
 
                     return new CollegeResult(
@@ -149,14 +152,15 @@ public class CollegePredictorService {
                             college.getDistrict(), college.getTier(),
                             college.getHighestPackage(), college.getAveragePackage(),
                             college.getPlacementDriveQuality(),
-                            currentCategory, // FIX: Use currentCategory (e.g., oc_boys) here
+                            currentCategory, // FIX: Use full category string (e.g., oc_boys)
                             null // predictionTier is null in filter mode
                     );
                 }))
-                .filter(Objects::nonNull) // Remove colleges with null/0 cutoff
+                .filter(Objects::nonNull) // Remove null results (those with null/0 cutoff)
                 .filter(result -> filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality()));
 
         List<CollegeResult> finalResults = resultsStream.collect(Collectors.toList());
+        System.out.println("LOG: FilterAndSearch final results count: " + finalResults.size());
 
 
         return finalResults.stream()
@@ -181,6 +185,7 @@ public class CollegePredictorService {
         List<College> colleges = repo.findAll(spec);
 
         if (colleges.isEmpty()) {
+            System.out.println("LOG: No colleges found after initial database filtering in predict.");
             return Collections.emptyList();
         }
 
@@ -190,7 +195,15 @@ public class CollegePredictorService {
                     Integer cutoff = getCutoffForCategory(college, currentCategory);
 
                     // This filter ensures that only results with a valid cutoff proceed.
-                    if (cutoff == null || cutoff == 0) {
+                    if (cutoff == null || cutoff <= 0) {
+                        // LOGGING for diagnosis
+                        if (cutoff == null) {
+                            System.out.println("LOG: NULL Cutoff filtered in predict for " + college.getInstitution_name() +
+                                    " Branch: " + college.getBranchCode() + " Category: " + currentCategory);
+                        } else {
+                            System.out.println("LOG: ZERO/Negative Cutoff filtered in predict for " + college.getInstitution_name() +
+                                    " Branch: " + college.getBranchCode() + " Category: " + currentCategory + " Value: " + cutoff);
+                        }
                         return null;
                     }
 
@@ -222,7 +235,9 @@ public class CollegePredictorService {
                     }
 
                     if (probability == null) {
-                        return null;
+                        System.out.println("LOG: Probability is NULL (Rank too high) for " + college.getInstitution_name() +
+                                " Cutoff: " + cutoff + " Rank: " + rank + " Category: " + currentCategory);
+                        return null; // Rank is outside ambitious range
                     }
 
                     return new CollegeResult(
@@ -231,7 +246,7 @@ public class CollegePredictorService {
                             probability, college.getDistrict(), college.getTier(),
                             college.getHighestPackage(), college.getAveragePackage(),
                             college.getPlacementDriveQuality(),
-                            currentCategory, // Use the full category (e.g., oc_boys)
+                            currentCategory, // FIX: Use full category string (e.g., oc_boys)
                             predictionTier
                     );
                 }))
@@ -239,6 +254,7 @@ public class CollegePredictorService {
                 .filter(result -> filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality()))
                 .collect(Collectors.toList());
 
+        System.out.println("LOG: Predict final results count: " + predictableResults.size());
 
         predictableResults.sort(
                 Comparator.comparing(CollegeResult::getProbability, Comparator.reverseOrder())
@@ -287,7 +303,7 @@ public class CollegePredictorService {
 
         // END CATEGORY COMBINATION LOGIC
 
-        // 3. APPLY the GENDER filter to clean up the list of categories.
+        // 3. APPLY the GENDER filter to refine the list of categories.
         if ("boys".equalsIgnoreCase(gender)) {
             // Only keep boy categories
             filters.effectiveCategories = initialCategories.stream()
@@ -305,6 +321,8 @@ public class CollegePredictorService {
 
         // Set the flag for the JPA specification to exclude Women's colleges if gender is "boys"
         filters.requestedGender = (gender != null && gender.equalsIgnoreCase("boys")) ? "boys" : null;
+
+        System.out.println("LOG: Effective Categories: " + filters.effectiveCategories); // Diagnosis
 
         return filters;
     }
@@ -328,6 +346,7 @@ public class CollegePredictorService {
             if (!tiers.isEmpty()) {
                 predicates.add(root.get("tier").as(String.class).in(tiers));
             }
+            // Exclude women's colleges if gender is explicitly "boys"
             if ("boys".equals(requestedGender)) {
                 predicates.add(criteriaBuilder.notEqual(root.get("division"), "W"));
             }
@@ -346,6 +365,7 @@ public class CollegePredictorService {
                 .collect(Collectors.toSet());
     }
 
+    // This method must map the full category string (e.g., "oc_boys") to the correct College getter
     private Integer getCutoffForCategory(College c, String category) {
         if (category == null) return null;
 
@@ -368,7 +388,7 @@ public class CollegePredictorService {
             case "bce_girls" -> c.getBceGirls();
             case "oc_ews_boys" -> c.getOcEwsBoys();
             case "oc_ews_girls" -> c.getOcEwsGirls();
-            default -> null;
+            default -> null; // Returns null if an unhandled category string is passed
         };
     }
 }
