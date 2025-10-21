@@ -1,4 +1,13 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // === FIREBASE SETUP (Mandatory for Canvas Environment - currently unused for public API calls) ===
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    if (firebaseConfig) {
+        // Placeholder for Firebase/Auth/Firestore imports and initialization
+    }
+
     // === 1. DATA DEFINITIONS & CONFIGURATION ===
     const optionData = {
         branches: [
@@ -32,8 +41,19 @@ document.addEventListener("DOMContentLoaded", function () {
             { value: "oc", text: "OC (Open Category)" }, { value: "sc", text: "SC (Scheduled Caste)" }, { value: "st", text: "ST (Scheduled Tribe)" }, { value: "bca", text: "BC-A" }, { value: "bcb", text: "BC-B" }, { value: "bcc", text: "BC-C" }, { value: "bcd", text: "BC-D" }, { value: "bce", text: "BC-E" }, { value: "oc_ews", text: "OC (EWS Quota)" },
         ],
         genders: [ { value: "boys", text: "Boys" }, { value: "girls", text: "Girls" } ],
+        // VALUE property uses the FULL NAME for API compatibility
         districts: [
-            { value: "ATP", text: "Anantapur" }, { value: "CTR", text: "Chittoor" }, { value: "EG", text: "East Godavari" }, { value: "GTR", text: "Guntur" }, { value: "KDP", text: "Kadapa (YSR Kadapa)" }, { value: "KNL", text: "Kurnool" }, { value: "KRI", text: "Krishna" }, { value: "NLR", text: "Nellore (SPSR Nellore)" }, { value: "PKS", text: "Prakasam" }, { value: "SKL", text: "Srikakulam" }, { value: "VSP", text: "Visakhapatnam" }, { value: "VZM", text: "Vizianagaram" }, { value: "WG", text: "West Godavari" },
+            { value: "Anantapur", text: "Anantapur" }, { value: "Annamayya", text: "Annamayya" }, 
+            { value: "Bapatla", text: "Bapatla" }, { value: "Chittoor", text: "Chittoor" }, 
+            { value: "East Godavari", text: "East Godavari" }, { value: "Eluru", text: "Eluru" }, 
+            { value: "Guntur", text: "Guntur" }, { value: "Kadapa", text: "Kadapa" }, 
+            { value: "Krishna", text: "Krishna" }, { value: "Kurnool", text: "Kurnool" }, 
+            { value: "Nandyal", text: "Nandyal" }, { value: "Nellore", text: "Nellore" }, 
+            { value: "NTR", text: "NTR" }, { value: "Palnadu", text: "Palnadu" }, 
+            { value: "Prakasam", text: "Prakasam" }, { value: "Srikakulam", text: "Srikakulam" }, 
+            { value: "Tirupati", text: "Tirupati" }, { value: "Visakhapatnam", text: "Visakhapatnam" }, 
+            { value: "Vizianagaram", text: "Vizianagaram" }, { value: "West Godavari", text: "West Godavari" }, 
+            { value: "YSR Kadapa", text: "YSR Kadapa" }, 
         ],
         regions: [
             { value: "AU", text: "Andhra University Region" }, { value: "SVU", text: "Sri Venkateswara University Region" }, { value: "SW", text: "South-West region" },
@@ -45,9 +65,10 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     const regionDistrictMap = {
-        "AU": ["VSP", "VZM", "SKL", "EG", "WG"],
-        "SVU": ["CTR", "KDP", "NLR"],
-        "SW": ["ATP", "KNL", "GTR", "KRI", "PKS"]
+        // Arrays use FULL DISTRICT NAMES
+        "AU": ["Visakhapatnam", "Vizianagaram", "Srikakulam", "East Godavari", "West Godavari", "Eluru", "Bapatla"], 
+        "SVU": ["Chittoor", "Kadapa", "Nellore", "Annamayya", "Tirupati", "YSR Kadapa"],
+        "SW": ["Anantapur", "Kurnool", "Guntur", "Krishna", "Prakasam", "Nandyal", "NTR", "Palnadu"]
     };
 
     const translations = {
@@ -60,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
             sortHighestPackageDesc: "Highest Package (High to Low)", sortHighestPackageAsc: "Highest Package (Low to High)",
             sortQualityDesc: "Placement Quality (Best to Worst)", sortQualityAsc: "Placement Quality (Worst to Best)",
             btnSavePdf: "Save as PDF", btnSaveCsv: "Save as CSV",
-            noDataText: "No colleges found matching your criteria.", noInputText: "Please enter a valid positive rank to get predictions.",
+            noDataText: "No colleges found matching your criteria.", noInputText: "Please enter a valid positive rank or select at least one filter.",
             fetchError: "Could not fetch predictions. Please try again later.", itemsSelected: "items selected",
             downloadNoData: "Please predict colleges first to download results.",
             labelBranch: "Branch Preference", selectBranch: "Select Branch",
@@ -70,6 +91,15 @@ document.addEventListener("DOMContentLoaded", function () {
             labelDistrict: "District", selectDistrict: "Select District",
             labelTier: "College Tier", selectTier: "Select Tier",
             labelPlacementQuality: "Placement Quality", selectQuality: "Select Quality",
+            compareCheck: "Compare", compareCount: " Colleges Selected for Comparison",
+            compareNow: "Compare Now", clearCompare: "Clear Comparison",
+            tableFeature: "Feature", tableName: "College Name", tableBranch: "Branch", tableCutoff: "Cutoff Rank", tableProb: "Predicted Chance", tableTier: "Tier", tableAvg: "Avg. Package (Lakhs)", tableHighest: "Highest Package (Lakhs)", tableQuality: "Placement Quality",
+            mapCollegeDetails: "College Details",
+            limitWarningTitle: "Comparison Limit Reached",
+            limitWarningText: "You can only select up to 4 colleges for side-by-side comparison. Please deselect a college to add a new one.",
+            // New warning for empty prediction
+            inputWarningTitle: "Input Required",
+            inputWarningText: "To get predictions, please enter your EAMCET rank or select at least one filter option.",
         },
         te: {
             btnPredict: "కళాశాలలను అంచనా వేయి", btnClear: "ఫిల్టర్లు క్లియర్ చేయండి", disclaimerStrong: "అనుమతి:",
@@ -92,6 +122,15 @@ document.addEventListener("DOMContentLoaded", function () {
             labelDistrict: "జిల్లా", selectDistrict: "జిల్లా ఎంచుకోండి",
             labelTier: "టియర్", selectTier: "టియర్ ఎంచుకోండి",
             labelPlacementQuality: "ప్లేస్‌మెంట్ నాణ్యత", selectQuality: "నాణ్యతను ఎంచుకోండి",
+            compareCheck: "పోల్చండి", compareCount: " కళాశాలలు పోలిక కోసం ఎంచుకోబడ్డాయి",
+            compareNow: "ఇప్పుడే పోల్చండి", clearCompare: "పోలికను క్లియర్ చేయండి",
+            tableFeature: "లక్షణం", tableName: "కళాశాల పేరు", tableBranch: "శాఖ", tableCutoff: "కటాఫ్ ర్యాంక్", tableProb: "అంచనా అవకాశం", tableTier: "టియర్", tableAvg: "సగటు ప్యాకేజ్ (లక్షల్లో)", tableHighest: "అత్యధిక ప్యాకేజ్ (లక్షల్లో)", tableQuality: "ప్లేస్‌మెంట్ నాణ్యత",
+            mapCollegeDetails: "కళాశాల వివరాలు",
+            limitWarningTitle: "పోలిక పరిమితి చేరుకుంది",
+            limitWarningText: "సైడ్-బై-సైడ్ పోలిక కోసం మీరు 4 కళాశాలలను మాత్రమే ఎంచుకోగలరు. దయచేసి క్రొత్తదాన్ని జోడించడానికి ఒక కళాశాలను ఎంపిక చేయవద్దు.",
+            // New warning for empty prediction
+            inputWarningTitle: "ఇన్పుట్ అవసరం",
+            inputWarningText: "అంచనాలు పొందడానికి, దయచేసి మీ EAMCET ర్యాంక్ను నమోదు చేయండి లేదా కనీసం ఒక ఫిల్టర్ ఎంపికను ఎంచుకోండి.",
         }
     };
     
@@ -124,10 +163,30 @@ document.addEventListener("DOMContentLoaded", function () {
     const scrollButtons = document.getElementById("scrollButtons");
     const scrollTopBtn = document.getElementById("scrollTopBtn");
     const scrollBottomBtn = document.getElementById("scrollBottomBtn");
+    
+    // COMPARISON ELEMENT SELECTORS
+    const comparisonTray = document.getElementById('comparison-tray');
+    const compareCountSpan = document.getElementById('compare-count');
+    const compareNowBtn = document.getElementById('compare-now-btn');
+    const clearCompareBtn = document.getElementById('clear-compare-btn');
+    const comparisonModal = document.getElementById('comparison-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const comparisonTableContainer = document.getElementById('comparison-table-container');
+    
+    // WARNING MODAL ELEMENTS
+    const warningModal = document.getElementById('custom-warning-modal');
+    const warningModalTitle = document.getElementById('warning-modal-title');
+    const warningModalText = document.getElementById('warning-modal-text');
+    const warningModalCloseBtn = document.getElementById('warning-modal-close-btn');
+    
+    // NEW ELEMENT SELECTOR for the second button
+    const predictButtonBottom = document.getElementById('predictButtonBottom');
+
 
     // === 3. STATE VARIABLES ===
     let rawData = [];
     let sortedData = [];
+    let selectedColleges = []; 
     let currentLang = "en";
 
     // === 4. INITIALIZATION ===
@@ -139,13 +198,15 @@ document.addEventListener("DOMContentLoaded", function () {
         setupEventListeners();
         renderEmptyState();
         translateUI();
-        updateDistrictOptions(); // FIXED: Added this line to initialize district filter
-        updatePlacementOptions(); // FIXED: Added this line to initialize placement filter
+        updateDistrictOptions();
+        updatePlacementOptions();
     }
 
     // === 5. CORE LOGIC & HELPER FUNCTIONS ===
     function setTheme(theme) {
+        // Set body class
         body.classList.toggle("dark-mode", theme === "dark");
+        // Ensure checkbox state matches theme state
         darkModeSwitch.checked = theme === "dark";
         localStorage.setItem("theme", theme);
     }
@@ -153,9 +214,18 @@ document.addEventListener("DOMContentLoaded", function () {
     function showSpinner(show) {
         loadingSpinner.style.display = show ? "flex" : "none";
     }
+    
+    // Custom Warning Modal Function
+    function showWarningModal(title, text) {
+        if (!warningModal) return;
+        warningModalTitle.textContent = title;
+        warningModalText.textContent = text;
+        warningModal.style.display = 'flex';
+    }
 
     function createLocationUrl(collegeName, districtCode) {
-        const fullDistrict = optionData.districts.find(d => d.value === districtCode)?.text || districtCode || '';
+        // districtCode is now the full name
+        const fullDistrict = districtCode || '';
         const query = encodeURIComponent(`${collegeName}, ${fullDistrict}`);
         return `https://www.google.com/maps/search/?api=1&query=${query}`;
     }
@@ -205,6 +275,13 @@ document.addEventListener("DOMContentLoaded", function () {
             const selectedValues = (hiddenInput?.value || "").split(',').filter(Boolean);
             updateSelectedItemsDisplay(dropdown, selectedValues);
         });
+        updateComparisonTray(); 
+        
+        // Update Modal Text on Language Change
+        if (warningModal) {
+             warningModalTitle.textContent = translations[currentLang].limitWarningTitle;
+             warningModalText.textContent = translations[currentLang].limitWarningText;
+        }
     }
 
     // === 6. MULTI-SELECT & DEPENDENT DROPDOWN LOGIC ===
@@ -255,7 +332,7 @@ document.addEventListener("DOMContentLoaded", function () {
         dropdown.querySelector('.multiselect-input').addEventListener('click', () => toggleDropdown(dropdown));
         
         const optionElements = optionsList.querySelectorAll('label');
-        optionElements.forEach(label => {
+            optionElements.forEach(label => {
             const checkbox = label.querySelector('input[type="checkbox"]');
             
             label.addEventListener('click', (e) => {
@@ -322,41 +399,64 @@ document.addEventListener("DOMContentLoaded", function () {
         updateDependentOptions('district', 'district', allowedDistricts);
     }
 
-  function updatePlacementOptions() {
-    const selectedTiers = (document.getElementById('tier').value || "").split(',').filter(Boolean);
-    let allowedValues = new Set();
+    function updatePlacementOptions() {
+        const selectedTiers = (document.getElementById('tier').value || "").split(',').filter(Boolean);
+        let allowedValues = new Set();
 
-    // If no specific tier is selected, show all placement qualities.
-    if (selectedTiers.length === 0) {
-        allowedValues = new Set(['Excellent', 'Very Good', 'Good', 'Bad']);
-    } else {
-        // Add allowed qualities for each selected tier to the set.
-        if (selectedTiers.includes('Tier 1')) {
-            allowedValues.add('Excellent');
-            allowedValues.add('Very Good');
+        if (selectedTiers.length === 0) {
+            allowedValues = new Set(['Excellent', 'Very Good', 'Good', 'Bad']);
+        } else {
+            if (selectedTiers.includes('Tier 1')) {
+                allowedValues.add('Excellent');
+                allowedValues.add('Very Good');
+            }
+            if (selectedTiers.includes('Tier 2')) {
+                allowedValues.add('Excellent');
+                allowedValues.add('Very Good');
+                allowedValues.add('Good');
+            }
+            if (selectedTiers.includes('Tier 3')) {
+                allowedValues.add('Good');
+                allowedValues.add('Bad');
+            }
         }
-        if (selectedTiers.includes('Tier 2')) {
-            allowedValues.add('Excellent');
-            allowedValues.add('Very Good');
-            allowedValues.add('Good');
-        }
-        if (selectedTiers.includes('Tier 3')) {
-            allowedValues.add('Good');
-            allowedValues.add('Bad');
-        }
+
+        updateDependentOptions('placementQualityFilter', 'placementQualityFilter', allowedValues);
     }
-
-    updateDependentOptions('placementQualityFilter', 'placementQualityFilter', allowedValues);
-}
 
     // === 7. PREDICTION & RENDERING LOGIC ===
     function handlePrediction(event) {
         event.preventDefault();
+        
+        // --- Input Validation Check ---
+        const rankValue = rankInput.value ? parseInt(rankInput.value, 10) : null;
+        
+        // Check if any filter input has a value
+        const filterInputs = [
+            document.getElementById("desiredBranch").value,
+            finalCategoryInput.value,
+            document.getElementById("district").value,
+            document.getElementById("region").value,
+            document.getElementById("tier").value,
+            document.getElementById("placementQualityFilter").value
+        ];
+        
+        const hasFilters = filterInputs.some(val => val !== null && val !== "" && val !== "null");
+
+        if ((!rankValue || rankValue <= 0) && !hasFilters) {
+            showWarningModal(translations[currentLang].inputWarningTitle, translations[currentLang].inputWarningText);
+            return;
+        }
+        // --- END Input Validation Check ---
+
         showSpinner(true);
         collegeListDiv.innerHTML = '';
         resultsHeader.style.display = 'none';
+        
+        comparisonModal.style.display = 'none';
+
         const requestData = {
-            rank: rankInput.value ? parseInt(rankInput.value, 10) : null,
+            rank: rankValue,
             branch: document.getElementById("desiredBranch").value || null,
             category: finalCategoryInput.value || null,
             district: document.getElementById("district").value || null,
@@ -364,13 +464,12 @@ document.addEventListener("DOMContentLoaded", function () {
             tier: document.getElementById("tier").value || null,
             placementQualityFilter: document.getElementById("placementQualityFilter").value || null
         };
-        if (!requestData.rank || requestData.rank <= 0) {
-            renderEmptyState(translations[currentLang].noInputText);
-            showSpinner(false);
-            return;
-        }
+        
+        // Use the reliable POST endpoint for prediction/filtering
         fetch("https://theeamcetcollegeprediction-2.onrender.com/api/api/predict-colleges", {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestData)
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify(requestData)
         })
         .then(response => { if (!response.ok) throw new Error(`API Error: ${response.statusText}`); return response.json(); })
         .then(data => { rawData = data; filterAndRenderColleges(); })
@@ -379,6 +478,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function filterAndRenderColleges() {
+        // Clear any previous comparison selections 
+        selectedColleges = [];
+        updateComparisonTray();
+
         sortedData = multiSort(rawData, sortBySelect.value);
         renderColleges();
     }
@@ -390,35 +493,65 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         resultsHeader.style.display = 'flex';
         collegeListDiv.innerHTML = '';
+        
         sortedData.forEach(college => {
             const card = document.createElement("div");
+            // Create a unique ID for comparison tracking
+            const uniqueId = `${college.instcode}-${college.branch}-${college.category}-${college.cutoff}`; 
             card.className = "college-card";
+            card.dataset.id = uniqueId; 
+            
+            const isSelected = selectedColleges.some(c => c.uniqueId === uniqueId);
+            
+            // Format data for display
             const collegeName = college.institution_name || college.name || "Unnamed College";
             const locationUrl = createLocationUrl(collegeName, college.district);
             const probClass = college.probability >= 75 ? 'prob-high' : college.probability >= 30 ? 'prob-medium' : 'prob-low';
             const qualityClass = `quality-${(college.placementDriveQuality || 'n/a').replace(/\s+/g, '-')}`;
 
+            // CRITICAL FIX: Use JSON.stringify and then replace double quotes with &quot; for safer HTML embedding
+            const collegeDataString = JSON.stringify(college).replace(/"/g, '&quot;'); 
+
+            // Comparison Checkbox HTML (calls global function)
+            const comparisonCheckbox = `
+                <div class="compare-checkbox-wrapper">
+                    <label for="compare-${uniqueId}" title="${translations[currentLang].compareCheck}">
+                        <input type="checkbox" id="compare-${uniqueId}" class="compare-checkbox" data-college='${collegeDataString}' data-unique-id="${uniqueId}" ${isSelected ? 'checked' : ''} onchange="handleCompareCheckbox(event)" />
+                        <span>${translations[currentLang].compareCheck}</span>
+                    </label>
+                </div>
+            `;
+            
+            const cutoffDisplay = college.cutoff ? college.cutoff.toLocaleString() : 'N/A';
+            const avgPackageDisplay = college.averagePackage ? `₹${college.averagePackage.toFixed(2)} Lakhs` : 'N/A';
+            const highestPackageDisplay = college.highestPackage ? `₹${college.highestPackage.toFixed(2)} Lakhs` : 'N/A';
+            const probabilityDisplay = college.probability ? college.probability.toFixed(0) + '%' : 'N/A';
+            const districtText = optionData.districts.find(d => d.value === college.district)?.text || 'N/A';
+
             card.innerHTML = `
+                ${comparisonCheckbox}
                 <a href="${locationUrl}" target="_blank" class="card-location-link" title="View on Map">
                     <i class="fa-solid fa-location-dot"></i> <span>Location</span>
                 </a>
                 <h3 class="card-title">${collegeName}</h3>
                 <p class="card-branch-info">${college.branch || 'N/A'} <span>(${college.category || 'N/A'})</span></p>
                 <div class="card-details-grid">
-                    <div class="card-details-item"><strong>Cutoff Rank (${college.category || 'N/A'})</strong><p>${college.cutoff ? college.cutoff.toLocaleString() : 'N/A'}</p></div>
-                    <div class="card-details-item"><strong>Avg. Package</strong><p>${college.averagePackage ? `₹${college.averagePackage.toFixed(2)} Lakhs` : 'N/A'}</p></div>
+                    <div class="card-details-item"><strong>Cutoff Rank (${college.category || 'N/A'})</strong><p>${cutoffDisplay}</p></div>
+                    <div class="card-details-item"><strong>Avg. Package</strong><p>${avgPackageDisplay}</p></div>
                     <div class="card-details-item"><strong>Placement Drive Quality</strong><p class="${qualityClass}">${college.placementDriveQuality || 'N/A'}</p></div>
-                    <div class="card-details-item"><strong>Predicted Chance</strong><p class="${probClass}">${college.probability ? college.probability.toFixed(0) + '%' : 'N/A'}</p></div>
-                    <div class="card-details-item"><strong>Highest Package</strong><p>${college.highestPackage ? `₹${college.highestPackage.toFixed(2)} Lakhs` : 'N/A'}</p></div>
+                    <div class="card-details-item"><strong>Predicted Chance</strong><p class="${probClass}">${probabilityDisplay}</p></div>
+                    <div class="card-details-item"><strong>Highest Package</strong><p>${highestPackageDisplay}</p></div>
                 </div>
                 <div class="card-footer">
                     <span><strong>Inst. Code:</strong> ${college.instcode || 'N/A'}</span>
-                    <span><strong>Location:</strong> ${optionData.districts.find(d => d.value === college.district)?.text || 'N/A'} (${college.region || 'N/A'})</span>
+                    <span><strong>Location:</strong> ${districtText} (${college.region || 'N/A'})</span>
                     <span><strong>Tier:</strong> ${college.tier || 'N/A'}</span>
                 </div>
             `;
             collegeListDiv.appendChild(card);
         });
+        
+        updateComparisonTray(); 
     }
 
     function renderEmptyState(message) {
@@ -426,12 +559,194 @@ document.addEventListener("DOMContentLoaded", function () {
         collegeListDiv.innerHTML = `<div class="empty-state"><i class="fas fa-search-location"></i><h2>Your Results Will Appear Here</h2><p>${message || "Enter your rank to see college predictions."}</p></div>`;
     }
 
+    // --- Comparison Feature Logic ---
+
+    // Expose this function globally so it can be called from dynamically injected HTML
+    window.handleCompareCheckbox = (event) => {
+        const checkbox = event.target;
+        const uniqueId = checkbox.dataset.uniqueId;
+        
+        let collegeData;
+        try {
+            // Decode the string and parse JSON
+            const dataString = checkbox.getAttribute('data-college').replace(/&quot;/g, '"');
+            collegeData = JSON.parse(dataString);
+        } catch (e) {
+            console.error("Error parsing college data, preventing selection:", e);
+            checkbox.checked = false; 
+            return;
+        }
+
+        collegeData.uniqueId = uniqueId;
+
+        if (checkbox.checked) {
+            if (selectedColleges.length < 4) { 
+                if (!selectedColleges.some(c => c.uniqueId === uniqueId)) {
+                    selectedColleges.push(collegeData);
+                }
+            } else {
+                checkbox.checked = false;
+                showWarningModal(translations[currentLang].limitWarningTitle, translations[currentLang].limitWarningText);
+                return;
+            }
+        } else {
+            selectedColleges = selectedColleges.filter(c => c.uniqueId !== uniqueId);
+        }
+        updateComparisonTray();
+    };
+
+    window.removeCollegeFromComparison = (uniqueId) => {
+        selectedColleges = selectedColleges.filter(c => c.uniqueId !== uniqueId);
+        
+        const checkbox = document.getElementById(`compare-${uniqueId}`);
+        if (checkbox) checkbox.checked = false;
+
+        if (comparisonModal.style.display === 'flex') {
+            if (selectedColleges.length >= 2) {
+                openComparisonModal(false); 
+            } else {
+                comparisonModal.style.display = 'none';
+            }
+        }
+        updateComparisonTray();
+    };
+
+    function updateComparisonTray() {
+        const count = selectedColleges.length;
+        
+        const langKey = currentLang === 'te' ? 'te' : 'en';
+        const countText = translations[langKey].compareCount;
+        
+        comparisonTray.querySelector('p').innerHTML = `<span id="compare-count" style="color: var(--color-accent); margin-right: 0.25rem;">${count}</span> ${countText}`;
+
+        comparisonTray.classList.toggle('visible', count > 0);
+        
+        compareNowBtn.disabled = count < 2;
+        compareNowBtn.textContent = translations[langKey].compareNow;
+    }
+    
+
+    function openComparisonModal(isFirstOpen = true) {
+        if (selectedColleges.length < 2) return;
+        
+        if (isFirstOpen) comparisonModal.style.display = 'flex';
+
+        const features = [
+            { key: 'name', label: translations[currentLang].tableName, isName: true },
+            { key: 'branch', label: translations[currentLang].tableBranch },
+            { key: 'category', label: translations[currentLang].labelQuota },
+            { key: 'cutoff', label: translations[currentLang].tableCutoff },
+            { key: 'probability', label: translations[currentLang].tableProb, percent: true, color: true },
+            { key: 'tier', label: translations[currentLang].tableTier },
+            { key: 'averagePackage', label: translations[currentLang].tableAvg, currency: true },
+            { key: 'highestPackage', label: translations[currentLang].tableHighest, currency: true },
+            { key: 'placementDriveQuality', label: translations[currentLang].tableQuality, quality: true },
+            { key: 'district', label: translations[currentLang].labelDistrict, districtCode: true },
+        ];
+
+        let tableHTML = `<table class="comparison-table"><thead><tr>`;
+        
+        // First row: College Name/Remove Button
+        tableHTML += `<th class="sticky-feature">${translations[currentLang].tableFeature}</th>`; 
+
+        selectedColleges.forEach(college => {
+            const safeCollegeName = (college.name || 'N/A').replace(/'/g, "&#39;"); 
+
+            tableHTML += `
+                <th class="text-center">
+                    <span class="college-name-row">${safeCollegeName}</span>
+                    <button class="remove-col-btn mt-2" onclick="removeCollegeFromComparison('${college.uniqueId}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </th>
+            `;
+        });
+
+        tableHTML += `</tr></thead><tbody>`;
+
+        // Data rows
+        features.forEach(feature => {
+            let row = `<tr><th class="sticky-feature">${feature.label}</th>`;
+            
+            selectedColleges.forEach(college => {
+                let displayValue;
+                let className = '';
+
+                let value = college[feature.key] ?? 'N/A';
+
+                if (feature.districtCode) {
+                    displayValue = optionData.districts.find(d => d.value === value)?.text || value;
+                } else if (feature.currency && typeof value === 'number') {
+                    displayValue = `₹${value.toFixed(2)}`;
+                } else if (feature.percent && typeof value === 'number') {
+                    displayValue = `${value.toFixed(0)}%`;
+                    className = value >= 75 ? 'prob-high' : value >= 30 ? 'prob-medium' : 'prob-low';
+                } else if (feature.quality) {
+                    displayValue = value;
+                    className = `quality-${(value || 'n/a').replace(/\s+/g, '-')}`;
+                } else if (feature.key === 'category') {
+                    const quotaCode = value.split('_')[0].toUpperCase();
+                    displayValue = optionData.quotas.find(q => q.value.toUpperCase() === quotaCode)?.text || quotaCode;
+                } else if (feature.key === 'cutoff') {
+                    displayValue = college.cutoff ? college.cutoff.toLocaleString() : 'N/A';
+                } else {
+                    displayValue = value;
+                }
+                
+                row += `<td class="${className}">${displayValue}</td>`;
+            });
+            row += `</tr>`;
+            tableHTML += row;
+        });
+
+        tableHTML += `</tbody></table>`;
+        comparisonTableContainer.innerHTML = tableHTML;
+    }
+    
     // === 8. EVENT LISTENERS SETUP ===
     function setupEventListeners() {
+        // --- Filter Toggle Logic Removed: No functional toggle, just structural div ---
+        // The HTML ensures the filter container is permanently open by default.
+        
         darkModeSwitch.addEventListener("change", () => setTheme(darkModeSwitch.checked ? "dark" : "light"));
+        
+        // Attach handlers to all Predict buttons
         predictButton.addEventListener("click", handlePrediction);
+        if(predictButtonBottom) predictButtonBottom.addEventListener("click", handlePrediction);
+
         sortBySelect.addEventListener("change", filterAndRenderColleges);
-        langSelect.addEventListener("change", (e) => { currentLang = e.target.value; translateUI(); });
+        langSelect.addEventListener("change", (e) => { 
+            currentLang = e.target.value; 
+            translateUI(); 
+        });
+
+        // Comparison Modal/Tray Listeners
+        compareNowBtn.addEventListener('click', () => openComparisonModal(true));
+        clearCompareBtn.addEventListener('click', () => {
+            selectedColleges.forEach(c => {
+                const checkbox = document.getElementById(`compare-${c.uniqueId}`);
+                if (checkbox) checkbox.checked = false;
+            });
+            selectedColleges = [];
+            updateComparisonTray();
+        });
+        closeModalBtn.addEventListener('click', () => comparisonModal.style.display = 'none');
+        comparisonModal.addEventListener('click', (e) => {
+            if (e.target === comparisonModal) {
+                comparisonModal.style.display = 'none';
+            }
+        });
+        
+        // Custom Warning Modal Listener
+        if (warningModal) {
+            warningModalCloseBtn.addEventListener('click', () => warningModal.style.display = 'none');
+            warningModal.addEventListener('click', (e) => {
+                if (e.target === warningModal) {
+                    warningModal.style.display = 'none';
+                }
+            });
+        }
+        
         clearButton.addEventListener("click", () => {
             predictForm.reset();
             rankInput.value = '';
@@ -445,23 +760,16 @@ document.addEventListener("DOMContentLoaded", function () {
             renderEmptyState();
             rawData = [];
             sortedData = [];
+            
+            // Clear comparison on filter reset
+            selectedColleges = [];
+            updateComparisonTray();
         });
-
-        /* // --- MODIFICATION START ---
-        // The following event listeners that control the filter accordion have been removed.
-        filtersHeader.addEventListener('click', () => {
-            const isOpening = !filtersContainer.classList.contains('is-open');
-            filtersHeader.classList.toggle('is-open');
-            filtersContainer.classList.toggle('is-open');
-            filtersHeader.setAttribute('aria-expanded', isOpening);
-        });
-        filtersHeader.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); filtersHeader.click(); } });
-        // --- MODIFICATION END ---
-        */
         
+        // Download Listeners (No changes)
         downloadBtn.addEventListener('click', () => {
             if (sortedData.length === 0) {
-                alert(translations[currentLang].downloadNoData);
+                console.warn(translations[currentLang].downloadNoData);
                 return;
             }
             downloadMenu.style.display = downloadMenu.style.display === 'block' ? 'none' : 'block';
