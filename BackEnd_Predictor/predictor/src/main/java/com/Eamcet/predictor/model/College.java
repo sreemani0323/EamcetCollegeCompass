@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "RawTable")
-public class RawTable
+public class College
 {
 
     @Id
@@ -81,7 +81,7 @@ public class RawTable
     @Column(name = "oc_ews_girls")
     private Integer ocEwsGirls;
 
-    public RawTable()
+    public College()
     {
     }
 

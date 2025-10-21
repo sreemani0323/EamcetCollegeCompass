@@ -1,6 +1,6 @@
 package com.Eamcet.predictor.dto;
 
-import com.Eamcet.predictor.model.RawTable;
+import com.Eamcet.predictor.model.College;
 
 public class CollegeDataDto {
 
@@ -16,17 +16,17 @@ public class CollegeDataDto {
     private String placementDriveQuality;
 
     // Constructor to easily convert from the database entity
-    public CollegeDataDto(RawTable rawTable) {
-        this.instcode = rawTable.getInstcode();
-        this.name = rawTable.getInstitution_name();
-        this.place = rawTable.getPlace();
-        this.district = rawTable.getDistrict();
-        this.region = rawTable.getRegion();
-        this.branch = rawTable.getBranchCode();
-        this.tier = rawTable.getTier();
-        this.averagePackage = rawTable.getAveragePackage();
-        this.highestPackage = rawTable.getHighestPackage();
-        this.placementDriveQuality = rawTable.getPlacementDriveQuality();
+    public CollegeDataDto(College college) {
+        this.instcode = college.getInstcode();
+        this.name = college.getInstitution_name();
+        this.place = college.getPlace();
+        this.district = college.getDistrict();
+        this.region = college.getRegion();
+        this.branch = college.getBranchCode();
+        this.tier = college.getTier();
+        this.averagePackage = college.getAveragePackage();
+        this.highestPackage = college.getHighestPackage();
+        this.placementDriveQuality = college.getPlacementDriveQuality();
     }
 
     // Getters for all fields

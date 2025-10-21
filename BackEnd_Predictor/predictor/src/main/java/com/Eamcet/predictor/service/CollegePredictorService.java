@@ -2,7 +2,7 @@ package com.Eamcet.predictor.service;
 
 import com.Eamcet.predictor.dto.CollegeDataDto;
 import com.Eamcet.predictor.exception.InvalidRequestException;
-import com.Eamcet.predictor.model.RawTable;
+import com.Eamcet.predictor.model.College; // <--- CHANGED: Import 'College'
 import com.Eamcet.predictor.repository.CollegeRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -111,7 +111,7 @@ public class CollegePredictorService {
     public List<CollegeDataDto> getAllColleges() {
         return repo.findAll()
                 .stream()
-                .map(CollegeDataDto::new) // Converts each RawTable entity to a CollegeDataDto
+                .map(CollegeDataDto::new) // Converts each College entity to a CollegeDataDto
                 .collect(Collectors.toList());
     }
 
@@ -121,27 +121,27 @@ public class CollegePredictorService {
 
         final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, gender);
 
-        Specification<RawTable> spec = buildSpecifications(filters);
-        List<RawTable> rawTables = repo.findAll(spec);
+        Specification<College> spec = buildSpecifications(filters); // <--- CHANGED: Specification<College>
+        List<College> colleges = repo.findAll(spec); // <--- CHANGED: List<College>
 
-        if (rawTables.isEmpty()) {
+        if (colleges.isEmpty()) {
             return Collections.emptyList();
         }
 
         final String displayCategory = filters.effectiveCategories.isEmpty() ? "oc_boys" : filters.effectiveCategories.iterator().next();
 
-        List<CollegeResult> finalResults = rawTables.stream()
+        List<CollegeResult> finalResults = colleges.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
-                .map(rawTable -> {
-                    Integer cutoff = getCutoffForCategory(rawTable, displayCategory);
+                .map(college -> { // <--- CHANGED: Renamed variable to 'college'
+                    Integer cutoff = getCutoffForCategory(college, displayCategory);
 
                     return new CollegeResult(
-                            rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
-                            rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
+                            college.getInstitution_name(), college.getRegion(), college.getPlace(),
+                            college.getAffl(), college.getBranchCode(), cutoff, college.getInstcode(),
                             null,
-                            rawTable.getDistrict(), rawTable.getTier(),
-                            rawTable.getHighestPackage(), rawTable.getAveragePackage(),
-                            rawTable.getPlacementDriveQuality(),
+                            college.getDistrict(), college.getTier(),
+                            college.getHighestPackage(), college.getAveragePackage(),
+                            college.getPlacementDriveQuality(),
                             displayCategory,
                             null
                     );
@@ -167,17 +167,17 @@ public class CollegePredictorService {
 
         final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, gender);
 
-        Specification<RawTable> spec = buildSpecifications(filters);
-        List<RawTable> rawTables = repo.findAll(spec);
+        Specification<College> spec = buildSpecifications(filters); // <--- CHANGED: Specification<College>
+        List<College> colleges = repo.findAll(spec); // <--- CHANGED: List<College>
 
-        if (rawTables.isEmpty()) {
+        if (colleges.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<CollegeResult> predictableResults = rawTables.stream()
+        List<CollegeResult> predictableResults = colleges.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
-                .flatMap(rawTable -> filters.effectiveCategories.stream().map(currentCategory -> {
-                    Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
+                .flatMap(college -> filters.effectiveCategories.stream().map(currentCategory -> { // <--- CHANGED: Renamed variable to 'college'
+                    Integer cutoff = getCutoffForCategory(college, currentCategory);
 
                     if (cutoff == null || cutoff == 0) {
                         return null;
@@ -215,11 +215,11 @@ public class CollegePredictorService {
                     }
 
                     return new CollegeResult(
-                            rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
-                            rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
-                            probability, rawTable.getDistrict(), rawTable.getTier(),
-                            rawTable.getHighestPackage(), rawTable.getAveragePackage(),
-                            rawTable.getPlacementDriveQuality(),
+                            college.getInstitution_name(), college.getRegion(), college.getPlace(),
+                            college.getAffl(), college.getBranchCode(), cutoff, college.getInstcode(),
+                            probability, college.getDistrict(), college.getTier(),
+                            college.getHighestPackage(), college.getAveragePackage(),
+                            college.getPlacementDriveQuality(),
                             currentCategory,
                             predictionTier
                     );
@@ -273,7 +273,7 @@ public class CollegePredictorService {
     }
 
 
-    private Specification<RawTable> buildSpecifications(FilterInput filters) {
+    private Specification<College> buildSpecifications(FilterInput filters) { // <--- CHANGED: Specification<College>
         Set<String> districts = filters.userDistricts;
         Set<String> regions = filters.userRegions;
         Set<String> tiers = filters.userTiers;
@@ -309,7 +309,7 @@ public class CollegePredictorService {
                 .collect(Collectors.toSet());
     }
 
-    private Integer getCutoffForCategory(RawTable c, String category) {
+    private Integer getCutoffForCategory(College c, String category) { // <--- CHANGED: Parameter type to 'College'
         if (category == null) return null;
 
         return switch (category.toLowerCase()) {
