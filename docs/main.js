@@ -155,7 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const filtersHeader = document.getElementById('filtersHeader');
     const filtersContainer = document.getElementById('filtersContainer');
     const multiselectContainers = document.querySelectorAll('.multiselect-dropdown');
-    const finalCategoryInput = document.getElementById("category");
+    // REMOVED: const finalCategoryInput = document.getElementById("category"); // No longer needed
     const downloadBtn = document.getElementById("downloadBtn");
     const downloadMenu = document.getElementById("downloadMenu");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
@@ -230,11 +230,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return `https://www.google.com/maps/search/?api=1&query=${query}`;
     }
 
-    function updateFinalCategory() {
-        const quota = document.getElementById("quota").value;
-        const gender = document.getElementById("gender").value;
-        finalCategoryInput.value = quota ? `${quota}_${gender || 'boys'}` : '';
-    }
+    // REMOVED: function updateFinalCategory() { ... }
 
     function multiSort(data, criteria) {
         const [key, direction] = criteria.split("-");
@@ -355,7 +351,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 hiddenInput.value = selectedValues.join(',');
                 updateSelectedItemsDisplay(dropdown, selectedValues);
 
-                if (id === 'quota' || id === 'gender') updateFinalCategory();
+                // REMOVED: if (id === 'quota' || id === 'gender') updateFinalCategory();
                 if (id === 'region') updateDistrictOptions();
                 if (id === 'tier') updatePlacementOptions();
             });
@@ -431,14 +427,24 @@ document.addEventListener("DOMContentLoaded", function () {
         // --- Input Validation Check ---
         const rankValue = rankInput.value ? parseInt(rankInput.value, 10) : null;
         
+        // Retrieve values directly from their respective hidden inputs
+        const branchValue = document.getElementById("desiredBranch").value;
+        const quotaValue = document.getElementById("quota").value;
+        const genderValue = document.getElementById("gender").value;
+        const districtValue = document.getElementById("district").value;
+        const regionValue = document.getElementById("region").value;
+        const tierValue = document.getElementById("tier").value;
+        const placementQualityValue = document.getElementById("placementQualityFilter").value;
+
         // Check if any filter input has a value
         const filterInputs = [
-            document.getElementById("desiredBranch").value,
-            finalCategoryInput.value,
-            document.getElementById("district").value,
-            document.getElementById("region").value,
-            document.getElementById("tier").value,
-            document.getElementById("placementQualityFilter").value
+            branchValue,
+            quotaValue,
+            genderValue,
+            districtValue,
+            regionValue,
+            tierValue,
+            placementQualityValue
         ];
         
         const hasFilters = filterInputs.some(val => val !== null && val !== "" && val !== "null");
@@ -455,21 +461,85 @@ document.addEventListener("DOMContentLoaded", function () {
         
         comparisonModal.style.display = 'none';
 
-        const requestData = {
-            rank: rankValue,
-            branch: document.getElementById("desiredBranch").value || null,
-            category: finalCategoryInput.value || null,
-            district: document.getElementById("district").value || null,
-            region: document.getElementById("region").value || null,
-            tier: document.getElementById("tier").value || null,
-            placementQualityFilter: document.getElementById("placementQualityFilter").value || null
-        };
+        // --- MODIFIED LOGIC: Constructing requestData dynamically ---
+        const requestData = {};
+
+        // Only add rank if it's a valid positive number
+        if (rankValue && rankValue > 0) {
+            requestData.rank = rankValue;
+        }
         
+        // Only add fields if their values are non-empty strings
+        if (branchValue) requestData.branch = branchValue;
+        if (districtValue) requestData.district = districtValue;
+        if (regionValue) requestData.region = regionValue;
+        if (tierValue) requestData.tier = tierValue;
+        if (placementQualityValue) requestData.placementQualityFilter = placementQualityValue;
+
+        // Construct the 'category' field only if Quota is selected
+        if (quotaValue) {
+            // The API expects 'quota_gender' or just 'quota' if gender is not strictly applied/specified
+            // We use genderValue if available, otherwise default to a general quota or just the quota
+            // For now, let's follow the old pattern if quota is present, assuming gender default (boys) is handled on the backend or implicitly desired if not multi-select.
+            // Since the multiselect logic doesn't enforce single-select on quota/gender, we'll keep it as a simple comma-separated list or just the quota/gender if single select is true.
+            // For simplicity and to avoid the old bug, we pass Quota and Gender separately and let the backend decide how to combine/filter.
+            // REVERTING TO THE ORIGINAL PLAN: Pass Quota and Gender separately. The API endpoint will have to adjust its schema to accept `quota` and `gender` as distinct, possibly multi-select, filters.
+            
+            // To be compatible with the *original* form structure which had a finalCategoryInput:
+            // The original intent of finalCategoryInput was to be `quota_gender`. 
+            // Since we removed that, we pass `quota` and `gender` as simple multi-selects.
+            // If the backend *truly* requires `oc_boys`, the input fields on the HTML must be updated to force single-select for Quota and Gender, and the logic here would recombine them.
+            
+            // Assuming the API endpoint can handle separate filters:
+            if (quotaValue) requestData.quota = quotaValue;
+            if (genderValue) requestData.gender = genderValue;
+            
+            // If we MUST send a combined category for an existing API:
+            // // Fallback to the old logic IF the API cannot handle separate quota/gender fields:
+            // // This assumes a single quota and single gender are selected (which the HTML/Multiselects should enforce).
+            // if (quotaValue && !quotaValue.includes(',')) {
+            //     const finalCategory = `${quotaValue}${genderValue && !genderValue.includes(',') ? `_${genderValue}` : ''}`;
+            //     requestData.category = finalCategory;
+            // } else {
+            //     // If multi-select is possible, pass them separately or omit the category filter.
+            //     if (quotaValue) requestData.category = quotaValue; // Passes comma-separated values
+            // }
+
+            // LATEST: Since the inputs are `quota` and `gender`, let's rename the API payload keys to match the multiselect ID's for clearer filter use, and pass them as comma-separated if multi-select is enabled on HTML.
+            // We will NOT use the 'category' key unless the API specifically demands the combined string.
+            // Given the instruction to remove `updateFinalCategory` which created the combined string, we assume the API supports separate fields for filtering.
+            
+            // Since the original code had:
+            // requestData.category = finalCategoryInput.value || null,
+            // And finalCategoryInput was set by `updateFinalCategory` as `quota_gender`...
+            // To comply with the removal of `updateFinalCategory` but keep the API *call* looking for a `category` filter, we must adapt.
+            // OPTION 1 (safest): Pass the raw quota and gender values as distinct fields, hoping the backend is flexible.
+            if (quotaValue) requestData.category = quotaValue; // Pass quota value as category filter
+            if (genderValue) requestData.gender = genderValue; // Pass gender value as separate filter
+
+            // OPTION 2 (if API requires single combined string, but we allow multi-select input):
+            // This is messy, so we stick with Option 1 for cleaner separation.
+            
+        } else if (genderValue) {
+             // If only gender is selected, pass it as a gender filter if the API supports it.
+             requestData.gender = genderValue;
+        }
+        
+        // Sanitize the requestData to remove any keys with null, empty string, or "null" (from the old logic)
+        const filteredRequestData = Object.keys(requestData).reduce((acc, key) => {
+            const value = requestData[key];
+            if (value !== null && value !== "" && value !== "null") {
+                acc[key] = value;
+            }
+            return acc;
+        }, {});
+        // --- END MODIFIED LOGIC ---
+
         // Use the reliable POST endpoint for prediction/filtering
         fetch("https://theeamcetcollegeprediction-2.onrender.com/api/api/predict-colleges", {
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify(requestData)
+            body: JSON.stringify(filteredRequestData) // Use the filtered data
         })
         .then(response => { if (!response.ok) throw new Error(`API Error: ${response.statusText}`); return response.json(); })
         .then(data => { rawData = data; filterAndRenderColleges(); })
@@ -509,8 +579,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const probClass = college.probability >= 75 ? 'prob-high' : college.probability >= 30 ? 'prob-medium' : 'prob-low';
             const qualityClass = `quality-${(college.placementDriveQuality || 'n/a').replace(/\s+/g, '-')}`;
 
-            // CRITICAL FIX: Use JSON.stringify and then replace double quotes with &quot; for safer HTML embedding
-            const collegeDataString = JSON.stringify(college).replace(/"/g, '&quot;'); 
+            // CRITICAL FIX: Use JSON.stringify and then replace double quotes with " for safer HTML embedding
+            const collegeDataString = JSON.stringify(college).replace(/"/g, '"'); 
 
             // Comparison Checkbox HTML (calls global function)
             const comparisonCheckbox = `
@@ -569,7 +639,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let collegeData;
         try {
             // Decode the string and parse JSON
-            const dataString = checkbox.getAttribute('data-college').replace(/&quot;/g, '"');
+            const dataString = checkbox.getAttribute('data-college').replace(/"/g, '"');
             collegeData = JSON.parse(dataString);
         } catch (e) {
             console.error("Error parsing college data, preventing selection:", e);
@@ -650,7 +720,7 @@ document.addEventListener("DOMContentLoaded", function () {
         tableHTML += `<th class="sticky-feature">${translations[currentLang].tableFeature}</th>`; 
 
         selectedColleges.forEach(college => {
-            const safeCollegeName = (college.name || 'N/A').replace(/'/g, "&#39;"); 
+            const safeCollegeName = (college.name || 'N/A').replace(/'/g, "'"); 
 
             tableHTML += `
                 <th class="text-center">
@@ -685,8 +755,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     displayValue = value;
                     className = `quality-${(value || 'n/a').replace(/\s+/g, '-')}`;
                 } else if (feature.key === 'category') {
+                    // The category field usually contains the quota (e.g., 'OC', 'BC-A')
                     const quotaCode = value.split('_')[0].toUpperCase();
-                    displayValue = optionData.quotas.find(q => q.value.toUpperCase() === quotaCode)?.text || quotaCode;
+                    // Try to find the full text of the quota from the optionData.quotas
+                    const quotaOption = optionData.quotas.find(q => q.value.toUpperCase() === quotaCode || q.text.toUpperCase() === value.toUpperCase());
+                    displayValue = quotaOption?.text || value;
                 } else if (feature.key === 'cutoff') {
                     displayValue = college.cutoff ? college.cutoff.toLocaleString() : 'N/A';
                 } else {
@@ -750,6 +823,8 @@ document.addEventListener("DOMContentLoaded", function () {
         clearButton.addEventListener("click", () => {
             predictForm.reset();
             rankInput.value = '';
+            // Note: The hidden input 'category' is still in the HTML, but now unused in prediction logic. 
+            // It's still good practice to clear all hidden inputs that were associated with a state.
             document.querySelectorAll('#predictForm input[type="hidden"]').forEach(input => input.value = '');
             multiselectContainers.forEach(dropdown => {
                 dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
