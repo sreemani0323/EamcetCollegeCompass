@@ -395,30 +395,11 @@ document.addEventListener("DOMContentLoaded", function () {
         updateDependentOptions('district', 'district', allowedDistricts);
     }
 
-    function updatePlacementOptions() {
-        const selectedTiers = (document.getElementById('tier').value || "").split(',').filter(Boolean);
-        let allowedValues = new Set();
+   function updatePlacementOptions() {
+    let allowedValues = new Set(['Excellent', 'Very Good', 'Good', 'Bad']);
 
-        if (selectedTiers.length === 0) {
-            allowedValues = new Set(['Excellent', 'Very Good', 'Good', 'Bad']);
-        } else {
-            if (selectedTiers.includes('Tier 1')) {
-                allowedValues.add('Excellent');
-                allowedValues.add('Very Good');
-            }
-            if (selectedTiers.includes('Tier 2')) {
-                allowedValues.add('Excellent');
-                allowedValues.add('Very Good');
-                allowedValues.add('Good');
-            }
-            if (selectedTiers.includes('Tier 3')) {
-                allowedValues.add('Good');
-                allowedValues.add('Bad');
-            }
-        }
-
-        updateDependentOptions('placementQualityFilter', 'placementQualityFilter', allowedValues);
-    }
+    updateDependentOptions('placementQualityFilter', 'placementQualityFilter', allowedValues);
+}
 
     // === 7. PREDICTION & RENDERING LOGIC ===
     function handlePrediction(event) {
