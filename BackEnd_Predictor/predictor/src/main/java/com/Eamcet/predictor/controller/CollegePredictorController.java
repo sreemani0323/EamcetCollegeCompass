@@ -25,6 +25,7 @@ public class CollegePredictorController {
 
     /**
      * Endpoint to get a list of all colleges for analytics and map features.
+     * NOTE: This GET endpoint is now effectively bypassed by the frontend due to routing logic.
      * @return A list of all colleges.
      */
     @GetMapping("/colleges")
@@ -35,11 +36,14 @@ public class CollegePredictorController {
 
     /**
      * Endpoint to predict or filter colleges based on user criteria.
+     * MODIFICATION: This endpoint now also returns ALL data (List<CollegeDataDto>)
+     * if the request payload contains neither a rank nor any filters (i.e., payload is empty),
+     * enabling the Data Insights and Map pages to fetch data via this reliable POST route.
      * @param payload A map containing rank and filter options.
-     * @return A list of predicted or filtered colleges.
+     * @return A list of predicted, filtered (List<CollegeResult>), or all colleges (List<CollegeDataDto>).
      */
     @PostMapping("/predict-colleges")
-    public ResponseEntity<List<CollegeResult>> predict(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> predict(@RequestBody Map<String, Object> payload) {
         Function<String, String> extractAndNormalize = key ->
                 Optional.ofNullable(payload.get(key))
                         .filter(obj -> obj instanceof String)
@@ -66,10 +70,14 @@ public class CollegePredictorController {
 
         boolean hasFilters = branch != null || category != null || district != null || region != null || tier != null || placementQualityFilter != null || gender != null;
 
+        // *** FIX FOR FRONTEND ROUTING ISSUE ***
+        // If the payload is essentially empty (no rank and no filters), return all college data.
         if (rank == null && !hasFilters) {
-            throw new InvalidRequestException("Insufficient input. Please provide a valid Rank or select at least one filter.");
+            List<CollegeDataDto> allColleges = service.getAllColleges();
+            return ResponseEntity.ok(allColleges); // Returns List<CollegeDataDto>
         }
 
+        // Existing Logic: Handles prediction and filtering.
         List<CollegeResult> results = service.findColleges(
                 rank,
                 branch,
