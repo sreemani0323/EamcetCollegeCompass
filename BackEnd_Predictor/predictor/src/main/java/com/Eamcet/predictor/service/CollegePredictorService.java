@@ -2,7 +2,7 @@ package com.Eamcet.predictor.service;
 
 import com.Eamcet.predictor.dto.CollegeDataDto;
 import com.Eamcet.predictor.exception.InvalidRequestException;
-import com.Eamcet.predictor.model.College; // <--- CHANGED: Import 'College'
+import com.Eamcet.predictor.model.College;
 import com.Eamcet.predictor.repository.CollegeRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -111,7 +111,7 @@ public class CollegePredictorService {
     public List<CollegeDataDto> getAllColleges() {
         return repo.findAll()
                 .stream()
-                .map(CollegeDataDto::new) // Converts each College entity to a CollegeDataDto
+                .map(CollegeDataDto::new)
                 .collect(Collectors.toList());
     }
 
@@ -121,18 +121,19 @@ public class CollegePredictorService {
 
         final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, gender);
 
-        Specification<College> spec = buildSpecifications(filters); // <--- CHANGED: Specification<College>
-        List<College> colleges = repo.findAll(spec); // <--- CHANGED: List<College>
+        Specification<College> spec = buildSpecifications(filters);
+        List<College> colleges = repo.findAll(spec);
 
         if (colleges.isEmpty()) {
             return Collections.emptyList();
         }
 
+        // Use the first effective category for display purposes
         final String displayCategory = filters.effectiveCategories.isEmpty() ? "oc_boys" : filters.effectiveCategories.iterator().next();
 
         List<CollegeResult> finalResults = colleges.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
-                .map(college -> { // <--- CHANGED: Renamed variable to 'college'
+                .map(college -> {
                     Integer cutoff = getCutoffForCategory(college, displayCategory);
 
                     return new CollegeResult(
@@ -167,8 +168,8 @@ public class CollegePredictorService {
 
         final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, gender);
 
-        Specification<College> spec = buildSpecifications(filters); // <--- CHANGED: Specification<College>
-        List<College> colleges = repo.findAll(spec); // <--- CHANGED: List<College>
+        Specification<College> spec = buildSpecifications(filters);
+        List<College> colleges = repo.findAll(spec);
 
         if (colleges.isEmpty()) {
             return Collections.emptyList();
@@ -176,7 +177,7 @@ public class CollegePredictorService {
 
         List<CollegeResult> predictableResults = colleges.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
-                .flatMap(college -> filters.effectiveCategories.stream().map(currentCategory -> { // <--- CHANGED: Renamed variable to 'college'
+                .flatMap(college -> filters.effectiveCategories.stream().map(currentCategory -> {
                     Integer cutoff = getCutoffForCategory(college, currentCategory);
 
                     if (cutoff == null || cutoff == 0) {
@@ -245,7 +246,7 @@ public class CollegePredictorService {
         FilterInput filters = new FilterInput();
 
         filters.userBranches = parseCsvInput(branch);
-        filters.userCategories = parseCsvInput(category);
+        // filters.userCategories is now dynamically set below
         filters.userDistricts = parseCsvInput(district);
         filters.userRegions = parseCsvInput(region);
         filters.userTiers = parseCsvInput(tier);
@@ -253,27 +254,60 @@ public class CollegePredictorService {
 
         filters.effectiveBranches = filters.userBranches.isEmpty() ? ALL_BRANCHES : filters.userBranches;
 
-        Set<String> initialCategories = filters.userCategories.isEmpty() ? ALL_CATEGORIES : filters.userCategories;
+        // ----------------------------------------------------------------------
+        // START NEW CATEGORY COMBINATION LOGIC
+        // ----------------------------------------------------------------------
 
+        Set<String> combinedCategories = new HashSet<>();
+        Set<String> quotaInputs = parseCsvInput(category);
+        String genderInput = gender;
+
+        if (!quotaInputs.isEmpty() && genderInput != null) {
+            // Case 1: Quota (e.g., oc) AND Gender (e.g., boys) are present. -> Result: oc_boys
+            for (String quota : quotaInputs) {
+                combinedCategories.add(quota.toLowerCase() + "_" + genderInput.toLowerCase());
+            }
+        } else if (!quotaInputs.isEmpty()) {
+            // Case 2: Only Quota is present. Assume both genders are possible for that quota.
+            for (String quota : quotaInputs) {
+                combinedCategories.add(quota.toLowerCase() + "_boys");
+                combinedCategories.add(quota.toLowerCase() + "_girls");
+            }
+        }
+
+        // Set the base category list. If we have generated combined categories, use them.
+        // Otherwise, if the quota input was empty (Case 3), use ALL_CATEGORIES.
+        Set<String> initialCategories = combinedCategories.isEmpty() ? ALL_CATEGORIES : combinedCategories;
+
+        // ----------------------------------------------------------------------
+        // END NEW CATEGORY COMBINATION LOGIC
+        // ----------------------------------------------------------------------
+
+        // 3. APPLY the GENDER filter (This is necessary to handle multi-select and clean up
+        //    Case 2 if only 'boys' or 'girls' was selected via the dedicated gender filter).
         if ("boys".equalsIgnoreCase(gender)) {
+            // Only keep boy categories
             filters.effectiveCategories = initialCategories.stream()
-                    .filter(c -> !c.endsWith("_girls"))
+                    .filter(c -> c.endsWith("_boys")) // Only keep '_boys' categories
                     .collect(Collectors.toSet());
         } else if ("girls".equalsIgnoreCase(gender)) {
+            // Only keep girl categories
             filters.effectiveCategories = initialCategories.stream()
-                    .filter(c -> !c.endsWith("_boys"))
+                    .filter(c -> c.endsWith("_girls")) // Only keep '_girls' categories
                     .collect(Collectors.toSet());
         } else {
+            // No specific gender filter, use all combined or all existing categories
             filters.effectiveCategories = initialCategories;
         }
 
+        // Set the flag for the JPA specification to exclude Women's colleges if gender is "boys"
         filters.requestedGender = (gender != null && gender.equalsIgnoreCase("boys")) ? "boys" : null;
 
         return filters;
     }
 
 
-    private Specification<College> buildSpecifications(FilterInput filters) { // <--- CHANGED: Specification<College>
+    private Specification<College> buildSpecifications(FilterInput filters) {
         Set<String> districts = filters.userDistricts;
         Set<String> regions = filters.userRegions;
         Set<String> tiers = filters.userTiers;
@@ -309,7 +343,7 @@ public class CollegePredictorService {
                 .collect(Collectors.toSet());
     }
 
-    private Integer getCutoffForCategory(College c, String category) { // <--- CHANGED: Parameter type to 'College'
+    private Integer getCutoffForCategory(College c, String category) {
         if (category == null) return null;
 
         return switch (category.toLowerCase()) {
