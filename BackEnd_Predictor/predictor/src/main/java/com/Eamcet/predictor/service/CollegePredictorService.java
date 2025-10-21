@@ -1,5 +1,7 @@
 package com.Eamcet.predictor.service;
 
+import com.Eamcet.predictor.dto.CollegeDataDto;
+import com.Eamcet.predictor.exception.InvalidRequestException;
 import com.Eamcet.predictor.model.RawTable;
 import com.Eamcet.predictor.repository.CollegeRepository;
 import org.springframework.data.jpa.domain.Specification;
@@ -8,7 +10,6 @@ import org.springframework.stereotype.Service;
 import jakarta.persistence.criteria.Predicate;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class CollegePredictorService {
@@ -22,7 +23,6 @@ public class CollegePredictorService {
             "Tier 3", 3
     );
 
-    // --- (Sets for ALL_CATEGORIES and ALL_BRANCHES remain the same) ---
     private static final Set<String> ALL_CATEGORIES = Set.of(
             "oc_boys", "oc_girls", "sc_boys", "sc_girls", "st_boys", "st_girls",
             "bca_boys", "bca_girls", "bcb_boys", "bcb_girls", "bcc_boys", "bcc_girls",
@@ -40,18 +40,16 @@ public class CollegePredictorService {
             "CSE (Business Systems)", "Geo-Informatics Engineering"
     );
 
-
     public CollegePredictorService(CollegeRepository repo) {
         this.repo = repo;
     }
 
-    // NEW LOGIC: Added predictionTier to store "Assured", "Reachable", etc.
     public static class CollegeResult {
         private String name; private String region; private String place; private String affl;
         private String branch; private Integer cutoff; private String instcode; private Double probability;
         private String district; private String tier; private String category;
         private Double highestPackage; private Double averagePackage; private String placementDriveQuality;
-        private String predictionTier; // New field
+        private String predictionTier;
 
         public CollegeResult(String name, String region, String place, String affl, String branch,
                              Integer cutoff, String instcode, Double probability, String district, String tier,
@@ -62,10 +60,9 @@ public class CollegePredictorService {
             this.highestPackage = highestPackage; this.averagePackage = averagePackage;
             this.placementDriveQuality = placementDriveQuality;
             this.category = category;
-            this.predictionTier = predictionTier; // New field
+            this.predictionTier = predictionTier;
         }
 
-        // --- (Getters for all fields, including the new one) ---
         public String getName() { return name; }
         public String getRegion() { return region; }
         public String getPlace() { return place; }
@@ -76,15 +73,14 @@ public class CollegePredictorService {
         public Double getProbability() { return probability; }
         public String getDistrict() { return district; }
         public String getTier() { return tier; }
+        public String getCategory() { return category; }
         public Double getHighestPackage() { return highestPackage; }
         public Double getAveragePackage() { return averagePackage; }
         public String getPlacementDriveQuality() { return placementDriveQuality; }
-        public String getCategory() { return category; }
         public String getPredictionTier() { return predictionTier; }
     }
 
     private static class FilterInput {
-        // --- (This class remains the same) ---
         Set<String> userBranches;
         Set<String> userCategories;
         Set<String> userDistricts;
@@ -98,23 +94,32 @@ public class CollegePredictorService {
 
     public List<CollegeResult> findColleges(
             Integer rank, String branch, String category, String district, String region, String tier,
-            String placementQuality) {
+            String placementQuality, String gender) {
 
         if (rank != null && rank > 0) {
-            return predict(rank, branch, category, district, region, tier, placementQuality);
-        }
-        else {
-            return filterAndSearch(branch, category, district, region, tier, placementQuality);
+            return predict(rank, branch, category, district, region, tier, placementQuality, gender);
+        } else {
+            return filterAndSearch(branch, category, district, region, tier, placementQuality, gender);
         }
     }
 
+    /**
+     * Fetches all college-branch records from the database.
+     * This is used to provide data for the frontend analytics and map features.
+     * @return A list of all colleges with their general data.
+     */
+    public List<CollegeDataDto> getAllColleges() {
+        return repo.findAll()
+                .stream()
+                .map(CollegeDataDto::new) // Converts each RawTable entity to a CollegeDataDto
+                .collect(Collectors.toList());
+    }
 
     private List<CollegeResult> filterAndSearch(
-            // --- (This method remains the same, as it's for non-rank-based searches) ---
             String branch, String category, String district, String region, String tier,
-            String placementQuality) {
+            String placementQuality, String gender) {
 
-        final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality);
+        final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, gender);
 
         Specification<RawTable> spec = buildSpecifications(filters);
         List<RawTable> rawTables = repo.findAll(spec);
@@ -123,7 +128,7 @@ public class CollegePredictorService {
             return Collections.emptyList();
         }
 
-        final String displayCategory = filters.userCategories.isEmpty() ? "oc_boys" : filters.userCategories.iterator().next();
+        final String displayCategory = filters.effectiveCategories.isEmpty() ? "oc_boys" : filters.effectiveCategories.iterator().next();
 
         List<CollegeResult> finalResults = rawTables.stream()
                 .filter(c -> filters.effectiveBranches.contains(c.getBranchCode()))
@@ -133,12 +138,12 @@ public class CollegePredictorService {
                     return new CollegeResult(
                             rawTable.getInstitution_name(), rawTable.getRegion(), rawTable.getPlace(),
                             rawTable.getAffl(), rawTable.getBranchCode(), cutoff, rawTable.getInstcode(),
-                            null, // No probability for filter search
+                            null,
                             rawTable.getDistrict(), rawTable.getTier(),
                             rawTable.getHighestPackage(), rawTable.getAveragePackage(),
                             rawTable.getPlacementDriveQuality(),
                             displayCategory,
-                            null // No prediction tier for filter search
+                            null
                     );
                 })
                 .filter(result -> filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality()))
@@ -156,11 +161,11 @@ public class CollegePredictorService {
 
     public List<CollegeResult> predict(
             final int rank, String branch, String category, String district, String region, String tier,
-            String placementQuality) {
+            String placementQuality, String gender) {
 
-        if (rank <= 0) throw new IllegalArgumentException("Rank must be > 0");
+        if (rank <= 0) throw new InvalidRequestException("Rank must be a positive number.");
 
-        final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality);
+        final FilterInput filters = setupFilters(branch, category, district, region, tier, placementQuality, gender);
 
         Specification<RawTable> spec = buildSpecifications(filters);
         List<RawTable> rawTables = repo.findAll(spec);
@@ -174,7 +179,6 @@ public class CollegePredictorService {
                 .flatMap(rawTable -> filters.effectiveCategories.stream().map(currentCategory -> {
                     Integer cutoff = getCutoffForCategory(rawTable, currentCategory);
 
-                    // NEW LOGIC: Skip if cutoff data is unavailable, as prediction is impossible.
                     if (cutoff == null || cutoff == 0) {
                         return null;
                     }
@@ -182,35 +186,30 @@ public class CollegePredictorService {
                     Double probability = null;
                     String predictionTier = null;
 
-                    // NEW LOGIC: Define boundaries for each prediction tier based on percentages.
                     double assuredBoundary = cutoff * 0.95;
                     double reachableBoundary = cutoff * 1.10;
                     double ambitiousBoundary = cutoff * 1.25;
 
                     if (rank <= assuredBoundary) {
                         predictionTier = "Assured";
-                        // Probability from 85% to 99%
                         double score = ((double) cutoff - rank) / cutoff;
                         probability = 85.0 + 14.0 * score;
-                        probability = Math.min(99.0, probability); // Cap at 99%
+                        probability = Math.min(99.0, probability);
 
                     } else if (rank <= reachableBoundary) {
                         predictionTier = "Reachable";
-                        // Probability from 40% to 85%
                         double range = reachableBoundary - assuredBoundary;
                         double score = (reachableBoundary - rank) / range;
                         probability = 40.0 + 45.0 * score;
 
                     } else if (rank <= ambitiousBoundary) {
                         predictionTier = "Ambitious";
-                        // Probability from 5% to 40%
                         double range = ambitiousBoundary - reachableBoundary;
                         double score = (ambitiousBoundary - rank) / range;
                         probability = 5.0 + 35.0 * score;
 
                     }
 
-                    // If none of the above, probability remains null, and the college is filtered out.
                     if (probability == null) {
                         return null;
                     }
@@ -225,12 +224,11 @@ public class CollegePredictorService {
                             predictionTier
                     );
                 }))
-                .filter(Objects::nonNull) // Filter out null results from the map
+                .filter(Objects::nonNull)
                 .filter(result -> filters.userQualities.isEmpty() || filters.userQualities.contains(result.getPlacementDriveQuality()))
                 .collect(Collectors.toList());
 
 
-        // NEW LOGIC: Updated sorting to prioritize probability, then college quality, then cutoff.
         predictableResults.sort(
                 Comparator.comparing(CollegeResult::getProbability, Comparator.reverseOrder())
                         .thenComparing(cr -> TIER_SORT_MAP.getOrDefault(cr.getTier(), 99))
@@ -240,11 +238,9 @@ public class CollegePredictorService {
         return predictableResults.stream().limit(REQUIRED_TOTAL_COUNT).collect(Collectors.toList());
     }
 
-    // --- (The helper methods setupFilters, buildSpecifications, parseCsvInput, and getCutoffForCategory remain the same) ---
-
     private FilterInput setupFilters(
             String branch, String category, String district, String region, String tier,
-            String placementQuality) {
+            String placementQuality, String gender) {
 
         FilterInput filters = new FilterInput();
 
@@ -256,15 +252,22 @@ public class CollegePredictorService {
         filters.userQualities = parseCsvInput(placementQuality);
 
         filters.effectiveBranches = filters.userBranches.isEmpty() ? ALL_BRANCHES : filters.userBranches;
-        filters.effectiveCategories = filters.userCategories.isEmpty() ? ALL_CATEGORIES : filters.userCategories;
 
-        String genderPart = filters.userCategories.stream()
-                .filter(c -> c.endsWith("_boys") || c.endsWith("_girls"))
-                .findFirst()
-                .map(s -> s.endsWith("_boys") ? "boys" : "girls")
-                .orElse(null);
-        filters.requestedGender = genderPart;
+        Set<String> initialCategories = filters.userCategories.isEmpty() ? ALL_CATEGORIES : filters.userCategories;
 
+        if ("boys".equalsIgnoreCase(gender)) {
+            filters.effectiveCategories = initialCategories.stream()
+                    .filter(c -> !c.endsWith("_girls"))
+                    .collect(Collectors.toSet());
+        } else if ("girls".equalsIgnoreCase(gender)) {
+            filters.effectiveCategories = initialCategories.stream()
+                    .filter(c -> !c.endsWith("_boys"))
+                    .collect(Collectors.toSet());
+        } else {
+            filters.effectiveCategories = initialCategories;
+        }
+
+        filters.requestedGender = (gender != null && gender.equalsIgnoreCase("boys")) ? "boys" : null;
 
         return filters;
     }
@@ -288,11 +291,9 @@ public class CollegePredictorService {
             if (!tiers.isEmpty()) {
                 predicates.add(root.get("tier").as(String.class).in(tiers));
             }
-
             if ("boys".equals(requestedGender)) {
                 predicates.add(criteriaBuilder.notEqual(root.get("division"), "W"));
             }
-
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
