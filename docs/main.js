@@ -472,7 +472,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify(filteredRequestData) // Use the filtered data
+            body: JSON.stringify(requestData) // Use the correct variable name
         })
         .then(response => { if (!response.ok) throw new Error(`API Error: ${response.statusText}`); return response.json(); })
         .then(data => { rawData = data; filterAndRenderColleges(); })
