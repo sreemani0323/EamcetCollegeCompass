@@ -442,7 +442,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         comparisonModal.style.display = 'none';
 
-        // --- MODIFIED LOGIC: Constructing requestData dynamically ---
+        // --- CORRECTED LOGIC: Constructing requestData to match backend expectations ---
         const requestData = {};
 
         // Only add rank if it's a valid positive number
@@ -457,67 +457,19 @@ document.addEventListener("DOMContentLoaded", function () {
         if (tierValue) requestData.tier = tierValue;
         if (placementQualityValue) requestData.placementQualityFilter = placementQualityValue;
 
-        // Construct the 'category' field only if Quota is selected
+        // CRITICAL FIX: Backend expects 'category' (quota like "oc", "sc") and 'gender' as SEPARATE parameters
+        // The backend service's setupFilters() method handles combining them into "oc_boys", "sc_girls", etc.
         if (quotaValue) {
-            // The API expects 'quota_gender' or just 'quota' if gender is not strictly applied/specified
-            // We use genderValue if available, otherwise default to a general quota or just the quota
-            // For now, let's follow the old pattern if quota is present, assuming gender default (boys) is handled on the backend or implicitly desired if not multi-select.
-            // Since the multiselect logic doesn't enforce single-select on quota/gender, we'll keep it as a simple comma-separated list or just the quota/gender if single select is true.
-            // For simplicity and to avoid the old bug, we pass Quota and Gender separately and let the backend decide how to combine/filter.
-            // REVERTING TO THE ORIGINAL PLAN: Pass Quota and Gender separately. The API endpoint will have to adjust its schema to accept `quota` and `gender` as distinct, possibly multi-select, filters.
-            
-            // To be compatible with the *original* form structure which had a finalCategoryInput:
-            // The original intent of finalCategoryInput was to be `quota_gender`. 
-            // Since we removed that, we pass `quota` and `gender` as simple multi-selects.
-            // If the backend *truly* requires `oc_boys`, the input fields on the HTML must be updated to force single-select for Quota and Gender, and the logic here would recombine them.
-            
-            // Assuming the API endpoint can handle separate filters:
-            if (quotaValue) requestData.quota = quotaValue;
-            if (genderValue) requestData.gender = genderValue;
-            
-            // If we MUST send a combined category for an existing API:
-            // // Fallback to the old logic IF the API cannot handle separate quota/gender fields:
-            // // This assumes a single quota and single gender are selected (which the HTML/Multiselects should enforce).
-            // if (quotaValue && !quotaValue.includes(',')) {
-            //     const finalCategory = `${quotaValue}${genderValue && !genderValue.includes(',') ? `_${genderValue}` : ''}`;
-            //     requestData.category = finalCategory;
-            // } else {
-            //     // If multi-select is possible, pass them separately or omit the category filter.
-            //     if (quotaValue) requestData.category = quotaValue; // Passes comma-separated values
-            // }
-
-            // LATEST: Since the inputs are `quota` and `gender`, let's rename the API payload keys to match the multiselect ID's for clearer filter use, and pass them as comma-separated if multi-select is enabled on HTML.
-            // We will NOT use the 'category' key unless the API specifically demands the combined string.
-            // Given the instruction to remove `updateFinalCategory` which created the combined string, we assume the API supports separate fields for filtering.
-            
-            // Since the original code had:
-            // requestData.category = finalCategoryInput.value || null,
-            // And finalCategoryInput was set by `updateFinalCategory` as `quota_gender`...
-            // To comply with the removal of `updateFinalCategory` but keep the API *call* looking for a `category` filter, we must adapt.
-            // OPTION 1 (safest): Pass the raw quota and gender values as distinct fields, hoping the backend is flexible.
-            if (quotaValue) requestData.category = quotaValue; // Pass quota value as category filter
-            if (genderValue) requestData.gender = genderValue; // Pass gender value as separate filter
-
-            // OPTION 2 (if API requires single combined string, but we allow multi-select input):
-            // This is messy, so we stick with Option 1 for cleaner separation.
-            
-        } else if (genderValue) {
-             // If only gender is selected, pass it as a gender filter if the API supports it.
-             requestData.gender = genderValue;
+            requestData.category = quotaValue; // Send quota value (e.g., "oc", "sc", "bca")
         }
-        
-        // Sanitize the requestData to remove any keys with null, empty string, or "null" (from the old logic)
-        const filteredRequestData = Object.keys(requestData).reduce((acc, key) => {
-            const value = requestData[key];
-            if (value !== null && value !== "" && value !== "null") {
-                acc[key] = value;
-            }
-            return acc;
-        }, {});
-        // --- END MODIFIED LOGIC ---
+        if (genderValue) {
+            requestData.gender = genderValue; // Send gender value (e.g., "boys", "girls")
+        }
+        // --- END CORRECTED LOGIC ---
 
         // Use the reliable POST endpoint for prediction/filtering
-        fetch("https://theeamcetcollegeprediction-2.onrender.com/api/api/predict-colleges", {
+        // FIXED: Removed double /api/ - backend has no context-path, just controller @RequestMapping("/api")
+        fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
             body: JSON.stringify(filteredRequestData) // Use the filtered data
