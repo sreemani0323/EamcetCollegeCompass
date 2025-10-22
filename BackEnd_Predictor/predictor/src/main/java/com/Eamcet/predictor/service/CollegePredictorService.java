@@ -172,9 +172,10 @@ public class CollegePredictorService {
                         .comparing(CollegeResult::getProbability, Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(CollegeResult::getCutoff, Comparator.nullsFirst(Comparator.reverseOrder()))
                 )
+                .limit(100) // Limit results to top 100 colleges
                 .collect(Collectors.toList());
 
-        log.debug("Returning {} college results", results.size());
+        log.debug("Returning {} college results (limited to 100)", results.size());
         return results;
     }
     private Set<String> getEffectiveCategories(String category, String gender) {
