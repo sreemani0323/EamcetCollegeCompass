@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.util.Map;
 
@@ -28,6 +29,16 @@ public class RestExceptionHandler {
         Map<String, String> errorBody = Map.of(
             "error", "Not Found", 
             "details", "This is a REST API backend. Please use /api/predict-colleges endpoint or visit /ping for health check."
+        );
+        return new ResponseEntity<>(errorBody, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public final ResponseEntity<?> handleNoHandlerFound(NoHandlerFoundException ex, WebRequest request) {
+        log.debug("No handler found for {} {}", ex.getHttpMethod(), ex.getRequestURL());
+        Map<String, String> errorBody = Map.of(
+            "error", "Not Found", 
+            "details", "This is a REST API backend. Available endpoints: /ping, /api/predict-colleges"
         );
         return new ResponseEntity<>(errorBody, HttpStatus.NOT_FOUND);
     }
