@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.util.Map;
 
 @ControllerAdvice
@@ -19,6 +20,16 @@ public class RestExceptionHandler {
         log.warn("Invalid request: {}", ex.getMessage());
         Map<String, String> errorBody = Map.of("error", "Bad Request", "details", ex.getMessage());
         return new ResponseEntity<>(errorBody, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public final ResponseEntity<?> handleNoResourceFound(NoResourceFoundException ex, WebRequest request) {
+        log.debug("Static resource not found: {}", ex.getMessage());
+        Map<String, String> errorBody = Map.of(
+            "error", "Not Found", 
+            "details", "This is a REST API backend. Please use /api/predict-colleges endpoint or visit /ping for health check."
+        );
+        return new ResponseEntity<>(errorBody, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
