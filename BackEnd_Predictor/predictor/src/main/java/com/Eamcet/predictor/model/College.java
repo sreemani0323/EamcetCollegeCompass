@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.util.Objects;
 
 @Entity
-@Table(name = "RawTable")
+@Table(name = "raw_table")
 public class College
 {
 
