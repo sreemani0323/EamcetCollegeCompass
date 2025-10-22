@@ -168,10 +168,48 @@ public class CollegePredictorService {
                         })
                         .filter(Objects::nonNull)
                 )
-                .sorted(Comparator
-                        .comparing(CollegeResult::getProbability, Comparator.nullsLast(Comparator.reverseOrder()))
-                        .thenComparing(CollegeResult::getCutoff, Comparator.nullsFirst(Comparator.reverseOrder()))
-                )
+                .sorted((a, b) -> {
+                    // If rank is provided, sort by distance from user's rank (nearest first)
+                    if (rank != null && rank > 0) {
+                        Integer cutoffA = a.getCutoff();
+                        Integer cutoffB = b.getCutoff();
+                        
+                        // Handle null cutoffs (shouldn't happen due to earlier filtering, but safety check)
+                        if (cutoffA == null && cutoffB == null) return 0;
+                        if (cutoffA == null) return 1;
+                        if (cutoffB == null) return -1;
+                        
+                        // Calculate absolute distance from user's rank
+                        int distanceA = Math.abs(cutoffA - rank);
+                        int distanceB = Math.abs(cutoffB - rank);
+                        
+                        // Sort by nearest distance first
+                        int distanceComparison = Integer.compare(distanceA, distanceB);
+                        if (distanceComparison != 0) {
+                            return distanceComparison;
+                        }
+                        
+                        // If distances are equal, prioritize by probability (higher first)
+                        Double probA = a.getProbability();
+                        Double probB = b.getProbability();
+                        if (probA != null && probB != null) {
+                            return Double.compare(probB, probA); // Descending
+                        }
+                        if (probA != null) return -1;
+                        if (probB != null) return 1;
+                        return 0;
+                    } else {
+                        // When no rank provided, sort by cutoff descending (most competitive first)
+                        Integer cutoffA = a.getCutoff();
+                        Integer cutoffB = b.getCutoff();
+                        
+                        if (cutoffA == null && cutoffB == null) return 0;
+                        if (cutoffA == null) return 1;
+                        if (cutoffB == null) return -1;
+                        
+                        return Integer.compare(cutoffB, cutoffA); // Descending
+                    }
+                })
                 .limit(100) // Limit results to top 100 colleges
                 .collect(Collectors.toList());
 
