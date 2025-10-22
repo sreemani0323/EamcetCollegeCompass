@@ -79,11 +79,17 @@ public class CollegePredictorController {
         // If payload is empty (no rank and no filters), return all college data
         if (rank == null && !hasFilters) {
             log.info("No filters provided, returning all colleges");
-            List<CollegeDataDto> allColleges = repo.findAll()
-                    .stream()
-                    .map(CollegeDataDto::new)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(allColleges);
+            try {
+                List<CollegeDataDto> allColleges = repo.findAll()
+                        .stream()
+                        .map(CollegeDataDto::new)
+                        .collect(Collectors.toList());
+                log.info("Successfully retrieved {} colleges", allColleges.size());
+                return ResponseEntity.ok(allColleges);
+            } catch (Exception e) {
+                log.error("Error fetching all colleges from database", e);
+                throw new RuntimeException("Failed to fetch colleges from database: " + e.getMessage(), e);
+            }
         }
 
         // Perform prediction/filtering with all parameters

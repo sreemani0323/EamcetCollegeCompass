@@ -23,8 +23,12 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public final ResponseEntity<?> handleGlobalException(Exception ex, WebRequest request) {
-        log.error("An unexpected error occurred", ex);
-        Map<String, String> errorBody = Map.of("error", "Internal Server Error", "details", "An unexpected error occurred. Please try again later.");
+        log.error("An unexpected error occurred: {} - {}", ex.getClass().getName(), ex.getMessage(), ex);
+        Map<String, String> errorBody = Map.of(
+            "error", "Internal Server Error", 
+            "details", ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred. Please try again later.",
+            "type", ex.getClass().getSimpleName()
+        );
         return new ResponseEntity<>(errorBody, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
