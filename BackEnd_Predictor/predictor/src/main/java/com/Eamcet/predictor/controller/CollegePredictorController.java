@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,7 +43,21 @@ public class CollegePredictorController {
     public ResponseEntity<?> predict(@RequestBody Map<String, Object> payload) {
         log.debug("Received predict request with payload: {}", payload);
         
-        Function<String, String> extractAndNormalize = key ->
+        // Helper function to extract and parse comma-separated values into a List
+        Function<String, List<String>> extractAndSplit = key ->
+                Optional.ofNullable(payload.get(key))
+                        .filter(obj -> obj instanceof String)
+                        .map(String.class::cast)
+                        .filter(s -> !s.trim().isEmpty())
+                        .map(s -> Arrays.stream(s.split(","))
+                                .map(String::trim)
+                                .filter(val -> !val.isEmpty())
+                                .collect(Collectors.toList()))
+                        .filter(list -> !list.isEmpty())
+                        .orElse(null);
+        
+        // Helper function for single-value extraction
+        Function<String, String> extractSingle = key ->
                 Optional.ofNullable(payload.get(key))
                         .filter(obj -> obj instanceof String)
                         .map(String.class::cast)
@@ -61,20 +76,22 @@ public class CollegePredictorController {
             }
         }
 
-        // Extract filters
-        String branch = extractAndNormalize.apply("branch");
-        String category = extractAndNormalize.apply("category");
-        String district = extractAndNormalize.apply("district");
-        String region = extractAndNormalize.apply("region");
-        String tier = extractAndNormalize.apply("tier");
-        String gender = extractAndNormalize.apply("gender");
-        String placementQualityFilter = extractAndNormalize.apply("placementQualityFilter");
+        // Extract multi-select filters (comma-separated values from frontend)
+        List<String> branches = extractAndSplit.apply("branch");
+        List<String> districts = extractAndSplit.apply("district");
+        List<String> regions = extractAndSplit.apply("region");
+        List<String> tiers = extractAndSplit.apply("tier");
+        List<String> placementQualities = extractAndSplit.apply("placementQualityFilter");
+        
+        // Extract single-select filters (category and gender are single-select)
+        String category = extractSingle.apply("category");
+        String gender = extractSingle.apply("gender");
 
-        boolean hasFilters = branch != null || category != null || district != null || 
-                            region != null || tier != null || placementQualityFilter != null || gender != null;
+        boolean hasFilters = branches != null || category != null || districts != null || 
+                            regions != null || tiers != null || placementQualities != null || gender != null;
 
-        log.info("Request parameters: rank={}, branch={}, category={}, district={}, region={}, tier={}, gender={}, placementQuality={}, hasFilters={}",
-                rank, branch, category, district, region, tier, gender, placementQualityFilter, hasFilters);
+        log.info("Request parameters: rank={}, branches={}, category={}, districts={}, regions={}, tiers={}, gender={}, placementQualities={}, hasFilters={}",
+                rank, branches, category, districts, regions, tiers, gender, placementQualities, hasFilters);
 
         // If payload is empty (no rank and no filters), return all college data
         if (rank == null && !hasFilters) {
@@ -95,12 +112,12 @@ public class CollegePredictorController {
         // Perform prediction/filtering with all parameters
         List<CollegeResult> results = service.findColleges(
                 rank,
-                branch,
+                branches,
                 category,
-                district,
-                region,
-                tier,
-                placementQualityFilter,
+                districts,
+                regions,
+                tiers,
+                placementQualities,
                 gender
         );
 

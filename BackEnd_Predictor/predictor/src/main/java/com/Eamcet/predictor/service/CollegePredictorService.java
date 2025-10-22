@@ -64,11 +64,11 @@ public class CollegePredictorService {
     }
 
     public List<CollegeResult> findColleges(
-            Integer rank, String branch, String category, String district, String region, String tier,
-            String placementQuality, String gender) {
+            Integer rank, List<String> branches, String category, List<String> districts, 
+            List<String> regions, List<String> tiers, List<String> placementQualities, String gender) {
 
-        log.debug("Finding colleges with: rank={}, branch={}, category={}, district={}, region={}, tier={}, placementQuality={}, gender={}",
-                rank, branch, category, district, region, tier, placementQuality, gender);
+        log.debug("Finding colleges with: rank={}, branches={}, category={}, districts={}, regions={}, tiers={}, placementQualities={}, gender={}",
+                rank, branches, category, districts, regions, tiers, placementQualities, gender);
 
         // Build the database query specification with ALL filters
         // NOTE: Division field is for college type (Private/University/etc), NOT gender
@@ -77,26 +77,29 @@ public class CollegePredictorService {
             List<Predicate> predicates = new ArrayList<>();
             
             // Filter by branch at database level for better performance
-            if (branch != null && !branch.trim().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("branchCode"), branch));
+            // Support multiple branches using IN clause
+            if (branches != null && !branches.isEmpty()) {
+                predicates.add(root.get("branchCode").in(branches));
             }
             
-            if (district != null && !district.trim().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("district"), district));
+            // Support multiple districts using IN clause
+            if (districts != null && !districts.isEmpty()) {
+                predicates.add(root.get("district").in(districts));
             }
             
-            if (region != null && !region.trim().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("region"), region));
+            // Support multiple regions using IN clause
+            if (regions != null && !regions.isEmpty()) {
+                predicates.add(root.get("region").in(regions));
             }
             
-            // Add tier filter
-            if (tier != null && !tier.trim().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("tier"), tier));
+            // Support multiple tiers using IN clause
+            if (tiers != null && !tiers.isEmpty()) {
+                predicates.add(root.get("tier").in(tiers));
             }
             
-            // Add placement quality filter
-            if (placementQuality != null && !placementQuality.trim().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("placementDriveQuality"), placementQuality));
+            // Support multiple placement qualities using IN clause
+            if (placementQualities != null && !placementQualities.isEmpty()) {
+                predicates.add(root.get("placementDriveQuality").in(placementQualities));
             }
 
             // NO gender-based database filtering needed
