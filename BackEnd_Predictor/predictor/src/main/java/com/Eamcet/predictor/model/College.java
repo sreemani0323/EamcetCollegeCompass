@@ -1,6 +1,7 @@
 package com.Eamcet.predictor.model;
 
 import jakarta.persistence.*;
+import java.util.Objects;
 
 @Entity
 @Table(name = "RawTable")
@@ -334,5 +335,33 @@ public class College
     public void setOcEwsGirls(Integer ocEwsGirls)
     {
         this.ocEwsGirls = ocEwsGirls;
+    }
+
+    @Override
+    public String toString() {
+        return "College{" +
+                "sno=" + sno +
+                ", instcode='" + instcode + '\'' +
+                ", institution_name='" + institution_name + '\'' +
+                ", district='" + district + '\'' +
+                ", region='" + region + '\'' +
+                ", branchCode='" + branchCode + '\'' +
+                ", division='" + division + '\'' +
+                ", tier='" + tier + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        College college = (College) o;
+        return Objects.equals(sno, college.sno) &&
+                Objects.equals(instcode, college.instcode);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(sno, instcode);
     }
 }

@@ -9,6 +9,7 @@ public class CollegeDataDto {
     private String place;
     private String district;
     private String region;
+    private String division; // Add gender/division information
     private String branch;
     private String tier;
     private Double averagePackage;
@@ -22,6 +23,7 @@ public class CollegeDataDto {
         this.place = college.getPlace();
         this.district = college.getDistrict();
         this.region = college.getRegion();
+        this.division = college.getDivision(); // Include division (gender info)
         this.branch = college.getBranchCode();
         this.tier = college.getTier();
         this.averagePackage = college.getAveragePackage();
@@ -35,6 +37,7 @@ public class CollegeDataDto {
     public String getPlace() { return place; }
     public String getDistrict() { return district; }
     public String getRegion() { return region; }
+    public String getDivision() { return division; }
     public String getBranch() { return branch; }
     public String getTier() { return tier; }
     public Double getAveragePackage() { return averagePackage; }

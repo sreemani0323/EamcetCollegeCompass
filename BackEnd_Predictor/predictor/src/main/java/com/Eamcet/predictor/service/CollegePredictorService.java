@@ -5,38 +5,61 @@ import com.Eamcet.predictor.model.College;
 import com.Eamcet.predictor.repository.CollegeRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class CollegePredictorService {
 
+    private static final Logger log = LoggerFactory.getLogger(CollegePredictorService.class);
     private final CollegeRepository repo;
 
     public CollegePredictorService(CollegeRepository repo) {
         this.repo = repo;
     }
 
-    // This is the DTO that will be returned to the controller
+    // Enhanced DTO with all relevant fields including probability prediction
     @Getter
     public static class CollegeResult {
+        private final String instcode;
         private final String name;
         private final String branch;
         private final Integer cutoff;
         private final String district;
+        private final String region;
+        private final String tier;
+        private final String division; // Gender info (M/W/Co-ed)
         private final String category; // The specific category that matched (e.g., oc_boys)
-        // Add other fields you want to show in the result
+        private final Double averagePackage;
+        private final Double highestPackage;
+        private final String placementDriveQuality;
+        private final String place;
+        private final String affiliation;
+        
+        // Prediction field
+        private final Double probability; // Admission probability percentage
 
-        public CollegeResult(College college, Integer cutoff, String category) {
+        public CollegeResult(College college, Integer cutoff, String category, Double probability) {
+            this.instcode = college.getInstcode();
             this.name = college.getInstitution_name();
             this.branch = college.getBranchCode();
             this.cutoff = cutoff;
             this.district = college.getDistrict();
+            this.region = college.getRegion();
+            this.tier = college.getTier();
+            this.division = college.getDivision();
             this.category = category;
+            this.averagePackage = college.getAveragePackage();
+            this.highestPackage = college.getHighestPackage();
+            this.placementDriveQuality = college.getPlacementDriveQuality();
+            this.place = college.getPlace();
+            this.affiliation = college.getAffl();
+            this.probability = probability;
         }
     }
 
@@ -44,85 +67,169 @@ public class CollegePredictorService {
             Integer rank, String branch, String category, String district, String region, String tier,
             String placementQuality, String gender) {
 
-        // Build the database query specification
+        log.debug("Finding colleges with: rank={}, branch={}, category={}, district={}, region={}, tier={}, placementQuality={}, gender={}",
+                rank, branch, category, district, region, tier, placementQuality, gender);
+
+        // Build the database query specification with ALL filters
+        // NOTE: Division field is for college type (Private/University/etc), NOT gender
+        // Gender filtering happens by checking which cutoff columns have non-null values
         Specification<College> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
-            if (district != null) {
+            
+            // Filter by branch at database level for better performance
+            if (branch != null && !branch.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("branchCode"), branch));
+            }
+            
+            if (district != null && !district.trim().isEmpty()) {
                 predicates.add(criteriaBuilder.equal(root.get("district"), district));
             }
-            if (region != null) {
+            
+            if (region != null && !region.trim().isEmpty()) {
                 predicates.add(criteriaBuilder.equal(root.get("region"), region));
             }
-            // Add other filters for tier, etc. if needed
-
-            // ### FIX FOR GENDER FILTERING ISSUE ###
-            // If the gender is "boys", we add a condition to the database query
-            // to exclude colleges where the 'division' column is 'W'.
-            if ("boys".equalsIgnoreCase(gender)) {
-                predicates.add(criteriaBuilder.notEqual(root.get("division"), "W"));
+            
+            // Add tier filter
+            if (tier != null && !tier.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("tier"), tier));
             }
+            
+            // Add placement quality filter
+            if (placementQuality != null && !placementQuality.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("placementDriveQuality"), placementQuality));
+            }
+
+            // NO gender-based database filtering needed
+            // Women's colleges naturally have NULL in boys columns
+            // Men's colleges naturally have NULL in girls columns
+            // Filtering happens by checking non-null cutoff values
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
-        // 1. Fetch colleges from the database based on the specification
+        // Fetch colleges from the database based on the specification
         List<College> colleges = repo.findAll(spec);
+        log.debug("Fetched {} colleges from database", colleges.size());
 
-        // 2. Prepare the list of categories to check based on user input
+        // Determine which category-gender combinations to check
         Set<String> categoriesToCheck = getEffectiveCategories(category, gender);
+        log.debug("Categories to check: {}", categoriesToCheck);
 
-        // 3. Process the results in Java to find the correct cutoff
-        return colleges.stream()
-                // Filter by branch in memory if a branch is specified
-                .filter(college -> branch == null || branch.equals(college.getBranchCode()))
-                // Use flatMap to check each college against each possible category
-                .flatMap(college -> categoriesToCheck.stream().map(cat -> {
-                    // ### FIX FOR CUTOFF NULL ISSUE ###
-                    // This logic now correctly checks every relevant category for a cutoff
-                    Integer cutoff = getCutoffForCategory(college, cat);
-                    if (cutoff != null && cutoff > 0) {
-                        // If a valid cutoff is found, create a result object
-                        return new CollegeResult(college, cutoff, cat);
-                    }
-                    return null; // Return null if no cutoff was found for this combination
-                }))
-                .filter(Objects::nonNull) // Remove all the nulls
-                .sorted(Comparator.comparing(CollegeResult::getCutoff)) // Sort by the cutoff rank
+        // Process the results to find matching cutoffs with probability calculation
+        // CRITICAL: Only include results where cutoff is NOT NULL
+        // This automatically filters out:
+        // - Women's colleges when checking *_boys columns (they have NULL)
+        // - Men's colleges when checking *_girls columns (they have NULL)
+        List<CollegeResult> results = colleges.stream()
+                .flatMap(college -> categoriesToCheck.stream()
+                        .map(cat -> {
+                            Integer cutoff = getCutoffForCategory(college, cat);
+                            
+                            // CRITICAL: Only process if cutoff exists and is valid
+                            // This is how we filter women's/men's colleges!
+                            // Women's colleges have NULL in boys columns
+                            // Men's colleges have NULL in girls columns
+                            if (cutoff == null || cutoff == 0) {
+                                return null;
+                            }
+
+                            // Calculate probability only if rank is provided
+                            Double probability = null;
+
+                            if (rank != null && rank > 0) {
+                                // Probability calculation based on rank vs cutoff
+                                double assuredBoundary = cutoff * 0.95;
+                                double reachableBoundary = cutoff * 1.10;
+                                double ambitiousBoundary = cutoff * 1.25;
+
+                                if (rank <= assuredBoundary) {
+                                    double score = ((double) cutoff - rank) / cutoff;
+                                    probability = 85.0 + 14.0 * score;
+                                    probability = Math.min(99.0, probability);
+
+                                } else if (rank <= reachableBoundary) {
+                                    double range = reachableBoundary - assuredBoundary;
+                                    double score = (reachableBoundary - rank) / range;
+                                    probability = 40.0 + 45.0 * score;
+
+                                } else if (rank <= ambitiousBoundary) {
+                                    double range = ambitiousBoundary - reachableBoundary;
+                                    double score = (ambitiousBoundary - rank) / range;
+                                    probability = 5.0 + 35.0 * score;
+
+                                } else {
+                                    // Rank is too low for this college
+                                    return null;
+                                }
+                            }
+                            // When rank is null, probability remains null (frontend will show "N/A")
+
+                            return new CollegeResult(college, cutoff, cat, probability);
+                        })
+                        .filter(Objects::nonNull)
+                )
+                .sorted(Comparator
+                        .comparing(CollegeResult::getProbability, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(CollegeResult::getCutoff, Comparator.nullsFirst(Comparator.reverseOrder()))
+                )
                 .collect(Collectors.toList());
-    }
 
-    // Helper method to determine which category strings to check (e.g., "oc_boys")
+        log.debug("Returning {} college results", results.size());
+        return results;
+    }
     private Set<String> getEffectiveCategories(String category, String gender) {
         Set<String> effectiveCategories = new HashSet<>();
 
+        // Determine which genders to check
         List<String> gendersToCheck = new ArrayList<>();
-        if (gender != null) {
-            gendersToCheck.add(gender.toLowerCase());
+        if (gender != null && !gender.trim().isEmpty()) {
+            String genderLower = gender.toLowerCase();
+            if ("boys".equals(genderLower) || "male".equals(genderLower)) {
+                gendersToCheck.add("boys");
+            } else if ("girls".equals(genderLower) || "female".equals(genderLower)) {
+                gendersToCheck.add("girls");
+            } else {
+                // Invalid gender, default to both
+                gendersToCheck.add("boys");
+                gendersToCheck.add("girls");
+            }
         } else {
+            // CORRECTED: When gender is null, check BOTH boys AND girls columns
+            // User hasn't specified gender preference, so show all options
             gendersToCheck.add("boys");
             gendersToCheck.add("girls");
         }
 
+        // Determine which categories to check
         List<String> categoriesToCheck = new ArrayList<>();
-        if (category != null) {
+        if (category != null && !category.trim().isEmpty()) {
             categoriesToCheck.add(category.toLowerCase());
         } else {
-            // If no category is given, we check all of them
-            categoriesToCheck.addAll(Set.of("oc", "sc", "st", "bca", "bcb", "bcc", "bcd", "bce", "oc_ews"));
+            // If no category specified, check all categories
+            categoriesToCheck.addAll(Arrays.asList("oc", "sc", "st", "bca", "bcb", "bcc", "bcd", "bce", "oc_ews"));
         }
 
+        // Build the category_gender combinations (e.g., "oc_boys", "sc_girls")
         for (String cat : categoriesToCheck) {
             for (String gen : gendersToCheck) {
                 effectiveCategories.add(cat + "_" + gen);
             }
         }
+
+        log.debug("Effective categories for category='{}' and gender='{}': {}", category, gender, effectiveCategories);
         return effectiveCategories;
     }
 
-    // This helper method maps the category string to the correct getter in your College entity
+    /**
+     * Maps category string to the correct College entity getter
+     * Returns null if category doesn't match or if the cutoff value is null/0
+     */
     private Integer getCutoffForCategory(College c, String category) {
-        if (category == null) return null;
-        return switch (category.toLowerCase()) {
+        if (category == null || category.trim().isEmpty()) {
+            return null;
+        }
+        
+        Integer cutoff = switch (category.toLowerCase()) {
             case "oc_boys" -> c.getOcBoys();
             case "oc_girls" -> c.getOcGirls();
             case "sc_boys" -> c.getScBoys();
@@ -143,11 +250,14 @@ public class CollegePredictorService {
             case "oc_ews_girls" -> c.getOcEwsGirls();
             default -> null;
         };
-    }
-    public List<CollegeDataDto> getAllColleges() {
-        return repo.findAll()
-                .stream()
-                .map(CollegeDataDto::new)
-                .collect(Collectors.toList());
+        
+        // Additional validation: ensure cutoff is not null and is positive
+        if (cutoff != null && cutoff > 0) {
+            log.trace("College '{}' branch '{}' category '{}' has cutoff: {}", 
+                    c.getInstitution_name(), c.getBranchCode(), category, cutoff);
+            return cutoff;
+        }
+        
+        return null;
     }
 }
