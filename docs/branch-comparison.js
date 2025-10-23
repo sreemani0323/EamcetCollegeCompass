@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
     const darkModeSwitch = document.getElementById("darkModeSwitch");
     const branchSelection = document.getElementById("branchSelection");
     const compareBtn = document.getElementById("compareBtn");
@@ -6,22 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const comparisonResults = document.getElementById("comparisonResults");
     const summaryCards = document.getElementById("summaryCards");
     
-    const branches = [
-        "Civil Engineering",
-        "Computer Science & Engineering",
-        "Electronics & Communication Engineering",
-        "Electrical & Electronics Engineering",
-        "Mechanical Engineering",
-        "Information Technology",
-        "Artificial Intelligence & Machine Learning",
-        "Artificial Intelligence & Data Science",
-        "CSE (Artificial Intelligence)",
-        "CSE (Cyber Security)",
-        "CSE (Data Science)",
-        "Chemical Engineering",
-        "Biotechnology"
-    ];
-    
+    let branches = [];
     let selectedBranches = [];
     let branchData = {};
     
@@ -38,54 +23,154 @@ document.addEventListener("DOMContentLoaded", function () {
     // Auto-show branch selection on load
     branchSelection.parentElement.style.display = "block";
     
-    // Render branch checkboxes
-    branches.forEach(branch => {
-        const div = document.createElement("div");
-        div.className = "branch-checkbox";
-        div.innerHTML = `
-            <input type="checkbox" id="branch_${branch.replace(/\s+/g, '_')}" value="${branch}" />
-            <label for="branch_${branch.replace(/\s+/g, '_')}" style="cursor: pointer; flex: 1;">${branch}</label>
-        `;
+    // Load branches from backend
+    try {
+        loadingSpinner.style.display = "flex";
+        loadingSpinner.innerHTML = '<div class="spinner"></div><p>Loading available branches...</p>';
         
-        const checkbox = div.querySelector("input");
-        checkbox.addEventListener("change", function() {
-            if (this.checked) {
-                selectedBranches.push(branch);
-                div.classList.add("selected");
-            } else {
-                selectedBranches = selectedBranches.filter(b => b !== branch);
-                div.classList.remove("selected");
-            }
+        const response = await fetch("https://theeamcetcollegeprediction-2.onrender.com/api/analytics/branches");
+        if (!response.ok) {
+            throw new Error(`Failed to load branches: ${response.status}`);
+        }
+        
+        branches = await response.json();
+        console.log(`Loaded ${branches.length} branches from backend:`, branches);
+        
+        if (branches.length === 0) {
+            throw new Error('No branches found in database');
+        }
+        
+        // Render branch checkboxes
+        renderBranchCheckboxes();
+        
+        loadingSpinner.style.display = "none";
+        
+    } catch (err) {
+        console.error('Failed to load branches:', err);
+        loadingSpinner.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 1rem;"></i>
+                <h3 style="color: var(--color-primary); margin-bottom: 1rem;">Failed to Load Branches</h3>
+                <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                    ${err.message || 'Could not connect to server.'}
+                </p>
+                <button onclick="location.reload()" class="btn-primary">
+                    <i class="fas fa-redo"></i> Try Again
+                </button>
+            </div>
+        `;
+    }
+    
+    function renderBranchCheckboxes() {
+        branches.forEach(branch => {
+            const div = document.createElement("div");
+            div.className = "branch-checkbox";
+            div.innerHTML = `
+                <input type="checkbox" id="branch_${branch.replace(/\s+/g, '_')}" value="${branch}" />
+                <label for="branch_${branch.replace(/\s+/g, '_')}" style="cursor: pointer; flex: 1;">${branch}</label>
+            `;
             
-            compareBtn.disabled = selectedBranches.length < 2;
-            if (selectedBranches.length < 2) {
-                compareBtn.textContent = "Select at least 2 branches";
-            } else {
-                compareBtn.innerHTML = `<i class="fas fa-chart-bar"></i> Compare ${selectedBranches.length} Branches`;
-            }
+            const checkbox = div.querySelector("input");
+            checkbox.addEventListener("change", function() {
+                if (this.checked) {
+                    selectedBranches.push(branch);
+                    div.classList.add("selected");
+                } else {
+                    selectedBranches = selectedBranches.filter(b => b !== branch);
+                    div.classList.remove("selected");
+                }
+                
+                compareBtn.disabled = selectedBranches.length < 2;
+                if (selectedBranches.length < 2) {
+                    compareBtn.textContent = "Select at least 2 branches";
+                } else {
+                    compareBtn.innerHTML = `<i class="fas fa-chart-bar"></i> Compare ${selectedBranches.length} Branches`;
+                }
+            });
+            
+            branchSelection.appendChild(div);
         });
         
-        branchSelection.appendChild(div);
-    });
-    
-    compareBtn.disabled = true;
-    compareBtn.textContent = "Select at least 2 branches";
+        compareBtn.disabled = true;
+        compareBtn.textContent = "Select at least 2 branches";
+    }
     
     compareBtn.addEventListener("click", compareBranches);
     
     async function compareBranches() {
         loadingSpinner.style.display = "flex";
+        loadingSpinner.innerHTML = '<div class="spinner"></div><p>Loading college data...</p>';
         comparisonResults.style.display = "none";
         branchData = {};
         
         try {
-            // Fetch stats for each selected branch
-            for (const branch of selectedBranches) {
-                const response = await fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/analytics/branch-stats/${encodeURIComponent(branch)}`);
-                const data = await response.json();
-                branchData[branch] = data;
+            // Fetch all colleges data first
+            console.log('Fetching all colleges data...');
+            const response = await fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({})
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
+            const allColleges = await response.json();
+            console.log(`Fetched ${allColleges.length} colleges`);
+            
+            // Log a sample college to see the structure
+            if (allColleges.length > 0) {
+                console.log('Sample college data:', allColleges[0]);
+            }
+            
+            // Calculate stats for each selected branch
+            for (const branch of selectedBranches) {
+                console.log(`Calculating stats for branch: ${branch}`);
+                // Handle both 'branch' and 'branchCode' field names
+                const branchColleges = allColleges.filter(c => {
+                    const collegeBranch = c.branch || c.branchCode || '';
+                    return collegeBranch === branch;
+                });
+                console.log(`Found ${branchColleges.length} colleges for ${branch}`);
+                
+                if (branchColleges.length > 0) {
+                    const packages = branchColleges
+                        .map(c => c.averagePackage)
+                        .filter(p => p != null && p > 0);
+                    
+                    const avgPackage = packages.length > 0 
+                        ? packages.reduce((a, b) => a + b, 0) / packages.length 
+                        : 0;
+                    
+                    const maxPackage = packages.length > 0 
+                        ? Math.max(...packages) 
+                        : 0;
+                    
+                    const minPackage = packages.length > 0 
+                        ? Math.min(...packages) 
+                        : 0;
+                    
+                    branchData[branch] = {
+                        totalColleges: branchColleges.length,
+                        avgPackage: avgPackage,
+                        maxPackage: maxPackage,
+                        minPackage: minPackage
+                    };
+                    console.log(`Stats for ${branch}:`, branchData[branch]);
+                } else {
+                    console.warn(`No colleges found for branch: ${branch}`);
+                    // Log available branch names for debugging
+                    const availableBranches = [...new Set(allColleges.map(c => c.branch || c.branchCode).filter(Boolean))];
+                    console.log('Available branches in data:', availableBranches.slice(0, 10));
+                }
+            }
+            
+            if (Object.keys(branchData).length === 0) {
+                throw new Error('No data found for selected branches. Please try different branches.');
+            }
+            
+            console.log('Rendering comparison...');
             renderComparison();
             loadingSpinner.style.display = "none";
             comparisonResults.style.display = "block";
@@ -93,7 +178,18 @@ document.addEventListener("DOMContentLoaded", function () {
             
         } catch (err) {
             console.error("Failed to fetch branch data:", err);
-            loadingSpinner.innerHTML = "<p style='color: red;'>Failed to load comparison data</p>";
+            loadingSpinner.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 1rem;"></i>
+                    <h3 style="color: var(--color-primary); margin-bottom: 1rem;">Failed to Load Comparison</h3>
+                    <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                        ${err.message || 'An error occurred while loading branch comparison data.'}
+                    </p>
+                    <button onclick="location.reload()" class="btn-primary">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                </div>
+            `;
         }
     }
     

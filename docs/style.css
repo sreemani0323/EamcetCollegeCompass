@@ -5,6 +5,8 @@
     --color-primary: #37517e;       /* Deeper, professional blue */
     --color-accent: #14a2b8;        /* Vibrant teal for CTAs */
     --color-text-dark: #212529;     /* Softer black for body text */
+    --color-text-primary: #212529;  /* Primary text color */
+    --color-text-secondary: #6c757d; /* Secondary text color */
     --color-text-light: #f8f9fa;    /* Off-white for dark mode */
     --color-heading-dark: #343a40;  /* Darker text for headings */
     --color-muted: #6c757d;         /* Muted gray for labels/meta text */
@@ -820,6 +822,10 @@ body.dark-mode .favorite-btn.favorited {
     font-weight: 600;
     transition: all 0.3s ease;
     z-index: 2;
+    max-width: 60%; /* Prevent overflow */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .card-location-link:hover {
@@ -835,7 +841,7 @@ body.dark-mode .favorite-btn.favorited {
 /* Make sure college card is positioned relative */
 .college-card {
     position: relative;
-    padding-top: 3.5rem; /* Extra padding to accommodate top buttons */
+    padding-top: 5rem; /* Extra padding to accommodate two rows of buttons */
 }
 
 body.dark-mode .favorite-btn {
@@ -851,11 +857,11 @@ body.dark-mode .favorite-btn.favorited {
     background: #3d1f1f;
 }
 
-/* COMPARISON CHECKBOX POSITIONING */
+/* COMPARISON CHECKBOX POSITIONING - MOVED TO SECOND ROW */
 .compare-checkbox-wrapper {
     position: absolute;
-    top: 1rem;
-    right: 4.5rem; /* Position to the left of favorite button */
+    top: 3.5rem; /* Second row - below location and favorite */
+    left: 1rem; /* Aligned with location link */
     z-index: 2;
 }
 
@@ -1071,7 +1077,7 @@ input:checked + .toggle-slider:before {
 .college-card {
     position: relative;
     padding: 1.5rem;
-    padding-top: 4rem; /* Space for buttons */
+    padding-top: 4rem; /* Space for top row buttons */
     min-height: 280px;
 }
 
@@ -1089,17 +1095,175 @@ input:checked + .toggle-slider:before {
     top: 1rem;
     left: 1rem;
     z-index: 3;
-    max-width: calc(100% - 140px); /* Prevent overlap with right buttons */
+    max-width: 40%; /* Even smaller to ensure no overlap with compare checkbox */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .compare-checkbox-wrapper {
     position: absolute;
-    top: 1rem;
-    right: 5rem; /* More space from favorite button */
+    top: 1rem; /* Top row */
+    right: 1rem; /* RIGHT corner - opposite of location */
     z-index: 3;
 }
 
 .card-title {
     margin-top: 0.5rem !important;
     clear: both;
+}
+
+/* ========================================
+   COMPREHENSIVE DARK MODE STYLES
+   ======================================== */
+
+body.dark-mode {
+    background: var(--bg-dark);
+    color: var(--color-text-light);
+}
+
+body.dark-mode .page-header {
+    background: var(--card-dark);
+    border-bottom-color: var(--border-dark);
+}
+
+body.dark-mode #siteTitle {
+    color: var(--color-text-light);
+}
+
+body.dark-mode .hero-section {
+    background: #161b22;
+    border-bottom-color: var(--border-dark);
+}
+
+body.dark-mode .hero-content h2,
+body.dark-mode .hero-content p {
+    color: var(--color-text-light);
+}
+
+body.dark-mode .predict-form,
+body.dark-mode .college-card,
+body.dark-mode .modal-content,
+body.dark-mode .modal-content-large,
+body.dark-mode .comparison-tray {
+    background: var(--card-dark);
+    border-color: var(--border-dark);
+}
+
+body.dark-mode .form-title,
+body.dark-mode .card-title,
+body.dark-mode .modal-title,
+body.dark-mode h1, body.dark-mode h2, 
+body.dark-mode h3, body.dark-mode h4 {
+    color: var(--color-text-light) !important;
+}
+
+body.dark-mode .card-branch-info,
+body.dark-mode .card-details-item p,
+body.dark-mode .comparison-tray p {
+    color: var(--color-text-light) !important;
+}
+
+body.dark-mode .card-branch-info span,
+body.dark-mode .card-details-item strong,
+body.dark-mode .card-footer,
+body.dark-mode .card-footer strong,
+body.dark-mode label,
+body.dark-mode .form-group label {
+    color: #8b949e !important;
+}
+
+body.dark-mode .multiselect-input,
+body.dark-mode .sort-control select,
+body.dark-mode .hero-rank-input input,
+body.dark-mode #langSelect {
+    background: var(--card-dark);
+    border-color: var(--border-dark);
+    color: var(--color-text-light);
+}
+
+body.dark-mode .multiselect-options-container,
+body.dark-mode .download-menu {
+    background: var(--card-dark);
+    border-color: var(--border-dark);
+}
+
+body.dark-mode .options-list label:hover,
+body.dark-mode .download-menu button:hover {
+    background: #21262d;
+}
+
+body.dark-mode .form-divider::before,
+body.dark-mode .form-divider::after,
+body.dark-mode .card-branch-info,
+body.dark-mode .card-footer,
+body.dark-mode .modal-header,
+body.dark-mode .modal-body,
+body.dark-mode .results-header {
+    border-color: var(--border-dark);
+}
+
+body.dark-mode .btn-secondary {
+    background: var(--card-dark);
+    color: var(--color-text-light);
+    border-color: var(--border-dark);
+}
+
+body.dark-mode .btn-secondary:hover {
+    background: #21262d;
+    border-color: #484f58;
+}
+
+body.dark-mode .disclaimer {
+    background: #2d1b1b;
+    border-color: #5a2828;
+    color: #f0d0d0;
+}
+
+body.dark-mode .empty-state {
+    border-color: var(--border-dark);
+    color: #8b949e;
+}
+
+body.dark-mode .empty-state h2 {
+    color: var(--color-text-light) !important;
+}
+
+body.dark-mode .card-location-link {
+    color: #58a6ff;
+}
+
+body.dark-mode .card-location-link:hover {
+    background: #21262d;
+    color: #79c0ff;
+}
+
+body.dark-mode .compare-checkbox-wrapper {
+    color: #8b949e;
+}
+
+body.dark-mode .nav-link {
+    color: #8b949e;
+}
+
+body.dark-mode .nav-link:hover {
+    background: #21262d;
+    color: var(--color-accent);
+}
+
+body.dark-mode .nav-link.active {
+    background: linear-gradient(135deg, #1f6feb, #14a2b8);
+    color: white;
+}
+
+body.dark-mode .favorite-btn {
+    background: var(--card-dark);
+    border-color: var(--border-dark);
+    color: #8b949e;
+}
+
+body.dark-mode .favorite-btn:hover,
+body.dark-mode .favorite-btn.favorited {
+    background: #2d1b1b;
+    color: #ff6b81;
 }

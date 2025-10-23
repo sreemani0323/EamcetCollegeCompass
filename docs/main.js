@@ -72,66 +72,32 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     const translations = {
-        en: {
-            btnPredict: "Predict Now", btnClear: "Clear All Filters", disclaimerStrong: "Disclaimer:",
-            disclaimerText: "Prediction is based on previous years' cutoff data and trends. Actual cutoffs may vary due to factors such as applicants and seat availability.",
-            sortLabel: "Sort By:", selectAll: "Select All", sortProbabilityDesc: "Probability (High to Low)", sortProbabilityAsc: "Probability (Low to High)",
-            sortCutoffAsc: "Cutoff Rank (Low to High)", sortCutoffDesc: "Cutoff Rank (High to Low)",
-            sortAvgPackageDesc: "Average Package (High to Low)", sortAvgPackageAsc: "Average Package (Low to High)",
-            sortHighestPackageDesc: "Highest Package (High to Low)", sortHighestPackageAsc: "Highest Package (Low to High)",
-            sortQualityDesc: "Placement Quality (Best to Worst)", sortQualityAsc: "Placement Quality (Worst to Best)",
-            btnSavePdf: "Save as PDF", btnSaveCsv: "Save as CSV",
-            noDataText: "No colleges found matching your criteria.", noInputText: "Please enter a valid positive rank or select at least one filter.",
-            fetchError: "Could not fetch predictions. Please try again later.", itemsSelected: "items selected",
-            downloadNoData: "Please predict colleges first to download results.",
-            labelBranch: "Branch Preference", selectBranch: "Select Branch",
-            labelQuota: "Reservation Quota", selectQuota: "Select Quota",
-            labelGender: "Gender", selectGender: "Select Gender",
-            labelRegion: "Region", selectRegion: "Select Region",
-            labelDistrict: "District", selectDistrict: "Select District",
-            labelTier: "College Tier", selectTier: "Select Tier",
-            labelPlacementQuality: "Placement Quality", selectQuality: "Select Quality",
-            compareCheck: "Compare", compareCount: " Colleges Selected for Comparison",
-            compareNow: "Compare Now", clearCompare: "Clear Comparison",
-            tableFeature: "Feature", tableName: "College Name", tableBranch: "Branch", tableCutoff: "Cutoff Rank", tableProb: "Predicted Chance", tableTier: "Tier", tableAvg: "Avg. Package (Lakhs)", tableHighest: "Highest Package (Lakhs)", tableQuality: "Placement Quality",
-            mapCollegeDetails: "College Details",
-            limitWarningTitle: "Comparison Limit Reached",
-            limitWarningText: "You can only select up to 4 colleges for side-by-side comparison. Please deselect a college to add a new one.",
-            // New warning for empty prediction
-            inputWarningTitle: "Input Required",
-            inputWarningText: "To get predictions, please enter your EAMCET rank or select at least one filter option.",
-        },
-        te: {
-            btnPredict: "కళాశాలలను అంచనా వేయి", btnClear: "ఫిల్టర్లు క్లియర్ చేయండి", disclaimerStrong: "అనుమతి:",
-            disclaimerText: "గత సంవత్సరాల కటాఫ్ డేటా మరియు ట్రెండ్స్ ఆధారంగా అంచనా. వాస్తవ కటాఫ్లు దరఖాస్తుదారులు మరియు సీట్ల లభ్యతపై ఆధారపడి మారవచ్చు.",
-            sortLabel: "ఫలితాలను సర్దుబాటు చేయండి:", selectAll: "అన్నింటిని ఎంచుకోండి",
-            sortProbabilityDesc: "అవకాశం (ఎక్కువ నుండి తక్కువ)", sortProbabilityAsc: "అవకాశం (తక్కువ నుండి ఎక్కువ)",
-            sortCutoffAsc: "కటాఫ్ ర్యాంక్ (తక్కువ నుండి ఎక్కువ)", sortCutoffDesc: "కటాఫ్ ర్యాంక్ (ఎక్కువ నుండి తక్కువ)",
-            sortAvgPackageDesc: "సగటు ప్యాకేజ్ (ఎక్కువ నుండి తక్కువ)", sortAvgPackageAsc: "సగటు ప్యాకేజ్ (తక్కువ నుండి ఎక్కువ)",
-            sortHighestPackageDesc: "అత్యధిక ప్యాకేజ్ (ఎక్కువ నుండి తక్కువ)", sortHighestPackageAsc: "అత్యధిక ప్యాకేజ్ (తక్కువ నుండి ఎక్కువ)",
-            sortQualityDesc: "ప్లేస్‌మెంట్ నాణ్యత (ఉత్తమ నుంచి చెత్త)", sortQualityAsc: "ప్లేస్‌మెంట్ నాణ్యత (చెత్త నుంచి ఉత్తమ)",
-            btnSavePdf: "PDFగా సేవ్ చెయ్యండి", btnSaveCsv: "CSVగా సేవ్ చెయ్యండి",
-            noInputText: "దయచేసి సరైన పాజిటివ్ ర్యాంక్ను నమోదు చేయండి.",
-            fetchError: "ఏదో పొరపాటు వచ్చింది. కన్సోల్‌ను తనిఖీ చేయండి.",
-            downloadNoData: "దయచేసి ఫలితాలను డౌన్లోడ్ చేయడానికి ముందుగా కళాశాలలను అంచనా వేయండి.",
-            itemsSelected: "ఎంచుకోబడిన అంశాలు",
-            labelBranch: "ఆసక్తిగల శాఖ", selectBranch: "శాఖను ఎంచుకోండి",
-            labelQuota: "కోటా", selectQuota: "కోటాను ఎంచుకోండి",
-            labelGender: "లింగం", selectGender: "లింగాన్ని ఎంచుకోండి",
-            labelRegion: "ప్రాంతం", selectRegion: "ప్రాంతం ఎంచుకోండి",
-            labelDistrict: "జిల్లా", selectDistrict: "జిల్లా ఎంచుకోండి",
-            labelTier: "టియర్", selectTier: "టియర్ ఎంచుకోండి",
-            labelPlacementQuality: "ప్లేస్‌మెంట్ నాణ్యత", selectQuality: "నాణ్యతను ఎంచుకోండి",
-            compareCheck: "పోల్చండి", compareCount: " కళాశాలలు పోలిక కోసం ఎంచుకోబడ్డాయి",
-            compareNow: "ఇప్పుడే పోల్చండి", clearCompare: "పోలికను క్లియర్ చేయండి",
-            tableFeature: "లక్షణం", tableName: "కళాశాల పేరు", tableBranch: "శాఖ", tableCutoff: "కటాఫ్ ర్యాంక్", tableProb: "అంచనా అవకాశం", tableTier: "టియర్", tableAvg: "సగటు ప్యాకేజ్ (లక్షల్లో)", tableHighest: "అత్యధిక ప్యాకేజ్ (లక్షల్లో)", tableQuality: "ప్లేస్‌మెంట్ నాణ్యత",
-            mapCollegeDetails: "కళాశాల వివరాలు",
-            limitWarningTitle: "పోలిక పరిమితి చేరుకుంది",
-            limitWarningText: "సైడ్-బై-సైడ్ పోలిక కోసం మీరు 4 కళాశాలలను మాత్రమే ఎంచుకోగలరు. దయచేసి క్రొత్తదాన్ని జోడించడానికి ఒక కళాశాలను ఎంపిక చేయవద్దు.",
-            // New warning for empty prediction
-            inputWarningTitle: "ఇన్పుట్ అవసరం",
-            inputWarningText: "అంచనాలు పొందడానికి, దయచేసి మీ EAMCET ర్యాంక్ను నమోదు చేయండి లేదా కనీసం ఒక ఫిల్టర్ ఎంపికను ఎంచుకోండి.",
-        }
+        btnPredict: "Predict Now", btnClear: "Clear All Filters", disclaimerStrong: "Disclaimer:",
+        disclaimerText: "Prediction is based on previous years' cutoff data and trends. Actual cutoffs may vary due to factors such as applicants and seat availability.",
+        sortLabel: "Sort By:", selectAll: "Select All", sortProbabilityDesc: "Probability (High to Low)", sortProbabilityAsc: "Probability (Low to High)",
+        sortCutoffAsc: "Cutoff Rank (Low to High)", sortCutoffDesc: "Cutoff Rank (High to Low)",
+        sortAvgPackageDesc: "Average Package (High to Low)", sortAvgPackageAsc: "Average Package (Low to High)",
+        sortHighestPackageDesc: "Highest Package (High to Low)", sortHighestPackageAsc: "Highest Package (Low to High)",
+        sortQualityDesc: "Placement Quality (Best to Worst)", sortQualityAsc: "Placement Quality (Worst to Best)",
+        btnSavePdf: "Save as PDF", btnSaveCsv: "Save as CSV",
+        noDataText: "No colleges found matching your criteria.", noInputText: "Please enter a valid positive rank or select at least one filter.",
+        fetchError: "Could not fetch predictions. Please try again later.", itemsSelected: "items selected",
+        downloadNoData: "Please predict colleges first to download results.",
+        labelBranch: "Branch Preference", selectBranch: "Select Branch",
+        labelQuota: "Reservation Quota", selectQuota: "Select Quota",
+        labelGender: "Gender", selectGender: "Select Gender",
+        labelRegion: "Region", selectRegion: "Select Region",
+        labelDistrict: "District", selectDistrict: "Select District",
+        labelTier: "College Tier", selectTier: "Select Tier",
+        labelPlacementQuality: "Placement Quality", selectQuality: "Select Quality",
+        compareCheck: "Compare", compareCount: " Colleges Selected for Comparison",
+        compareNow: "Compare Now", clearCompare: "Clear Comparison",
+        tableFeature: "Feature", tableName: "College Name", tableBranch: "Branch", tableCutoff: "Cutoff Rank", tableProb: "Predicted Chance", tableTier: "Tier", tableAvg: "Avg. Package (Lakhs)", tableHighest: "Highest Package (Lakhs)", tableQuality: "Placement Quality",
+        mapCollegeDetails: "College Details",
+        limitWarningTitle: "Comparison Limit Reached",
+        limitWarningText: "You can only select up to 4 colleges for side-by-side comparison. Please deselect a college to add a new one.",
+        inputWarningTitle: "Input Required",
+        inputWarningText: "To get predictions, please enter your EAMCET rank or select at least one filter option."
     };
     
     const SortMap = {
@@ -143,7 +109,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // === 2. ELEMENT SELECTORS ===
     const body = document.body;
     const darkModeSwitch = document.getElementById("darkModeSwitch");
-    const langSelect = document.getElementById("langSelect");
     const rankInput = document.getElementById("rank");
     const predictButton = document.getElementById("predictButton");
     const clearButton = document.getElementById("clearButton");
@@ -187,9 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let rawData = [];
     let sortedData = [];
     let selectedColleges = []; 
-    let currentLang = "en";
     let allCollegesCache = []; // Cache for all colleges data
-    let favoriteColleges = JSON.parse(localStorage.getItem('favoriteColleges') || '[]'); // Favorites
 
     // === 4. INITIALIZATION ===
     initializePage();
@@ -217,14 +180,31 @@ document.addEventListener("DOMContentLoaded", function () {
     function checkUrlParameters() {
         const urlParams = new URLSearchParams(window.location.search);
         const instcode = urlParams.get('instcode');
-        const autoload = urlParams.get('autoload');
+        const view = urlParams.get('view');
         
-        if (instcode && autoload === 'true') {
-            // Auto-predict for this college
+        if (instcode && view === 'details') {
+            // Auto-search for this specific college by instcode
             setTimeout(() => {
-                // Clear URL parameters without reload
-                window.history.replaceState({}, document.title, window.location.pathname);
-                // You could implement auto-search here if needed
+                // Make API call to filter by instcode
+                showSpinner(true);
+                fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ instcode: instcode })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    rawData = data;
+                    filterAndRenderColleges();
+                    showSpinner(false);
+                    
+                    // Clear URL parameters without reload
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                })
+                .catch(err => {
+                    console.error("Failed to load college details:", err);
+                    showSpinner(false);
+                });
             }, 100);
         }
     }
@@ -321,7 +301,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function translateUI() {
         document.querySelectorAll("[data-lang-key]").forEach(el => {
             const key = el.getAttribute("data-lang-key");
-            const text = translations[currentLang][key];
+            const text = translations[key];
             if (text) {
                // Check if the element is a direct child of a label with select-all-label class
                 if (el.tagName === 'SPAN' && el.parentElement.classList.contains('select-all-label')) {
@@ -332,19 +312,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         });
-        rankInput.placeholder = currentLang === 'te' ? "మీ ర్యాంక్ ఇవ్వండి" : "Enter your rank here (e.g., 15000)";
+        rankInput.placeholder = "Enter your rank here (e.g., 15000)";
         multiselectContainers.forEach(dropdown => {
             const hiddenInput = document.getElementById(dropdown.getAttribute('data-id'));
             const selectedValues = (hiddenInput?.value || "").split(',').filter(Boolean);
             updateSelectedItemsDisplay(dropdown, selectedValues);
         });
         updateComparisonTray(); 
-        
-        // Update Modal Text on Language Change
-        if (warningModal) {
-             warningModalTitle.textContent = translations[currentLang].limitWarningTitle;
-             warningModalText.textContent = translations[currentLang].limitWarningText;
-        }
     }
 
     // === 6. MULTI-SELECT & DEPENDENT DROPDOWN LOGIC ===
@@ -356,8 +330,8 @@ document.addEventListener("DOMContentLoaded", function () {
             placeholderText = selectedItemsSpan.textContent;
         }
         const placeholderKey = dropdown.getAttribute('data-placeholder-key');
-        if (placeholderKey && translations[currentLang][placeholderKey]) {
-            placeholderText = translations[currentLang][placeholderKey];
+        if (placeholderKey && translations[placeholderKey]) {
+            placeholderText = translations[placeholderKey];
         }
 
         if (selectedValues.length === 0 || !selectedValues[0]) {
@@ -370,7 +344,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!dataSource) return;
 
         const selectedTexts = selectedValues.map(val => dataSource.find(opt => opt.value === val)?.text || val);
-        selectedItemsSpan.textContent = selectedTexts.length === 1 ? selectedTexts[0] : `${selectedTexts.length} ${translations[currentLang].itemsSelected}`;
+        selectedItemsSpan.textContent = selectedTexts.length === 1 ? selectedTexts[0] : `${selectedTexts.length} ${translations.itemsSelected}`;
     }
 
     function toggleDropdown(dropdown) {
@@ -497,8 +471,23 @@ document.addEventListener("DOMContentLoaded", function () {
         
         const hasFilters = filterInputs.some(val => val !== null && val !== "" && val !== "null");
 
+        // NEW: Validate rank <= 0 with pop-up
+        if (rankValue !== null && rankValue <= 0) {
+            showValidationModal(
+                ValidationMessages.invalidRank.title,
+                ValidationMessages.invalidRank.message,
+                ValidationMessages.invalidRank.type
+            );
+            return;
+        }
+
+        // Check if no input at all
         if ((!rankValue || rankValue <= 0) && !hasFilters) {
-            showWarningModal(translations[currentLang].inputWarningTitle, translations[currentLang].inputWarningText);
+            showValidationModal(
+                ValidationMessages.noInput.title,
+                ValidationMessages.noInput.message,
+                ValidationMessages.noInput.type
+            );
             return;
         }
         // --- END Input Validation Check ---
@@ -543,7 +532,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(response => { if (!response.ok) throw new Error(`API Error: ${response.statusText}`); return response.json(); })
         .then(data => { rawData = data; filterAndRenderColleges(); })
-        .catch(error => { console.error("Fetch Error:", error); renderEmptyState(translations[currentLang].fetchError); })
+        .catch(error => { console.error("Fetch Error:", error); renderEmptyState(translations.fetchError); })
         .finally(() => showSpinner(false));
     }
 
@@ -559,7 +548,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function renderColleges() {
         if (!sortedData || sortedData.length === 0) {
-            renderEmptyState(translations[currentLang].noDataText);
+            renderEmptyState(translations.noDataText);
             return;
         }
         resultsHeader.style.display = 'flex';
@@ -573,7 +562,6 @@ document.addEventListener("DOMContentLoaded", function () {
             card.dataset.id = uniqueId; 
             
             const isSelected = selectedColleges.some(c => c.uniqueId === uniqueId);
-            const isFavorite = favoriteColleges.includes(uniqueId);
             
             // Format data for display
             const collegeName = college.institution_name || college.name || "Unnamed College";
@@ -587,9 +575,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // Comparison Checkbox HTML (calls global function)
             const comparisonCheckbox = `
                 <div class="compare-checkbox-wrapper">
-                    <label for="compare-${uniqueId}" title="${translations[currentLang].compareCheck}">
+                    <label for="compare-${uniqueId}" title="${translations.compareCheck}">
                         <input type="checkbox" id="compare-${uniqueId}" class="compare-checkbox" data-college='${collegeDataString}' data-unique-id="${uniqueId}" ${isSelected ? 'checked' : ''} onchange="handleCompareCheckbox(event)" />
-                        <span>${translations[currentLang].compareCheck}</span>
+                        <span>${translations.compareCheck}</span>
                     </label>
                 </div>
             `;
@@ -600,18 +588,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const probabilityDisplay = college.probability ? college.probability.toFixed(0) + '%' : 'N/A';
             const districtText = optionData.districts.find(d => d.value === college.district)?.text || 'N/A';
 
-            // Favorites button
-            const favoritesButton = `
-                <button class="favorite-btn ${isFavorite ? 'favorited' : ''}" 
-                        onclick="toggleFavorite('${uniqueId}')" 
-                        title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
-                    <i class="fa${isFavorite ? 's' : 'r'} fa-heart"></i>
-                </button>
-            `;
-
             card.innerHTML = `
                 ${comparisonCheckbox}
-                ${favoritesButton}
                 <a href="${locationUrl}" target="_blank" class="card-location-link" title="View on Map">
                     <i class="fa-solid fa-location-dot"></i> <span>Location</span>
                 </a>
@@ -668,7 +646,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             } else {
                 checkbox.checked = false;
-                showWarningModal(translations[currentLang].limitWarningTitle, translations[currentLang].limitWarningText);
+                showValidationModal(
+                    ValidationMessages.comparisonLimit.title,
+                    ValidationMessages.comparisonLimit.message,
+                    ValidationMessages.comparisonLimit.type
+                );
                 return;
             }
         } else {
@@ -692,40 +674,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         updateComparisonTray();
     };
-    
-    /**
-     * Toggle favorite status for a college
-     */
-    window.toggleFavorite = (uniqueId) => {
-        const index = favoriteColleges.indexOf(uniqueId);
-        
-        if (index > -1) {
-            // Remove from favorites
-            favoriteColleges.splice(index, 1);
-        } else {
-            // Add to favorites
-            favoriteColleges.push(uniqueId);
-        }
-        
-        // Save to localStorage
-        localStorage.setItem('favoriteColleges', JSON.stringify(favoriteColleges));
-        
-        // Re-render to update UI
-        renderColleges();
-    };
 
     function updateComparisonTray() {
         const count = selectedColleges.length;
-        
-        const langKey = currentLang === 'te' ? 'te' : 'en';
-        const countText = translations[langKey].compareCount;
+        const countText = translations.compareCount;
         
         comparisonTray.querySelector('p').innerHTML = `<span id="compare-count" style="color: var(--color-accent); margin-right: 0.25rem;">${count}</span> ${countText}`;
 
         comparisonTray.classList.toggle('visible', count > 0);
         
         compareNowBtn.disabled = count < 2;
-        compareNowBtn.textContent = translations[langKey].compareNow;
+        compareNowBtn.textContent = translations.compareNow;
     }
     
 
@@ -735,22 +694,22 @@ document.addEventListener("DOMContentLoaded", function () {
         if (isFirstOpen) comparisonModal.style.display = 'flex';
 
         const features = [
-            { key: 'name', label: translations[currentLang].tableName, isName: true },
-            { key: 'branch', label: translations[currentLang].tableBranch },
-            { key: 'category', label: translations[currentLang].labelQuota },
-            { key: 'cutoff', label: translations[currentLang].tableCutoff },
-            { key: 'probability', label: translations[currentLang].tableProb, percent: true, color: true },
-            { key: 'tier', label: translations[currentLang].tableTier },
-            { key: 'averagePackage', label: translations[currentLang].tableAvg, currency: true },
-            { key: 'highestPackage', label: translations[currentLang].tableHighest, currency: true },
-            { key: 'placementDriveQuality', label: translations[currentLang].tableQuality, quality: true },
-            { key: 'district', label: translations[currentLang].labelDistrict, districtCode: true },
+            { key: 'name', label: translations.tableName, isName: true },
+            { key: 'branch', label: translations.tableBranch },
+            { key: 'category', label: translations.labelQuota },
+            { key: 'cutoff', label: translations.tableCutoff },
+            { key: 'probability', label: translations.tableProb, percent: true, color: true },
+            { key: 'tier', label: translations.tableTier },
+            { key: 'averagePackage', label: translations.tableAvg, currency: true },
+            { key: 'highestPackage', label: translations.tableHighest, currency: true },
+            { key: 'placementDriveQuality', label: translations.tableQuality, quality: true },
+            { key: 'district', label: translations.labelDistrict, districtCode: true },
         ];
 
         let tableHTML = `<table class="comparison-table"><thead><tr>`;
         
         // First row: College Name/Remove Button
-        tableHTML += `<th class="sticky-feature">${translations[currentLang].tableFeature}</th>`; 
+        tableHTML += `<th class="sticky-feature">${translations.tableFeature}</th>`; 
 
         selectedColleges.forEach(college => {
             const safeCollegeName = (college.name || 'N/A').replace(/'/g, "'"); 
@@ -834,10 +793,6 @@ document.addEventListener("DOMContentLoaded", function () {
         if(predictButtonBottom) predictButtonBottom.addEventListener("click", handlePrediction);
 
         sortBySelect.addEventListener("change", filterAndRenderColleges);
-        langSelect.addEventListener("change", (e) => { 
-            currentLang = e.target.value; 
-            translateUI(); 
-        });
 
         // Comparison Modal/Tray Listeners
         compareNowBtn.addEventListener('click', () => openComparisonModal(true));
@@ -890,7 +845,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Download Listeners (No changes)
         downloadBtn.addEventListener('click', () => {
             if (sortedData.length === 0) {
-                console.warn(translations[currentLang].downloadNoData);
+                console.warn(translations.downloadNoData);
                 return;
             }
             downloadMenu.style.display = downloadMenu.style.display === 'block' ? 'none' : 'block';

@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const darkModeSwitch = document.getElementById("darkModeSwitch");
     const regionFilter = document.getElementById("regionFilter");
     const tierFilter = document.getElementById("tierFilter");
+    const searchBox = document.getElementById("searchBox");
     const filterBtn = document.getElementById("filterBtn");
     const collegeList = document.getElementById("collegeList");
     const loadingSpinner = document.getElementById("loadingSpinner");
@@ -55,6 +56,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // Auto-load colleges on page load
     loadColleges();
     
+    // Add search box event listener
+    if (searchBox) {
+        searchBox.addEventListener('input', filterAndDisplay);
+    }
+    
     // Load colleges
     function loadColleges() {
         loadingSpinner.innerHTML = '<div class="spinner"></div>';
@@ -94,15 +100,27 @@ document.addEventListener("DOMContentLoaded", function () {
     function filterAndDisplay() {
         const region = regionFilter.value;
         const tier = tierFilter.value;
+        const searchTerm = searchBox ? searchBox.value.toLowerCase().trim() : '';
         
         let filtered = allColleges;
         
+        // Filter by region
         if (region) {
             filtered = filtered.filter(c => c.region === region);
         }
         
+        // Filter by tier
         if (tier) {
             filtered = filtered.filter(c => c.tier === tier);
+        }
+        
+        // Filter by search term (college name or place)
+        if (searchTerm) {
+            filtered = filtered.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const place = (c.place || '').toLowerCase();
+                return name.includes(searchTerm) || place.includes(searchTerm);
+            });
         }
         
         // Clear existing markers
@@ -118,13 +136,23 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         
         // Add individual markers for each unique college
+        // Use place + district for more accurate location
         uniqueColleges.forEach(college => {
             const coords = districtCoords[college.district];
             if (!coords) return;
             
-            // Add slight random offset to avoid overlapping markers
-            const latOffset = (Math.random() - 0.5) * 0.05;
-            const lngOffset = (Math.random() - 0.5) * 0.05;
+            // Use place name to create variation within district
+            // Hash the place name to get consistent offset for same place
+            let placeHash = 0;
+            const placeName = (college.place || college.name || '').toLowerCase();
+            for (let i = 0; i < placeName.length; i++) {
+                placeHash = ((placeHash << 5) - placeHash) + placeName.charCodeAt(i);
+                placeHash = placeHash & placeHash; // Convert to 32bit integer
+            }
+            
+            // Use hash to create deterministic but varied offsets
+            const latOffset = ((placeHash % 100) / 1000) - 0.05; // Range: -0.05 to +0.05
+            const lngOffset = (((placeHash >> 8) % 100) / 1000) - 0.05;
             
             const marker = L.marker([coords[0] + latOffset, coords[1] + lngOffset]).addTo(map);
             markers.push(marker);
@@ -132,6 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const popupContent = `
                 <div style="max-width: 250px;">
                     <h4 style="margin: 0 0 0.5rem 0; color: #2c3e50;">${college.name}</h4>
+                    <p style="margin: 0.25rem 0; font-size: 0.9rem;"><strong>Place:</strong> ${college.place || 'N/A'}</p>
                     <p style="margin: 0.25rem 0; font-size: 0.9rem;"><strong>District:</strong> ${college.district}</p>
                     <p style="margin: 0.25rem 0; font-size: 0.9rem;"><strong>Tier:</strong> ${college.tier || 'N/A'}</p>
                     <p style="margin: 0.25rem 0; font-size: 0.9rem;"><strong>Code:</strong> ${college.instcode}</p>
@@ -164,7 +193,14 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
         
-        uniqueColleges.forEach(college => {
+        // Convert to array and SORT ALPHABETICALLY by college name
+        const sortedColleges = Array.from(uniqueColleges.values()).sort((a, b) => {
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+        
+        sortedColleges.forEach(college => {
             const card = document.createElement("div");
             card.className = "college-card";
             card.style.cssText = "background: var(--card-light); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); transition: transform 0.3s;";
@@ -180,7 +216,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <p style="margin: 0.25rem 0; color: var(--color-text-secondary);">
                     <i class="fas fa-code"></i> ${college.instcode}
                 </p>
-                <a href="index.html?instcode=${college.instcode}&autoload=true" class="btn-primary" style="margin-top: 1rem; display: inline-block; padding: 0.5rem 1rem; text-decoration: none; font-size: 0.9rem;">
+                <a href="index.html?instcode=${college.instcode}&view=details" class="btn-primary" style="margin-top: 1rem; display: inline-block; padding: 0.5rem 1rem; text-decoration: none; font-size: 0.9rem;">
                     View Details <i class="fas fa-arrow-right"></i>
                 </a>
             `;

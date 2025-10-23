@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Analytics - EAMCET Predictor</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-container">
+            <a href="index.html" class="site-title-link">
+                <h1 id="siteTitle"><i class="fas fa-graduation-cap"></i> EAMCET Predictor</h1>
+            </a>
+            <nav class="main-nav">
+                <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
+                <a href="analytics.html" class="nav-link active"><i class="fas fa-chart-bar"></i> Analytics</a>
+                <a href="map.html" class="nav-link"><i class="fas fa-map-marked-alt"></i> Map View</a>
+                <a href="calculator.html" class="nav-link"><i class="fas fa-calculator"></i> Calculator</a>
+                <a href="branch-comparison.html" class="nav-link"><i class="fas fa-code-branch"></i> Compare Branches</a>
+            </nav>
+            <div class="header-controls">
+                <div class="lang-control-wrapper">
+                    <i class="fa-solid fa-globe"></i>
+                    <select id="langSelect" aria-label="Select Language">
+                        <option value="en">English</option>
+                        <option value="te">తెలుగు</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down lang-arrow"></i>
+                </div>
+                <label class="dark-mode-toggle" for="darkModeSwitch" title="Toggle Dark/Light Mode">
+                    <input type="checkbox" id="darkModeSwitch" />
+                    <div class="toggle-slider">
+                        <div class="toggle-thumb">
+                            <i class="fa-solid fa-sun sun-icon"></i>
+                            <i class="fa-solid fa-moon moon-icon"></i>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero-section" style="margin-bottom: 2rem;">
+            <div class="hero-content">
+                <h2><i class="fas fa-chart-line"></i> Analytics Dashboard</h2>
+                <p>Comprehensive insights into EAMCET college data</p>
+            </div>
+        </section>
+
+        <div class="container">
+            <div id="loadingSpinner" class="loading-spinner" style="display:flex; position:relative;">
+                <div class="spinner"></div>
+            </div>
+
+            <div id="analyticsContent" style="display:none;">
+                <!-- Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    <div class="stat-card">
+                        <i class="fas fa-university"></i>
+                        <h3 id="totalColleges">0</h3>
+                        <p>Total Colleges</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-code-branch"></i>
+                        <h3 id="totalBranches">0</h3>
+                        <p>Branches Offered</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-rupee-sign"></i>
+                        <h3 id="avgPackage">₹0 L</h3>
+                        <p>Avg. Package</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-map"></i>
+                        <h3 id="totalRegions">3</h3>
+                        <p>Regions</p>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem;">
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-pie"></i> Colleges by Region</h3>
+                        <canvas id="regionChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-layer-group"></i> Colleges by Tier</h3>
+                        <canvas id="tierChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-bar"></i> Top 10 Branches</h3>
+                        <canvas id="branchChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-money-bill-wave"></i> Avg. Package by Branch (Top 10)</h3>
+                        <canvas id="packageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="page-footer">
+        <div class="footer-container">
+            <p>&copy; 2025 EAMCET Predictor. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="analytics.js"></script>
+    
+    <style>
+        .stat-card {
+            background: var(--card-light);
+            padding: 2rem;
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        .stat-card i {
+            font-size: 2.5rem;
+            color: var(--color-accent);
+            margin-bottom: 1rem;
+        }
+        .stat-card h3 {
+            font-size: 2rem;
+            margin: 0.5rem 0;
+            color: var(--color-primary);
+        }
+        .stat-card p {
+            color: var(--color-text-secondary);
+            font-weight: 500;
+        }
+        .chart-container {
+            background: var(--card-light);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .chart-container h3 {
+            margin-bottom: 1rem;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        body.dark-mode .stat-card,
+        body.dark-mode .chart-container {
+            background: var(--card-dark);
+        }
+        body.dark-mode .stat-card h3 {
+            color: var(--color-text-light);
+        }
+    </style>
+</body>
+</html>

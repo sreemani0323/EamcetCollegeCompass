@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Map View - EAMCET Predictor</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-container">
+            <a href="index.html" class="site-title-link">
+                <h1 id="siteTitle"><i class="fas fa-graduation-cap"></i> EAMCET Predictor</h1>
+            </a>
+            <nav class="main-nav">
+                <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
+                <a href="analytics.html" class="nav-link"><i class="fas fa-chart-bar"></i> Analytics</a>
+                <a href="map.html" class="nav-link active"><i class="fas fa-map-marked-alt"></i> Map View</a>
+                <a href="calculator.html" class="nav-link"><i class="fas fa-calculator"></i> Calculator</a>
+                <a href="branch-comparison.html" class="nav-link"><i class="fas fa-code-branch"></i> Compare Branches</a>
+            </nav>
+            <div class="header-controls">
+                <label class="dark-mode-toggle" for="darkModeSwitch">
+                    <input type="checkbox" id="darkModeSwitch" />
+                    <div class="toggle-slider">
+                        <div class="toggle-thumb">
+                            <i class="fa-solid fa-sun sun-icon"></i>
+                            <i class="fa-solid fa-moon moon-icon"></i>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero-section">
+            <div class="hero-content">
+                <h2><i class="fas fa-map-marked-alt"></i> Interactive Map View</h2>
+                <p>Visualize colleges across Andhra Pradesh</p>
+            </div>
+        </section>
+
+        <div class="container">
+            <!-- Filters with Search -->
+            <div style="background: var(--card-light); padding: 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
+                <!-- Search Box -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                        <i class="fas fa-search"></i> Search Colleges
+                    </label>
+                    <input 
+                        type="text" 
+                        id="searchBox" 
+                        placeholder="Search by college name or place..." 
+                        style="width: 100%; padding: 0.75rem; border-radius: 4px; border: 1px solid var(--border-light); font-size: 1rem;"
+                    />
+                </div>
+                
+                <!-- Filters -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Region</label>
+                        <select id="regionFilter" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-light);">
+                            <option value="">All Regions</option>
+                            <option value="AU">Andhra University</option>
+                            <option value="SVU">Sri Venkateswara University</option>
+                            <option value="SW">South-West</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Tier</label>
+                        <select id="tierFilter" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-light);">
+                            <option value="">All Tiers</option>
+                            <option value="Tier 1">Tier 1</option>
+                            <option value="Tier 2">Tier 2</option>
+                            <option value="Tier 3">Tier 3</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button id="filterBtn" class="btn-primary" style="width: 100%;">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map" style="height: 600px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem;"></div>
+
+            <!-- College List -->
+            <div id="collegeList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
+            <div id="loadingSpinner" class="loading-spinner" style="display: flex;"><div class="spinner"></div></div>
+        </div>
+    </main>
+
+    <footer class="page-footer">
+        <div class="footer-container">
+            <p>&copy; 2025 EAMCET Predictor. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="map.js"></script>
+</body>
+</html>
