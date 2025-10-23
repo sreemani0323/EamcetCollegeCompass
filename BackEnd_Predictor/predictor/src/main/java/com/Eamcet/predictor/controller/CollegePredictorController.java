@@ -171,6 +171,25 @@ public class CollegePredictorController {
     }
     
     /**
+     * Get all unique branch codes from database
+     * Diagnostic endpoint to help frontend match branch names
+     */
+    @GetMapping("/analytics/branches")
+    public ResponseEntity<List<String>> getAllBranches() {
+        log.info("Fetching all unique branches");
+        
+        List<String> branches = repo.findAll().stream()
+            .map(College::getBranchCode)
+            .filter(Objects::nonNull)
+            .distinct()
+            .sorted()
+            .collect(Collectors.toList());
+        
+        log.info("Found {} unique branches", branches.size());
+        return ResponseEntity.ok(branches);
+    }
+    
+    /**
      * Get statistics for a specific branch
      */
     @GetMapping("/analytics/branch-stats/{branch}")
