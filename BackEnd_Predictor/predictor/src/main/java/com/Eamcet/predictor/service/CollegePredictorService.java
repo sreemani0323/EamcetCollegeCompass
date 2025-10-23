@@ -265,8 +265,9 @@ public class CollegePredictorService {
     /**
      * Maps category string to the correct College entity getter
      * Returns null if category doesn't match or if the cutoff value is null/0
+     * Made public for use by controller endpoints
      */
-    private Integer getCutoffForCategory(College c, String category) {
+    public Integer getCutoffForCategory(College c, String category) {
         if (category == null || category.trim().isEmpty()) {
             return null;
         }
@@ -301,5 +302,42 @@ public class CollegePredictorService {
         }
         
         return null;
+    }
+    
+    /**
+     * Helper method to get quality score for ranking
+     */
+    public Integer getQualityScore(String quality) {
+        if (quality == null) return 0;
+        return switch (quality) {
+            case "Excellent" -> 4;
+            case "Very Good" -> 3;
+            case "Good" -> 2;
+            case "Bad" -> 1;
+            default -> 0;
+        };
+    }
+    
+    /**
+     * Helper method to get tier score
+     */
+    public Double getTierScore(String tier) {
+        if (tier == null) return 0.5;
+        return switch (tier) {
+            case "Tier 1" -> 1.0;
+            case "Tier 2" -> 0.7;
+            case "Tier 3" -> 0.4;
+            default -> 0.5;
+        };
+    }
+    
+    /**
+     * Helper method to categorize recommendation type
+     */
+    public String getRecommendationType(Double probability) {
+        if (probability == null) return "EXPLORE";
+        if (probability >= 85) return "SAFE";
+        if (probability >= 40) return "MODERATE";
+        return "REACH";
     }
 }

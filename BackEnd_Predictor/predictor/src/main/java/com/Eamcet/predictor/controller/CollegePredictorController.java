@@ -1,7 +1,8 @@
 package com.Eamcet.predictor.controller;
 
-import com.Eamcet.predictor.dto.CollegeDataDto;
+import com.Eamcet.predictor.dto.*;
 import com.Eamcet.predictor.exception.InvalidRequestException;
+import com.Eamcet.predictor.model.College;
 import com.Eamcet.predictor.repository.CollegeRepository;
 import com.Eamcet.predictor.service.CollegePredictorService;
 import com.Eamcet.predictor.service.CollegePredictorService.CollegeResult;
@@ -10,12 +11,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api")
@@ -123,5 +122,384 @@ public class CollegePredictorController {
 
         log.info("Returning {} college results", results.size());
         return ResponseEntity.ok(results);
+    }
+    
+    /**
+     * Analytics endpoint - Get overall statistics
+     */
+    @GetMapping("/api/analytics/summary")
+    public ResponseEntity<AnalyticsSummaryDto> getAnalyticsSummary() {
+        log.info("Fetching analytics summary");
+        List<College> allColleges = repo.findAll();
+        
+        Map<String, Long> collegesByRegion = allColleges.stream()
+            .filter(c -> c.getRegion() != null)
+            .collect(Collectors.groupingBy(College::getRegion, Collectors.counting()));
+        
+        Map<String, Long> collegesByTier = allColleges.stream()
+            .filter(c -> c.getTier() != null)
+            .collect(Collectors.groupingBy(College::getTier, Collectors.counting()));
+        
+        Map<String, Long> collegesByBranch = allColleges.stream()
+            .filter(c -> c.getBranchCode() != null)
+            .collect(Collectors.groupingBy(College::getBranchCode, Collectors.counting()));
+        
+        Double avgPackageOverall = allColleges.stream()
+            .filter(c -> c.getAveragePackage() != null)
+            .mapToDouble(College::getAveragePackage)
+            .average()
+            .orElse(0.0);
+        
+        Map<String, Double> avgPackageByBranch = allColleges.stream()
+            .filter(c -> c.getBranchCode() != null && c.getAveragePackage() != null)
+            .collect(Collectors.groupingBy(
+                College::getBranchCode,
+                Collectors.averagingDouble(College::getAveragePackage)
+            ));
+        
+        AnalyticsSummaryDto summary = new AnalyticsSummaryDto(
+            allColleges.size(),
+            collegesByRegion,
+            collegesByTier,
+            collegesByBranch,
+            avgPackageOverall,
+            avgPackageByBranch
+        );
+        
+        log.info("Analytics summary generated for {} colleges", allColleges.size());
+        return ResponseEntity.ok(summary);
+    }
+    
+    /**
+     * Get statistics for a specific branch
+     */
+    @GetMapping("/api/analytics/branch-stats/{branch}")
+    public ResponseEntity<BranchStatsDto> getBranchStats(@PathVariable String branch) {
+        log.info("Fetching branch stats for: {}", branch);
+        
+        List<College> branchColleges = repo.findAll().stream()
+            .filter(c -> branch.equals(c.getBranchCode()))
+            .collect(Collectors.toList());
+        
+        DoubleSummaryStatistics packageStats = branchColleges.stream()
+            .filter(c -> c.getAveragePackage() != null)
+            .mapToDouble(College::getAveragePackage)
+            .summaryStatistics();
+        
+        BranchStatsDto stats = new BranchStatsDto(
+            branch,
+            branchColleges.size(),
+            packageStats.getCount() > 0 ? packageStats.getAverage() : 0.0,
+            packageStats.getCount() > 0 ? packageStats.getMax() : 0.0,
+            packageStats.getCount() > 0 ? packageStats.getMin() : 0.0
+        );
+        
+        return ResponseEntity.ok(stats);
+    }
+    
+    /**
+     * Search colleges by name
+     */
+    @GetMapping("/api/search/by-name")
+    public ResponseEntity<List<CollegeDataDto>> searchByName(@RequestParam String query) {
+        log.info("Searching colleges by name: {}", query);
+        
+        List<College> colleges = repo.findAll().stream()
+            .filter(c -> c.getInstitution_name() != null && 
+                        c.getInstitution_name().toLowerCase().contains(query.toLowerCase()))
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(colleges.stream()
+            .map(CollegeDataDto::new)
+            .collect(Collectors.toList()));
+    }
+    
+    /**
+     * Get all branches offered by a specific college
+     */
+    @GetMapping("/api/colleges/{instcode}/branches")
+    public ResponseEntity<List<String>> getAvailableBranches(@PathVariable String instcode) {
+        log.info("Fetching available branches for college: {}", instcode);
+        
+        List<String> branches = repo.findAll().stream()
+            .filter(c -> instcode.equals(c.getInstcode()))
+            .map(College::getBranchCode)
+            .filter(Objects::nonNull)
+            .distinct()
+            .sorted()
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(branches);
+    }
+    
+    /**
+     * Reverse calculator - Calculate required rank for desired probability
+     */
+    @PostMapping("/api/reverse-calculator")
+    public ResponseEntity<ReverseCalculatorDto> reverseCalculate(
+            @RequestBody ReverseCalculatorRequestDto request) {
+        log.info("Reverse calculator request: {}", request.getInstcode());
+        
+        College college = repo.findAll().stream()
+            .filter(c -> request.getInstcode().equals(c.getInstcode()))
+            .filter(c -> request.getBranch().equals(c.getBranchCode()))
+            .findFirst()
+            .orElseThrow(() -> new InvalidRequestException("College not found"));
+        
+        Integer cutoff = service.getCutoffForCategory(college, request.getCategory());
+        
+        if (cutoff == null) {
+            throw new InvalidRequestException("No cutoff data for this category");
+        }
+        
+        // Reverse the probability formula
+        Integer requiredRank;
+        Double desiredProb = request.getDesiredProbability();
+        
+        if (desiredProb >= 85) {
+            requiredRank = (int) (cutoff * 0.95);
+        } else if (desiredProb >= 40) {
+            double range = cutoff * 1.10 - cutoff * 0.95;
+            double offset = ((85.0 - desiredProb) / 45.0) * range;
+            requiredRank = (int) (cutoff * 0.95 + offset);
+        } else {
+            requiredRank = (int) (cutoff * 1.10);
+        }
+        
+        return ResponseEntity.ok(new ReverseCalculatorDto(
+            college.getInstitution_name(),
+            request.getBranch(),
+            cutoff,
+            requiredRank,
+            desiredProb
+        ));
+    }
+    
+    /**
+     * Get colleges offering a specific branch
+     */
+    @GetMapping("/api/branches/availability")
+    public ResponseEntity<List<BranchAvailabilityDto>> getBranchAvailability(
+            @RequestParam String branch) {
+        log.info("Fetching colleges offering branch: {}", branch);
+        
+        Map<String, List<College>> collegesByInstcode = repo.findAll().stream()
+            .filter(c -> branch.equals(c.getBranchCode()))
+            .collect(Collectors.groupingBy(College::getInstcode));
+        
+        List<BranchAvailabilityDto> result = collegesByInstcode.entrySet().stream()
+            .map(entry -> {
+                College college = entry.getValue().get(0);
+                return new BranchAvailabilityDto(
+                    college.getInstcode(),
+                    college.getInstitution_name(),
+                    college.getDistrict(),
+                    college.getRegion(),
+                    college.getTier()
+                );
+            })
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(result);
+    }
+    
+    /**
+     * Get cutoff distribution across all categories for a college-branch
+     */
+    @GetMapping("/api/cutoff-distribution/{instcode}/{branch}")
+    public ResponseEntity<CutoffDistributionDto> getCutoffDistribution(
+            @PathVariable String instcode,
+            @PathVariable String branch) {
+        log.info("Fetching cutoff distribution for {} - {}", instcode, branch);
+        
+        College college = repo.findAll().stream()
+            .filter(c -> instcode.equals(c.getInstcode()))
+            .filter(c -> branch.equals(c.getBranchCode()))
+            .findFirst()
+            .orElseThrow(() -> new InvalidRequestException("College not found"));
+        
+        Map<String, Integer> cutoffMap = new HashMap<>();
+        cutoffMap.put("oc_boys", college.getOcBoys());
+        cutoffMap.put("oc_girls", college.getOcGirls());
+        cutoffMap.put("sc_boys", college.getScBoys());
+        cutoffMap.put("sc_girls", college.getScGirls());
+        cutoffMap.put("st_boys", college.getStBoys());
+        cutoffMap.put("st_girls", college.getStGirls());
+        cutoffMap.put("bca_boys", college.getBcaBoys());
+        cutoffMap.put("bca_girls", college.getBcaGirls());
+        cutoffMap.put("bcb_boys", college.getBcbBoys());
+        cutoffMap.put("bcb_girls", college.getBcbGirls());
+        cutoffMap.put("bcc_boys", college.getBccBoys());
+        cutoffMap.put("bcc_girls", college.getBccGirls());
+        cutoffMap.put("bcd_boys", college.getBcdBoys());
+        cutoffMap.put("bcd_girls", college.getBcdGirls());
+        cutoffMap.put("bce_boys", college.getBceBoys());
+        cutoffMap.put("bce_girls", college.getBceGirls());
+        cutoffMap.put("oc_ews_boys", college.getOcEwsBoys());
+        cutoffMap.put("oc_ews_girls", college.getOcEwsGirls());
+        
+        IntSummaryStatistics stats = cutoffMap.values().stream()
+            .filter(Objects::nonNull)
+            .filter(v -> v > 0)
+            .mapToInt(Integer::intValue)
+            .summaryStatistics();
+        
+        return ResponseEntity.ok(new CutoffDistributionDto(
+            college.getInstitution_name(),
+            branch,
+            cutoffMap,
+            stats.getCount() > 0 ? (int) stats.getMin() : 0,
+            stats.getCount() > 0 ? (int) stats.getMax() : 0,
+            stats.getCount() > 0 ? (int) stats.getAverage() : 0
+        ));
+    }
+    
+    /**
+     * Rank colleges by placement quality
+     */
+    @GetMapping("/api/rankings/by-placement")
+    public ResponseEntity<List<PlacementRankingDto>> getRankingsByPlacement(
+            @RequestParam(required = false) String branch,
+            @RequestParam(required = false) String tier) {
+        log.info("Fetching placement rankings - branch: {}, tier: {}", branch, tier);
+        
+        Stream<College> collegeStream = repo.findAll().stream();
+        
+        if (branch != null) {
+            collegeStream = collegeStream.filter(c -> branch.equals(c.getBranchCode()));
+        }
+        
+        if (tier != null) {
+            collegeStream = collegeStream.filter(c -> tier.equals(c.getTier()));
+        }
+        
+        List<PlacementRankingDto> rankings = collegeStream
+            .filter(c -> c.getAveragePackage() != null)
+            .sorted((a, b) -> {
+                int qualityCompare = service.getQualityScore(b.getPlacementDriveQuality())
+                    .compareTo(service.getQualityScore(a.getPlacementDriveQuality()));
+                
+                if (qualityCompare != 0) return qualityCompare;
+                
+                return Double.compare(
+                    b.getAveragePackage() != null ? b.getAveragePackage() : 0,
+                    a.getAveragePackage() != null ? a.getAveragePackage() : 0
+                );
+            })
+            .limit(50)
+            .map(c -> new PlacementRankingDto(
+                c.getInstitution_name(),
+                c.getBranchCode(),
+                c.getAveragePackage(),
+                c.getHighestPackage(),
+                c.getPlacementDriveQuality(),
+                c.getTier()
+            ))
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(rankings);
+    }
+    
+    /**
+     * Find colleges similar to the selected one
+     */
+    @GetMapping("/api/similar-colleges/{instcode}/{branch}")
+    public ResponseEntity<List<SimilarCollegeDto>> findSimilarColleges(
+            @PathVariable String instcode,
+            @PathVariable String branch,
+            @RequestParam String category) {
+        log.info("Finding similar colleges for {} - {}", instcode, branch);
+        
+        College targetCollege = repo.findAll().stream()
+            .filter(c -> instcode.equals(c.getInstcode()))
+            .filter(c -> branch.equals(c.getBranchCode()))
+            .findFirst()
+            .orElseThrow(() -> new InvalidRequestException("College not found"));
+        
+        Integer targetCutoff = service.getCutoffForCategory(targetCollege, category);
+        Double targetPackage = targetCollege.getAveragePackage();
+        
+        List<SimilarCollegeDto> similar = repo.findAll().stream()
+            .filter(c -> branch.equals(c.getBranchCode()))
+            .filter(c -> !instcode.equals(c.getInstcode()))
+            .map(c -> {
+                Integer cutoff = service.getCutoffForCategory(c, category);
+                if (cutoff == null || targetCutoff == null) return null;
+                
+                double cutoffDiff = Math.abs(cutoff - targetCutoff) / (double) targetCutoff;
+                if (cutoffDiff > 0.15) return null;
+                
+                if (c.getAveragePackage() == null || targetPackage == null) return null;
+                double packageDiff = Math.abs(c.getAveragePackage() - targetPackage) / targetPackage;
+                if (packageDiff > 0.20) return null;
+                
+                double similarityScore = 100 - (cutoffDiff * 50 + packageDiff * 50);
+                
+                return new SimilarCollegeDto(
+                    c.getInstcode(),
+                    c.getInstitution_name(),
+                    c.getBranchCode(),
+                    cutoff,
+                    c.getAveragePackage(),
+                    c.getTier(),
+                    similarityScore
+                );
+            })
+            .filter(Objects::nonNull)
+            .sorted((a, b) -> Double.compare(b.getSimilarityScore(), a.getSimilarityScore()))
+            .limit(10)
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(similar);
+    }
+    
+    /**
+     * Smart recommendations based on user preferences
+     */
+    @PostMapping("/api/recommendations")
+    public ResponseEntity<List<RecommendationDto>> getRecommendations(
+            @RequestBody RecommendationRequestDto request) {
+        log.info("Generating recommendations for rank: {}", request.getRank());
+        
+        List<CollegeResult> allResults = service.findColleges(
+            request.getRank(),
+            request.getBranch() != null ? List.of(request.getBranch()) : null,
+            request.getCategory(),
+            null,
+            request.getPreferredRegions(),
+            null,
+            null,
+            request.getGender()
+        );
+        
+        List<RecommendationDto> recommendations = allResults.stream()
+            .map(college -> {
+                double score = 0.0;
+                
+                if (college.getProbability() != null) {
+                    score += (college.getProbability() / 100.0) * 40;
+                }
+                
+                int placementScore = service.getQualityScore(college.getPlacementDriveQuality());
+                score += (placementScore / 4.0) * 30;
+                
+                if (college.getAveragePackage() != null) {
+                    score += Math.min(college.getAveragePackage() / 10.0, 1.0) * 20;
+                }
+                
+                double tierScore = service.getTierScore(college.getTier());
+                score += tierScore * 10;
+                
+                return new RecommendationDto(
+                    college,
+                    score,
+                    service.getRecommendationType(college.getProbability())
+                );
+            })
+            .sorted((a, b) -> Double.compare(b.getRecommendationScore(), a.getRecommendationScore()))
+            .limit(20)
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(recommendations);
     }
 }
