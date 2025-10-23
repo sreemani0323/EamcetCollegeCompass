@@ -886,3 +886,220 @@ body.dark-mode .compare-checkbox-wrapper label {
     background: var(--card-dark);
     border-color: var(--border-dark);
 }
+
+/* VALIDATION MODAL STYLES */
+.validation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.validation-modal-content {
+    background: var(--card-light);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    animation: slideDown 0.3s ease;
+}
+
+.validation-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-bottom: 2px solid var(--border-light);
+}
+
+.validation-icon {
+    font-size: 2rem;
+}
+
+.validation-modal-header h3 {
+    flex: 1;
+    margin: 0;
+    color: var(--color-primary);
+    font-size: 1.3rem;
+}
+
+.validation-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0.5rem;
+}
+
+.validation-modal-close:hover {
+    color: #e74c3c;
+    transform: rotate(90deg);
+}
+
+.validation-modal-body {
+    padding: 2rem 1.5rem;
+}
+
+.validation-modal-body p {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 1.05rem;
+    line-height: 1.6;
+}
+
+.validation-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 2px solid var(--border-light);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.validation-modal-footer .btn-primary {
+    min-width: 100px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+body.dark-mode .validation-modal-content {
+    background: var(--card-dark);
+}
+
+body.dark-mode .validation-modal-header,
+body.dark-mode .validation-modal-footer {
+    border-color: var(--border-dark);
+}
+
+/* FIX ADVANCED FILTERS SECTION - ADD SCROLL AND INCREASE HEIGHT */
+.advanced-filters-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    opacity: 0;
+}
+
+.advanced-filters-container.is-open {
+    max-height: 2000px; /* Increased from 1000px */
+    opacity: 1;
+    overflow: visible; /* Changed from hidden to visible */
+}
+
+/* ADD SCROLL TO ALL MULTISELECT DROPDOWNS */
+.multiselect-options-container {
+    max-height: 250px; /* Increased from default */
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* IMPROVE THEME TOGGLE - REMOVE ORANGE SUN, ADD MODERN SWITCH */
+.dark-mode-toggle {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+}
+
+.dark-mode-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 30px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(30px);
+}
+
+/* Remove sun/moon icons from toggle */
+.toggle-thumb .sun-icon,
+.toggle-thumb .moon-icon {
+    display: none;
+}
+
+/* FIX COLLEGE CARD BUTTON POSITIONING - NO OVERLAP */
+.college-card {
+    position: relative;
+    padding: 1.5rem;
+    padding-top: 4rem; /* Space for buttons */
+    min-height: 280px;
+}
+
+.favorite-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 42px;
+    height: 42px;
+    z-index: 3;
+}
+
+.card-location-link {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 3;
+    max-width: calc(100% - 140px); /* Prevent overlap with right buttons */
+}
+
+.compare-checkbox-wrapper {
+    position: absolute;
+    top: 1rem;
+    right: 5rem; /* More space from favorite button */
+    z-index: 3;
+}
+
+.card-title {
+    margin-top: 0.5rem !important;
+    clear: both;
+}
