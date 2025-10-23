@@ -127,7 +127,7 @@ public class CollegePredictorController {
     /**
      * Analytics endpoint - Get overall statistics
      */
-    @GetMapping("/api/analytics/summary")
+    @GetMapping("/analytics/summary")
     public ResponseEntity<AnalyticsSummaryDto> getAnalyticsSummary() {
         log.info("Fetching analytics summary");
         List<College> allColleges = repo.findAll();
@@ -173,7 +173,7 @@ public class CollegePredictorController {
     /**
      * Get statistics for a specific branch
      */
-    @GetMapping("/api/analytics/branch-stats/{branch}")
+    @GetMapping("/analytics/branch-stats/{branch}")
     public ResponseEntity<BranchStatsDto> getBranchStats(@PathVariable String branch) {
         log.info("Fetching branch stats for: {}", branch);
         
@@ -200,7 +200,7 @@ public class CollegePredictorController {
     /**
      * Search colleges by name
      */
-    @GetMapping("/api/search/by-name")
+    @GetMapping("/search/by-name")
     public ResponseEntity<List<CollegeDataDto>> searchByName(@RequestParam String query) {
         log.info("Searching colleges by name: {}", query);
         
@@ -217,7 +217,7 @@ public class CollegePredictorController {
     /**
      * Get all branches offered by a specific college
      */
-    @GetMapping("/api/colleges/{instcode}/branches")
+    @GetMapping("/colleges/{instcode}/branches")
     public ResponseEntity<List<String>> getAvailableBranches(@PathVariable String instcode) {
         log.info("Fetching available branches for college: {}", instcode);
         
@@ -235,7 +235,7 @@ public class CollegePredictorController {
     /**
      * Reverse calculator - Calculate required rank for desired probability
      */
-    @PostMapping("/api/reverse-calculator")
+    @PostMapping("/reverse-calculator")
     public ResponseEntity<ReverseCalculatorDto> reverseCalculate(
             @RequestBody ReverseCalculatorRequestDto request) {
         log.info("Reverse calculator request: {}", request.getInstcode());
@@ -278,7 +278,7 @@ public class CollegePredictorController {
     /**
      * Get colleges offering a specific branch
      */
-    @GetMapping("/api/branches/availability")
+    @GetMapping("/branches/availability")
     public ResponseEntity<List<BranchAvailabilityDto>> getBranchAvailability(
             @RequestParam String branch) {
         log.info("Fetching colleges offering branch: {}", branch);
@@ -306,7 +306,7 @@ public class CollegePredictorController {
     /**
      * Get cutoff distribution across all categories for a college-branch
      */
-    @GetMapping("/api/cutoff-distribution/{instcode}/{branch}")
+    @GetMapping("/cutoff-distribution/{instcode}/{branch}")
     public ResponseEntity<CutoffDistributionDto> getCutoffDistribution(
             @PathVariable String instcode,
             @PathVariable String branch) {
@@ -357,7 +357,7 @@ public class CollegePredictorController {
     /**
      * Rank colleges by placement quality
      */
-    @GetMapping("/api/rankings/by-placement")
+    @GetMapping("/rankings/by-placement")
     public ResponseEntity<List<PlacementRankingDto>> getRankingsByPlacement(
             @RequestParam(required = false) String branch,
             @RequestParam(required = false) String tier) {
@@ -403,7 +403,7 @@ public class CollegePredictorController {
     /**
      * Find colleges similar to the selected one
      */
-    @GetMapping("/api/similar-colleges/{instcode}/{branch}")
+    @GetMapping("/similar-colleges/{instcode}/{branch}")
     public ResponseEntity<List<SimilarCollegeDto>> findSimilarColleges(
             @PathVariable String instcode,
             @PathVariable String branch,
@@ -456,7 +456,7 @@ public class CollegePredictorController {
     /**
      * Smart recommendations based on user preferences
      */
-    @PostMapping("/api/recommendations")
+    @PostMapping("/recommendations")
     public ResponseEntity<List<RecommendationDto>> getRecommendations(
             @RequestBody RecommendationRequestDto request) {
         log.info("Generating recommendations for rank: {}", request.getRank());
