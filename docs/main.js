@@ -188,6 +188,8 @@ document.addEventListener("DOMContentLoaded", function () {
     let sortedData = [];
     let selectedColleges = []; 
     let currentLang = "en";
+    let allCollegesCache = []; // Cache for all colleges data
+    let favoriteColleges = JSON.parse(localStorage.getItem('favoriteColleges') || '[]'); // Favorites
 
     // === 4. INITIALIZATION ===
     initializePage();
@@ -196,10 +198,75 @@ document.addEventListener("DOMContentLoaded", function () {
         setTheme(localStorage.getItem("theme") || 'light');
         multiselectContainers.forEach(initializeMultiselect);
         setupEventListeners();
-        renderEmptyState();
+        
+        // Check for URL parameters (e.g., from map "View Details" links)
+        checkUrlParameters();
+        
+        // Load any saved results from sessionStorage
+        loadSavedResults();
+        
+        if (rawData.length === 0) {
+            renderEmptyState();
+        }
         translateUI();
         updateDistrictOptions();
         updatePlacementOptions();
+        loadAllCollegesCache(); // Load cache on startup
+    }
+    
+    function checkUrlParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const instcode = urlParams.get('instcode');
+        const autoload = urlParams.get('autoload');
+        
+        if (instcode && autoload === 'true') {
+            // Auto-predict for this college
+            setTimeout(() => {
+                // Clear URL parameters without reload
+                window.history.replaceState({}, document.title, window.location.pathname);
+                // You could implement auto-search here if needed
+            }, 100);
+        }
+    }
+    
+    function loadSavedResults() {
+        const savedData = sessionStorage.getItem('collegeResults');
+        const savedSorted = sessionStorage.getItem('sortedResults');
+        
+        if (savedData && savedSorted) {
+            try {
+                rawData = JSON.parse(savedData);
+                sortedData = JSON.parse(savedSorted);
+                if (sortedData.length > 0) {
+                    renderColleges();
+                    resultsHeader.style.display = 'flex';
+                }
+            } catch (e) {
+                console.error('Failed to load saved results:', e);
+            }
+        }
+    }
+    
+    function saveResults() {
+        sessionStorage.setItem('collegeResults', JSON.stringify(rawData));
+        sessionStorage.setItem('sortedResults', JSON.stringify(sortedData));
+    }
+    
+    /**
+     * Load all colleges data for caching (used by map, analytics, etc.)
+     */
+    function loadAllCollegesCache() {
+        fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            allCollegesCache = data;
+            console.log(`Loaded ${allCollegesCache.length} colleges into cache`);
+        })
+        .catch(err => console.error("Failed to load colleges cache:", err));
     }
 
     // === 5. CORE LOGIC & HELPER FUNCTIONS ===
@@ -487,6 +554,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         sortedData = multiSort(rawData, sortBySelect.value);
         renderColleges();
+        saveResults(); // Save results to sessionStorage
     }
 
     function renderColleges() {
@@ -505,6 +573,7 @@ document.addEventListener("DOMContentLoaded", function () {
             card.dataset.id = uniqueId; 
             
             const isSelected = selectedColleges.some(c => c.uniqueId === uniqueId);
+            const isFavorite = favoriteColleges.includes(uniqueId);
             
             // Format data for display
             const collegeName = college.institution_name || college.name || "Unnamed College";
@@ -531,8 +600,18 @@ document.addEventListener("DOMContentLoaded", function () {
             const probabilityDisplay = college.probability ? college.probability.toFixed(0) + '%' : 'N/A';
             const districtText = optionData.districts.find(d => d.value === college.district)?.text || 'N/A';
 
+            // Favorites button
+            const favoritesButton = `
+                <button class="favorite-btn ${isFavorite ? 'favorited' : ''}" 
+                        onclick="toggleFavorite('${uniqueId}')" 
+                        title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
+                    <i class="fa${isFavorite ? 's' : 'r'} fa-heart"></i>
+                </button>
+            `;
+
             card.innerHTML = `
                 ${comparisonCheckbox}
+                ${favoritesButton}
                 <a href="${locationUrl}" target="_blank" class="card-location-link" title="View on Map">
                     <i class="fa-solid fa-location-dot"></i> <span>Location</span>
                 </a>
@@ -612,6 +691,27 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
         updateComparisonTray();
+    };
+    
+    /**
+     * Toggle favorite status for a college
+     */
+    window.toggleFavorite = (uniqueId) => {
+        const index = favoriteColleges.indexOf(uniqueId);
+        
+        if (index > -1) {
+            // Remove from favorites
+            favoriteColleges.splice(index, 1);
+        } else {
+            // Add to favorites
+            favoriteColleges.push(uniqueId);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('favoriteColleges', JSON.stringify(favoriteColleges));
+        
+        // Re-render to update UI
+        renderColleges();
     };
 
     function updateComparisonTray() {
@@ -711,8 +811,21 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // === 8. EVENT LISTENERS SETUP ===
     function setupEventListeners() {
-        // --- Filter Toggle Logic Removed: No functional toggle, just structural div ---
-        // The HTML ensures the filter container is permanently open by default.
+        // Advanced Filters Toggle (NOT the entire "Refine Your Search")
+        const advancedFiltersHeader = document.getElementById("advancedFiltersHeader");
+        const advancedFiltersContainer = document.getElementById("advancedFiltersContainer");
+        
+        if (advancedFiltersHeader && advancedFiltersContainer) {
+            advancedFiltersHeader.addEventListener("click", () => {
+                advancedFiltersContainer.classList.toggle("is-open");
+                const arrow = advancedFiltersHeader.querySelector(".toggle-arrow");
+                if (advancedFiltersContainer.classList.contains("is-open")) {
+                    arrow.style.transform = "rotate(180deg)";
+                } else {
+                    arrow.style.transform = "rotate(0deg)";
+                }
+            });
+        }
         
         darkModeSwitch.addEventListener("change", () => setTheme(darkModeSwitch.checked ? "dark" : "light"));
         
