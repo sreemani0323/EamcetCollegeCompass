@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "https://sreemani0323.github.io")
+@CrossOrigin(origins = {"https://sreemani0323.github.io", "http://localhost:5500", "http://127.0.0.1:5500", "null"}, allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
 public class CollegePredictorController {
 
     private static final Logger log = LoggerFactory.getLogger(CollegePredictorController.class);
