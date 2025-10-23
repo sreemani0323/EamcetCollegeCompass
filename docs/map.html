@@ -46,25 +46,41 @@
         </section>
 
         <div class="container">
+            <!-- Location Accuracy Notice -->
+            <div class="location-accuracy-notice" style="background: #fff3cd; border: 1px solid #ffc107; border-left: 4px solid #ffc107; padding: 1rem 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
+                <p style="margin: 0; color: #856404; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-info-circle" style="font-size: 1.2rem;"></i>
+                    <strong>Location Accuracy Note:</strong> 
+                    <span style="font-weight: normal;">Map markers show approximate locations at district level. Actual college addresses may vary.</span>
+                </p>
+            </div>
+
             <!-- Filters with Search -->
             <div style="background: var(--card-light); padding: 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
-                <!-- Search Box -->
+                <!-- Search Box with Autocomplete -->
                 <div style="margin-bottom: 1rem;">
-                    <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                    <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--color-text-primary);">
                         <i class="fas fa-search"></i> Search Colleges
                     </label>
-                    <input 
-                        type="text" 
-                        id="searchBox" 
-                        placeholder="Search by college name or place..." 
-                        style="width: 100%; padding: 0.75rem; border-radius: 4px; border: 1px solid var(--border-light); font-size: 1rem;"
-                    />
+                    <div style="position: relative;">
+                        <input 
+                            type="text" 
+                            id="searchBox" 
+                            placeholder="Type college name or place..." 
+                            autocomplete="off"
+                            style="width: 100%; padding: 0.75rem; border-radius: 4px; border: 2px solid var(--border-light); font-size: 1rem; background: var(--card-light); color: var(--color-text-primary);"
+                        />
+                        <div id="searchDropdown" class="college-dropdown" style="position: absolute; background: var(--card-light); border: 1px solid var(--border-light); border-radius: var(--radius); max-height: 250px; overflow-y: auto; width: 100%; z-index: 100; display: none; box-shadow: var(--shadow); margin-top: 0.25rem;"></div>
+                    </div>
+                    <button id="searchBtn" class="btn-primary" style="width: 100%; margin-top: 0.75rem;">
+                        <i class="fas fa-search"></i> Search
+                    </button>
                 </div>
                 
                 <!-- Filters -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                     <div>
-                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Region</label>
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--color-text-primary);">Region</label>
                         <select id="regionFilter" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-light);">
                             <option value="">All Regions</option>
                             <option value="AU">Andhra University</option>
@@ -73,7 +89,7 @@
                         </select>
                     </div>
                     <div>
-                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Tier</label>
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--color-text-primary);">Tier</label>
                         <select id="tierFilter" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-light);">
                             <option value="">All Tiers</option>
                             <option value="Tier 1">Tier 1</option>

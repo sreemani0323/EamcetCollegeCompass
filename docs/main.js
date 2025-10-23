@@ -194,7 +194,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
                 .then(res => res.json())
                 .then(data => {
-                    rawData = data;
+                    // FIXED: Ensure only the specific college is displayed
+                    // The API might return all colleges if the instcode filter isn't working properly
+                    // So we filter the data on the client side as well
+                    const filteredData = data.filter(college => college.instcode === instcode);
+                    rawData = filteredData;
                     filterAndRenderColleges();
                     showSpinner(false);
                     
@@ -593,19 +597,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 <a href="${locationUrl}" target="_blank" class="card-location-link" title="View on Map">
                     <i class="fa-solid fa-location-dot"></i> <span>Location</span>
                 </a>
-                <h3 class="card-title">${collegeName}</h3>
-                <p class="card-branch-info">${college.branch || 'N/A'} <span>(${college.category || 'N/A'})</span></p>
-                <div class="card-details-grid">
-                    <div class="card-details-item"><strong>Cutoff Rank (${college.category || 'N/A'})</strong><p>${cutoffDisplay}</p></div>
-                    <div class="card-details-item"><strong>Avg. Package</strong><p>${avgPackageDisplay}</p></div>
-                    <div class="card-details-item"><strong>Placement Drive Quality</strong><p class="${qualityClass}">${college.placementDriveQuality || 'N/A'}</p></div>
-                    <div class="card-details-item"><strong>Predicted Chance</strong><p class="${probClass}">${probabilityDisplay}</p></div>
-                    <div class="card-details-item"><strong>Highest Package</strong><p>${highestPackageDisplay}</p></div>
-                </div>
-                <div class="card-footer">
-                    <span><strong>Inst. Code:</strong> ${college.instcode || 'N/A'}</span>
-                    <span><strong>Location:</strong> ${districtText} (${college.region || 'N/A'})</span>
-                    <span><strong>Tier:</strong> ${college.tier || 'N/A'}</span>
+                <div class="card-content-wrapper">
+                    <h3 class="card-title">${collegeName}</h3>
+                    <p class="card-branch-info">${college.branch || 'N/A'} <span>(${college.category || 'N/A'})</span></p>
+                    <div class="card-details-grid">
+                        <div class="card-details-item"><strong>Cutoff Rank (${college.category || 'N/A'})</strong><p>${cutoffDisplay}</p></div>
+                        <div class="card-details-item"><strong>Avg. Package</strong><p>${avgPackageDisplay}</p></div>
+                        <div class="card-details-item"><strong>Placement Drive Quality</strong><p class="${qualityClass}">${college.placementDriveQuality || 'N/A'}</p></div>
+                        <div class="card-details-item"><strong>Predicted Chance</strong><p class="${probClass}">${probabilityDisplay}</p></div>
+                        <div class="card-details-item"><strong>Highest Package</strong><p>${highestPackageDisplay}</p></div>
+                    </div>
+                    <div class="card-footer">
+                        <span><strong>Inst. Code:</strong> ${college.instcode || 'N/A'}</span>
+                        <span><strong>Location:</strong> ${districtText} (${college.region || 'N/A'})</span>
+                        <span><strong>Tier:</strong> ${college.tier || 'N/A'}</span>
+                    </div>
                 </div>
             `;
             collegeListDiv.appendChild(card);
