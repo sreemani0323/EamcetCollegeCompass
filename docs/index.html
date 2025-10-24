@@ -13,9 +13,10 @@
     <!-- Libraries for PDF Generation (Keep as per history) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    
+
 </head>
 <body>
-
     <header class="page-header">
         <div class="header-container">
             <a href="index.html" class="site-title-link">
@@ -29,6 +30,9 @@
                 <a href="branch-comparison.html" class="nav-link"><i class="fas fa-code-branch"></i> Compare Branches</a>
             </nav>
             <div class="header-controls">
+                <button id="refreshBtn" class="btn-secondary" style="margin-right: 1rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-sync-alt"></i> Refresh Page
+                </button>
                 <label class="dark-mode-toggle" for="darkModeSwitch" title="Toggle Dark/Light Mode">
                     <input type="checkbox" id="darkModeSwitch" />
                     <div class="toggle-slider"></div>
@@ -269,5 +273,26 @@
     <!-- Libraries for PDF Generation (Keep as per history) -->
     <script src="validation-popups.js"></script>
     <script src="main.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            
+            // Add refresh button functionality
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    // Clear session storage cache for all tabs
+                    sessionStorage.removeItem('collegeResults');
+                    sessionStorage.removeItem('sortedResults');
+                    sessionStorage.removeItem('analyticsData');
+                    sessionStorage.removeItem('mapCollegesData');
+                    sessionStorage.removeItem('calculatorData');
+                    sessionStorage.removeItem('branchComparisonData');
+                    
+                    // Reload the page to get fresh data
+                    location.reload();
+                });
+            }
+        });
+    </script>
 </body>
 </html>

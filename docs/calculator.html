@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+    
+
 </head>
 <body>
     <header class="page-header">
@@ -22,6 +24,9 @@
                 <a href="branch-comparison.html" class="nav-link"><i class="fas fa-code-branch"></i> Compare Branches</a>
             </nav>
             <div class="header-controls">
+                <button id="refreshBtn" class="btn-secondary" style="margin-right: 1rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-sync-alt"></i> Refresh Page
+                </button>
                 <label class="dark-mode-toggle" for="darkModeSwitch" title="Toggle Dark/Light Mode">
                     <input type="checkbox" id="darkModeSwitch" />
                     <div class="toggle-slider">
@@ -106,6 +111,11 @@
         </div>
     </main>
 
+    <div class="scroll-buttons" id="scrollButtons">
+        <button id="scrollTopBtn" title="Scroll to Top"><i class="fa-solid fa-arrow-up"></i></button>
+        <button id="scrollBottomBtn" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
+    </div>
+
     <footer class="page-footer">
         <div class="footer-container">
             <p>&copy; 2025 EAMCET Predictor. All rights reserved.</p>
@@ -113,6 +123,62 @@
     </footer>
 
     <script src="calculator.js"></script>
+    
+    <script>
+        // Scroll button functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const scrollButtons = document.getElementById('scrollButtons');
+            const scrollTopBtn = document.getElementById('scrollTopBtn');
+            const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+            
+            // Show/hide scroll buttons based on scroll position
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 300) {
+                    scrollButtons.classList.add('visible');
+                } else {
+                    scrollButtons.classList.remove('visible');
+                }
+            });
+            
+            // Scroll to top
+            scrollTopBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Scroll to bottom
+            scrollBottomBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Refresh button functionality
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.addEventListener('click', function() {
+                // Clear session storage cache
+                sessionStorage.removeItem('calculatorCollegesData');
+                
+                // Clear existing content
+                document.getElementById('result').style.display = 'none';
+                document.getElementById('collegeName').value = '';
+                document.getElementById('collegeDropdown').innerHTML = '';
+                
+                // Reset branch dropdown
+                const branchSelect = document.getElementById('branch');
+                branchSelect.innerHTML = '<option value="">First select a college</option>';
+                
+                // Show loading spinner
+                document.getElementById('loading').style.display = 'flex';
+                
+                // Reload data
+                loadColleges();
+            });
+        });
+    </script>
     
     <style>
         /* Input and Select Styling */

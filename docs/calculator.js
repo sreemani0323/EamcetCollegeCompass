@@ -1,4 +1,42 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // === BACKGROUND ANIMATION ===
+    // Create subtle floating particles for background
+    function createBackgroundAnimation() {
+        const container = document.getElementById('backgroundAnimation');
+        if (!container) return;
+        
+        // Clear any existing particles
+        container.innerHTML = '';
+        
+        // Create 15 particles
+        for (let i = 0; i < 15; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            
+            // Random size between 2px and 8px
+            const size = Math.random() * 6 + 2;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            // Random position
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            
+            // Random animation duration between 10s and 25s
+            const duration = Math.random() * 15 + 10;
+            particle.style.animationDuration = `${duration}s`;
+            
+            // Random delay
+            const delay = Math.random() * 5;
+            particle.style.animationDelay = `${delay}s`;
+            
+            container.appendChild(particle);
+        }
+    }
+    
+    // Initialize background animation
+    createBackgroundAnimation();
+
     const darkModeSwitch = document.getElementById("darkModeSwitch");
     const form = document.getElementById("calculatorForm");
     const collegeInput = document.getElementById("collegeName");
@@ -23,8 +61,23 @@ document.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem("theme", newTheme);
     });
     
-    // Auto-load colleges on page load
-    loadColleges();
+    // Check if we have cached data in session storage
+    const cachedData = sessionStorage.getItem('calculatorCollegesData');
+    if (cachedData) {
+        try {
+            const data = JSON.parse(cachedData);
+            allColleges = data;
+            console.log(`Loaded ${allColleges.length} colleges from cache`);
+            loadingDiv.style.display = "none";
+        } catch (e) {
+            console.error("Failed to parse cached calculator data:", e);
+            // Load fresh data if cache is corrupted
+            loadColleges();
+        }
+    } else {
+        // Auto-load colleges on page load
+        loadColleges();
+    }
     
     // Load all colleges
     function loadColleges() {
@@ -38,6 +91,13 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .then(res => res.json())
     .then(data => {
+        // Cache the data in session storage
+        try {
+            sessionStorage.setItem('calculatorCollegesData', JSON.stringify(data));
+        } catch (e) {
+            console.warn("Failed to cache calculator data:", e);
+        }
+        
         allColleges = data;
         console.log(`Loaded ${allColleges.length} colleges`);
         loadingDiv.style.display = "none";
@@ -196,4 +256,7 @@ document.addEventListener("DOMContentLoaded", function () {
             collegeDropdown.classList.remove("show");
         }
     });
+    
+    // Expose loadColleges function globally for refresh button
+    window.loadColleges = loadColleges;
 });

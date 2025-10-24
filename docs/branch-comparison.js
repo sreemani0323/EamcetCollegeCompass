@@ -1,4 +1,42 @@
 document.addEventListener("DOMContentLoaded", async function () {
+    // === BACKGROUND ANIMATION ===
+    // Create subtle floating particles for background
+    function createBackgroundAnimation() {
+        const container = document.getElementById('backgroundAnimation');
+        if (!container) return;
+        
+        // Clear any existing particles
+        container.innerHTML = '';
+        
+        // Create 15 particles
+        for (let i = 0; i < 15; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            
+            // Random size between 2px and 8px
+            const size = Math.random() * 6 + 2;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            // Random position
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            
+            // Random animation duration between 10s and 25s
+            const duration = Math.random() * 15 + 10;
+            particle.style.animationDuration = `${duration}s`;
+            
+            // Random delay
+            const delay = Math.random() * 5;
+            particle.style.animationDelay = `${delay}s`;
+            
+            container.appendChild(particle);
+        }
+    }
+    
+    // Initialize background animation
+    createBackgroundAnimation();
+
     const darkModeSwitch = document.getElementById("darkModeSwitch");
     const branchSelection = document.getElementById("branchSelection");
     const compareBtn = document.getElementById("compareBtn");
@@ -23,42 +61,74 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Auto-show branch selection on load
     branchSelection.parentElement.style.display = "block";
     
-    // Load branches from backend
-    try {
-        loadingSpinner.style.display = "flex";
-        loadingSpinner.innerHTML = '<div class="spinner"></div><p>Loading available branches...</p>';
-        
-        const response = await fetch("https://theeamcetcollegeprediction-2.onrender.com/api/analytics/branches");
-        if (!response.ok) {
-            throw new Error(`Failed to load branches: ${response.status}`);
+    // Check if we have cached data in session storage
+    const cachedBranches = sessionStorage.getItem('branchComparisonBranchesData');
+    const cachedColleges = sessionStorage.getItem('branchComparisonCollegesData');
+    
+    if (cachedBranches && cachedColleges) {
+        try {
+            branches = JSON.parse(cachedBranches);
+            const allColleges = JSON.parse(cachedColleges);
+            console.log(`Loaded ${branches.length} branches and ${allColleges.length} colleges from cache`);
+            
+            // Render branch checkboxes
+            renderBranchCheckboxes();
+            
+            loadingSpinner.style.display = "none";
+        } catch (e) {
+            console.error("Failed to parse cached branch comparison data:", e);
+            // Load fresh data if cache is corrupted
+            loadInitialData();
         }
-        
-        branches = await response.json();
-        console.log(`Loaded ${branches.length} branches from backend:`, branches);
-        
-        if (branches.length === 0) {
-            throw new Error('No branches found in database');
+    } else {
+        // Load branches and colleges from backend
+        loadInitialData();
+    }
+    
+    async function loadInitialData() {
+        try {
+            loadingSpinner.style.display = "flex";
+            loadingSpinner.innerHTML = '<div class="spinner"></div><p>Loading available branches...</p>';
+            
+            const response = await fetch("https://theeamcetcollegeprediction-2.onrender.com/api/analytics/branches");
+            if (!response.ok) {
+                throw new Error(`Failed to load branches: ${response.status}`);
+            }
+            
+            branches = await response.json();
+            console.log(`Loaded ${branches.length} branches from backend:`, branches);
+            
+            // Cache the branches data
+            try {
+                sessionStorage.setItem('branchComparisonBranchesData', JSON.stringify(branches));
+            } catch (e) {
+                console.warn("Failed to cache branch comparison branches data:", e);
+            }
+            
+            if (branches.length === 0) {
+                throw new Error('No branches found in database');
+            }
+            
+            // Render branch checkboxes
+            renderBranchCheckboxes();
+            
+            loadingSpinner.style.display = "none";
+            
+        } catch (err) {
+            console.error('Failed to load branches:', err);
+            loadingSpinner.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 1rem;"></i>
+                    <h3 style="color: var(--color-primary); margin-bottom: 1rem;">Failed to Load Branches</h3>
+                    <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+                        ${err.message || 'Could not connect to server.'}
+                    </p>
+                    <button onclick="location.reload()" class="btn-primary">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                </div>
+            `;
         }
-        
-        // Render branch checkboxes
-        renderBranchCheckboxes();
-        
-        loadingSpinner.style.display = "none";
-        
-    } catch (err) {
-        console.error('Failed to load branches:', err);
-        loadingSpinner.innerHTML = `
-            <div style="text-align: center; padding: 2rem;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 1rem;"></i>
-                <h3 style="color: var(--color-primary); margin-bottom: 1rem;">Failed to Load Branches</h3>
-                <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
-                    ${err.message || 'Could not connect to server.'}
-                </p>
-                <button onclick="location.reload()" class="btn-primary">
-                    <i class="fas fa-redo"></i> Try Again
-                </button>
-            </div>
-        `;
     }
     
     function renderBranchCheckboxes() {
@@ -74,10 +144,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             checkbox.addEventListener("change", function() {
                 if (this.checked) {
                     selectedBranches.push(branch);
-                    div.classList.add("selected");
+                    // Don't add selected class to container
                 } else {
                     selectedBranches = selectedBranches.filter(b => b !== branch);
-                    div.classList.remove("selected");
+                    // Don't remove selected class from container
                 }
                 
                 compareBtn.disabled = selectedBranches.length < 2;
@@ -104,20 +174,44 @@ document.addEventListener("DOMContentLoaded", async function () {
         branchData = {};
         
         try {
-            // Fetch all colleges data first
-            console.log('Fetching all colleges data...');
-            const response = await fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({})
-            });
+            // Check if we have cached colleges data
+            let allColleges;
+            const cachedColleges = sessionStorage.getItem('branchComparisonCollegesData');
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (cachedColleges) {
+                try {
+                    allColleges = JSON.parse(cachedColleges);
+                    console.log(`Loaded ${allColleges.length} colleges from cache`);
+                } catch (e) {
+                    console.warn("Failed to parse cached colleges data:", e);
+                    // Load fresh data if cache is corrupted
+                    allColleges = null;
+                }
             }
             
-            const allColleges = await response.json();
-            console.log(`Fetched ${allColleges.length} colleges`);
+            // If no cached data or parsing failed, fetch from backend
+            if (!allColleges) {
+                console.log('Fetching all colleges data from backend...');
+                const response = await fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({})
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                allColleges = await response.json();
+                console.log(`Fetched ${allColleges.length} colleges from backend`);
+                
+                // Cache the colleges data
+                try {
+                    sessionStorage.setItem('branchComparisonCollegesData', JSON.stringify(allColleges));
+                } catch (e) {
+                    console.warn("Failed to cache branch comparison colleges data:", e);
+                }
+            }
             
             // Log a sample college to see the structure
             if (allColleges.length > 0) {
@@ -314,36 +408,82 @@ document.addEventListener("DOMContentLoaded", async function () {
     
     function renderTable() {
         const table = document.getElementById("comparisonTable");
+        table.innerHTML = "";
         
-        let html = `
-            <thead>
-                <tr>
-                    <th>Branch</th>
-                    <th>Total Colleges</th>
-                    <th>Avg Package</th>
-                    <th>Max Package</th>
-                    <th>Min Package</th>
-                </tr>
-            </thead>
-            <tbody>
-        `;
+        // Define features to compare (similar to home tab)
+        const features = [
+            { key: 'totalColleges', label: 'Total Colleges' },
+            { key: 'avgPackage', label: 'Average Package (₹ Lakhs)', isCurrency: true },
+            { key: 'maxPackage', label: 'Highest Package (₹ Lakhs)', isCurrency: true },
+            { key: 'minPackage', label: 'Lowest Package (₹ Lakhs)', isCurrency: true }
+        ];
         
-        // Sort by avg package descending
-        const sorted = Object.entries(branchData).sort((a, b) => b[1].avgPackage - a[1].avgPackage);
+        // Create table header
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
         
-        sorted.forEach(([branch, data]) => {
-            html += `
-                <tr>
-                    <td><strong>${branch}</strong></td>
-                    <td>${data.totalColleges}</td>
-                    <td>₹${data.avgPackage.toFixed(2)} Lakhs</td>
-                    <td>₹${data.maxPackage.toFixed(2)} Lakhs</td>
-                    <td>₹${data.minPackage.toFixed(2)} Lakhs</td>
-                </tr>
-            `;
+        // First column for feature names
+        const featureHeader = document.createElement("th");
+        featureHeader.textContent = "Feature";
+        featureHeader.className = "sticky-feature";
+        headerRow.appendChild(featureHeader);
+        
+        // Columns for each branch
+        Object.keys(branchData).forEach(branch => {
+            const th = document.createElement("th");
+            th.textContent = branch;
+            th.className = "text-center";
+            headerRow.appendChild(th);
         });
         
-        html += '</tbody>';
-        table.innerHTML = html;
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Create table body
+        const tbody = document.createElement("tbody");
+        
+        // Add rows for each feature
+        features.forEach(feature => {
+            const row = document.createElement("tr");
+            
+            // Feature name cell
+            const featureCell = document.createElement("td");
+            featureCell.textContent = feature.label;
+            featureCell.className = "sticky-feature";
+            row.appendChild(featureCell);
+            
+            // Data cells for each branch
+            Object.entries(branchData).forEach(([branch, data]) => {
+                const cell = document.createElement("td");
+                let value = data[feature.key];
+                
+                if (feature.isCurrency && typeof value === 'number') {
+                    cell.textContent = value.toFixed(2);
+                } else if (typeof value === 'number') {
+                    cell.textContent = Math.round(value);
+                } else {
+                    cell.textContent = value;
+                }
+                
+                row.appendChild(cell);
+            });
+            
+            tbody.appendChild(row);
+        });
+        
+        table.appendChild(tbody);
     }
+    
+    // Add reload function for refresh button
+    function reloadBranchData() {
+        // Clear session storage cache
+        sessionStorage.removeItem('branchComparisonBranchesData');
+        sessionStorage.removeItem('branchComparisonCollegesData');
+        
+        // Reload the page to get fresh data
+        location.reload();
+    }
+    
+    // Expose reload function globally
+    window.reloadBranchData = reloadBranchData;
 });

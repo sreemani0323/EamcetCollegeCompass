@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+
 </head>
 <body>
     <header class="page-header">
@@ -24,6 +26,9 @@
                 <a href="branch-comparison.html" class="nav-link"><i class="fas fa-code-branch"></i> Compare Branches</a>
             </nav>
             <div class="header-controls">
+                <button id="refreshBtn" class="btn-secondary" style="margin-right: 1rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-sync-alt"></i> Refresh Page
+                </button>
                 <label class="dark-mode-toggle" for="darkModeSwitch">
                     <input type="checkbox" id="darkModeSwitch" />
                     <div class="toggle-slider">
@@ -106,13 +111,31 @@
             </div>
 
             <!-- Map Container -->
-            <div id="map" style="height: 600px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem;"></div>
+            <div id="map" style="height: 600px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; position: relative;"></div>
 
             <!-- College List -->
             <div id="collegeList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
             <div id="loadingSpinner" class="loading-spinner" style="display: flex;"><div class="spinner"></div></div>
         </div>
     </main>
+
+    <div class="scroll-buttons" id="scrollButtons">
+        <button id="scrollTopBtn" title="Scroll to Top"><i class="fa-solid fa-arrow-up"></i></button>
+        <button id="scrollBottomBtn" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
+    </div>
+
+    <!-- Comparison Tray (Fixed to Bottom) -->
+    <div id="comparison-tray" class="comparison-tray hidden">
+        <div class="tray-content">
+            <p><span id="compare-count">0</span> Colleges Selected for Comparison</p>
+            <button id="compare-now-btn" class="btn-primary" disabled>
+                Compare Now <i class="fa-solid fa-arrow-right-arrow-left"></i>
+            </button>
+            <button id="clear-compare-btn" class="clear-btn">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+    </div>
 
     <footer class="page-footer">
         <div class="footer-container">
@@ -121,5 +144,87 @@
     </footer>
 
     <script src="map.js"></script>
+    
+    <script>
+        // Scroll button functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const scrollButtons = document.getElementById('scrollButtons');
+            const scrollTopBtn = document.getElementById('scrollTopBtn');
+            const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+            
+            // Show/hide scroll buttons based on scroll position
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 300) {
+                    scrollButtons.classList.add('visible');
+                } else {
+                    scrollButtons.classList.remove('visible');
+                }
+            });
+            
+            // Scroll to top
+            scrollTopBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Scroll to bottom
+            scrollBottomBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Refresh button functionality
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.addEventListener('click', function() {
+                // Clear session storage cache
+                sessionStorage.removeItem('mapCollegesData');
+                sessionStorage.removeItem('mapSelectedColleges');
+                
+                // Clear existing content
+                document.getElementById('collegeList').innerHTML = '';
+                document.getElementById('loadingSpinner').style.display = 'flex';
+                
+                // Reload data (this would call the same functions that load the initial data)
+                loadColleges();
+            });
+            
+            // Clear comparison button functionality
+            const clearCompareBtn = document.getElementById('clear-compare-btn');
+            if (clearCompareBtn) {
+                clearCompareBtn.addEventListener('click', function() {
+                    // Clear selected colleges from sessionStorage
+                    sessionStorage.removeItem('mapSelectedColleges');
+                    
+                    // Uncheck all checkboxes
+                    document.querySelectorAll('.compare-checkbox').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    
+                    // Hide comparison tray
+                    const comparisonTray = document.getElementById('comparison-tray');
+                    if (comparisonTray) {
+                        comparisonTray.classList.remove('visible');
+                        comparisonTray.classList.add('hidden');
+                    }
+                    
+                    // Disable compare button
+                    const compareNowBtn = document.getElementById('compare-now-btn');
+                    if (compareNowBtn) {
+                        compareNowBtn.disabled = true;
+                    }
+                    
+                    // Update count
+                    const compareCountSpan = document.getElementById('compare-count');
+                    if (compareCountSpan) {
+                        compareCountSpan.textContent = '0';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

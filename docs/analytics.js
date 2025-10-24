@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // === BACKGROUND ANIMATION ===
+    // No longer needed as we're using CSS-based animations now
+
     const darkModeSwitch = document.getElementById("darkModeSwitch");
     const loadingSpinner = document.getElementById("loadingSpinner");
     const analyticsContent = document.getElementById("analyticsContent");
@@ -19,8 +22,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
     
-    // Auto-load analytics on page load
-    loadAnalytics();
+    // Check if we have cached data in session storage
+    const cachedData = sessionStorage.getItem('analyticsData');
+    if (cachedData) {
+        try {
+            const data = JSON.parse(cachedData);
+            updateSummaryCards(data);
+            renderCharts(data);
+            loadingSpinner.style.display = "none";
+            analyticsContent.style.display = "block";
+        } catch (e) {
+            console.error("Failed to parse cached analytics data:", e);
+            // Load fresh data if cache is corrupted
+            loadAnalytics();
+        }
+    } else {
+        // Auto-load analytics on page load
+        loadAnalytics();
+    }
     
     function loadAnalytics() {
         loadingSpinner.style.display = "flex";
@@ -29,6 +48,13 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch("https://theeamcetcollegeprediction-2.onrender.com/api/analytics/summary")
             .then(res => res.json())
             .then(data => {
+                // Cache the data in session storage
+                try {
+                    sessionStorage.setItem('analyticsData', JSON.stringify(data));
+                } catch (e) {
+                    console.warn("Failed to cache analytics data:", e);
+                }
+                
                 updateSummaryCards(data);
                 renderCharts(data);
                 loadingSpinner.style.display = "none";
@@ -157,4 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+    
+    // Expose loadAnalytics function globally for refresh button
+    window.loadAnalytics = loadAnalytics;
 });

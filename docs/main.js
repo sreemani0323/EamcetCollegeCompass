@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // === BACKGROUND ANIMATION ===
+    // No longer needed as we're using CSS-based animations now
+
     // === FIREBASE SETUP (Mandatory for Canvas Environment - currently unused for public API calls) ===
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;

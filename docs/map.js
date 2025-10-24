@@ -1,4 +1,42 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // === BACKGROUND ANIMATION ===
+    // Create subtle floating particles for background
+    function createBackgroundAnimation() {
+        const container = document.getElementById('backgroundAnimation');
+        if (!container) return;
+        
+        // Clear any existing particles
+        container.innerHTML = '';
+        
+        // Create 15 particles
+        for (let i = 0; i < 15; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            
+            // Random size between 2px and 8px
+            const size = Math.random() * 6 + 2;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            // Random position
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            
+            // Random animation duration between 10s and 25s
+            const duration = Math.random() * 15 + 10;
+            particle.style.animationDuration = `${duration}s`;
+            
+            // Random delay
+            const delay = Math.random() * 5;
+            particle.style.animationDelay = `${delay}s`;
+            
+            container.appendChild(particle);
+        }
+    }
+    
+    // Initialize background animation
+    createBackgroundAnimation();
+
     const darkModeSwitch = document.getElementById("darkModeSwitch");
     const regionFilter = document.getElementById("regionFilter");
     const tierFilter = document.getElementById("tierFilter");
@@ -154,15 +192,38 @@ document.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem("theme", newTheme);
     });
     
-    // Initialize map
-    map = L.map('map').setView([15.9129, 79.7400], 7); // Center of Andhra Pradesh
+    // Initialize map with fixed zoom controls
+    map = L.map('map', {
+        zoomControl: false // Disable default zoom control
+    }).setView([15.9129, 79.7400], 7); // Center of Andhra Pradesh
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+    // Add custom fixed zoom controls
+    L.control.zoom({
+        position: 'topright'
     }).addTo(map);
     
-    // Auto-load colleges on page load
-    loadColleges();
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '', // Remove attribution completely
+        zIndex: 1000
+    }).addTo(map);
+    
+    // Check if we have cached data in session storage
+    const cachedData = sessionStorage.getItem('mapCollegesData');
+    if (cachedData) {
+        try {
+            const data = JSON.parse(cachedData);
+            allColleges = data;
+            filterAndDisplay();
+            loadingSpinner.style.display = "none";
+        } catch (e) {
+            console.error("Failed to parse cached map data:", e);
+            // Load fresh data if cache is corrupted
+            loadColleges();
+        }
+    } else {
+        // Auto-load colleges on page load
+        loadColleges();
+    }
     
     // Search box autocomplete
     searchBox.addEventListener('input', function() {
@@ -253,6 +314,13 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(res => res.json())
         .then(data => {
+            // Cache the data in session storage
+            try {
+                sessionStorage.setItem('mapCollegesData', JSON.stringify(data));
+            } catch (e) {
+                console.warn("Failed to cache map data:", e);
+            }
+            
             allColleges = data;
             
             // Debug: Find SRKR colleges
@@ -262,10 +330,6 @@ document.addEventListener("DOMContentLoaded", function () {
             // Debug: Find colleges with place containing 'bhim'
             const bhimColleges = allColleges.filter(c => c.place && c.place.toLowerCase().includes('bhim'));
             console.log('Colleges with place containing bhim:', bhimColleges);
-            
-            // Debug: Find all unique places
-            const uniquePlaces = [...new Set(allColleges.map(c => c.place).filter(Boolean))];
-            console.log('All unique places:', uniquePlaces.filter(p => p.toLowerCase().includes('bhim')));
             
             filterAndDisplay();
             loadingSpinner.style.display = "none";
@@ -452,6 +516,9 @@ document.addEventListener("DOMContentLoaded", function () {
             return nameA.localeCompare(nameB);
         });
         
+        // Get selected colleges from sessionStorage
+        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        
         // First try to get coordinates by place name for each college
         sortedColleges.forEach(college => {
             // First try to get coordinates by place name
@@ -472,7 +539,7 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Create a unique ID for comparison tracking
             const uniqueId = `${college.instcode}`;
-            const isSelected = false; // For map view, we don't persist selections
+            const isSelected = selectedColleges.some(c => c.uniqueId === uniqueId);
             
             // Comparison Checkbox HTML
             const comparisonCheckbox = `
@@ -486,7 +553,7 @@ document.addEventListener("DOMContentLoaded", function () {
             
             card.innerHTML = `
                 ${comparisonCheckbox}
-                <a href="#" class="card-location-link" onclick="map.setView([${coords[0]}, ${coords[1]}], 12); return false;">
+                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(college.name + ', ' + (college.district || college.place))}" target="_blank" class="card-location-link" title="View on Google Maps">
                     <i class="fas fa-map-marker-alt"></i> <span>Location</span>
                 </a>
                 <div class="card-content-wrapper">
@@ -517,6 +584,9 @@ document.addEventListener("DOMContentLoaded", function () {
             collegeList.appendChild(card);
         });
         
+        // Initialize comparison tray
+        initializeMapComparisonTray();
+        
         // Don't scroll to list automatically - user can scroll if needed
         // collegeList.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
@@ -539,9 +609,271 @@ document.addEventListener("DOMContentLoaded", function () {
 
         collegeData.uniqueId = uniqueId;
 
-        // For map view, we'll just show an alert since we don't have a persistent comparison tray
+        // Get the comparison tray elements
+        const comparisonTray = document.getElementById('comparison-tray');
+        const compareCountSpan = document.getElementById('compare-count');
+        const compareNowBtn = document.getElementById('compare-now-btn');
+        
+        // Get current selected colleges from sessionStorage or initialize empty array
+        let selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        
         if (checkbox.checked) {
-            alert(`Added ${collegeData.name} to comparison. In a full implementation, this would be added to a comparison tray.`);
+            // Check if we already have 4 colleges selected
+            if (selectedColleges.length >= 4) {
+                checkbox.checked = false;
+                alert('You can only select up to 4 colleges for comparison.');
+                return;
+            }
+            
+            // Add college to selection if not already present
+            if (!selectedColleges.some(c => c.uniqueId === uniqueId)) {
+                selectedColleges.push(collegeData);
+            }
+        } else {
+            // Remove college from selection
+            selectedColleges = selectedColleges.filter(c => c.uniqueId !== uniqueId);
+        }
+        
+        // Save updated selection to sessionStorage
+        sessionStorage.setItem('mapSelectedColleges', JSON.stringify(selectedColleges));
+        
+        // Update comparison tray UI
+        if (comparisonTray) {
+            const count = selectedColleges.length;
+            if (compareCountSpan) {
+                compareCountSpan.textContent = count;
+            }
+            
+            // Show/hide tray based on selection count
+            if (count > 0) {
+                comparisonTray.classList.add('visible');
+                comparisonTray.classList.remove('hidden');
+            } else {
+                comparisonTray.classList.remove('visible');
+                comparisonTray.classList.add('hidden');
+            }
+            
+            // Enable/disable compare button
+            if (compareNowBtn) {
+                compareNowBtn.disabled = count < 2;
+            }
         }
     };
+    
+    // Add function to remove college from comparison
+    window.removeCollegeFromMapComparison = (uniqueId) => {
+        // Get current selected colleges
+        let selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        
+        // Remove college from selection
+        selectedColleges = selectedColleges.filter(c => c.uniqueId !== uniqueId);
+        
+        // Save updated selection to sessionStorage
+        sessionStorage.setItem('mapSelectedColleges', JSON.stringify(selectedColleges));
+        
+        // Uncheck the checkbox
+        const checkbox = document.getElementById(`compare-${uniqueId}`);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+        
+        // Update comparison tray UI
+        const comparisonTray = document.getElementById('comparison-tray');
+        const compareCountSpan = document.getElementById('compare-count');
+        const compareNowBtn = document.getElementById('compare-now-btn');
+        
+        if (comparisonTray) {
+            const count = selectedColleges.length;
+            if (compareCountSpan) {
+                compareCountSpan.textContent = count;
+            }
+            
+            // Show/hide tray based on selection count
+            if (count > 0) {
+                comparisonTray.classList.add('visible');
+                comparisonTray.classList.remove('hidden');
+            } else {
+                comparisonTray.classList.remove('visible');
+                comparisonTray.classList.add('hidden');
+            }
+            
+            // Enable/disable compare button
+            if (compareNowBtn) {
+                compareNowBtn.disabled = count < 2;
+            }
+        }
+    };
+    
+    // Add function to open comparison modal
+    window.openMapComparisonModal = () => {
+        // Get selected colleges
+        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        
+        if (selectedColleges.length < 2) {
+            alert('Please select at least 2 colleges to compare.');
+            return;
+        }
+        
+        // Remove existing modal if present
+        const existingModal = document.getElementById('map-comparison-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create comparison modal
+        const modal = document.createElement('div');
+        modal.id = 'map-comparison-modal';
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        
+        // Modal content with default background (not cyan)
+        let tableHTML = `
+            <div class="modal-content-large">
+                <div class="modal-header">
+                    <h3 class="modal-title"><i class="fa-solid fa-scale-balanced"></i> Side-by-Side College Comparison</h3>
+                    <button class="modal-close-btn" id="close-map-modal">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="modal-body-wrapper">
+                    <div class="comparison-table-container">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th class="sticky-feature">Feature</th>
+        `;
+        
+        // Add college headers with cyan background only for college names
+        selectedColleges.forEach(college => {
+            tableHTML += `
+                <th class="text-center">
+                    <span class="college-name-row">${college.name}</span>
+                    <button class="remove-col-btn mt-2" onclick="removeCollegeFromMapComparison('${college.uniqueId}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </th>
+            `;
+        });
+        
+        tableHTML += `
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+        
+        // Define features to compare
+        const features = [
+            { key: 'branch', label: 'Branch' },
+            { key: 'category', label: 'Category' },
+            { key: 'cutoff', label: 'Cutoff Rank' },
+            { key: 'probability', label: 'Predicted Chance', percent: true },
+            { key: 'tier', label: 'Tier' },
+            { key: 'averagePackage', label: 'Avg. Package', currency: true },
+            { key: 'highestPackage', label: 'Highest Package', currency: true },
+            { key: 'placementDriveQuality', label: 'Placement Quality' },
+            { key: 'district', label: 'District' }
+        ];
+        
+        // Add feature rows with default styling
+        features.forEach(feature => {
+            tableHTML += `<tr><th class="sticky-feature">${feature.label}</th>`;
+            
+            selectedColleges.forEach(college => {
+                let value = college[feature.key] || 'N/A';
+                
+                if (feature.percent && typeof value === 'number') {
+                    value = `${value.toFixed(0)}%`;
+                } else if (feature.currency && typeof value === 'number') {
+                    value = `₹${value.toFixed(2)} Lakhs`;
+                } else if (feature.key === 'cutoff' && typeof value === 'number') {
+                    value = value.toLocaleString();
+                }
+                
+                tableHTML += `<td>${value}</td>`;
+            });
+            
+            tableHTML += `</tr>`;
+        });
+        
+        tableHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        modal.innerHTML = tableHTML;
+        document.body.appendChild(modal);
+        
+        // Add event listener to close button
+        const closeBtn = document.getElementById('close-map-modal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                modal.remove();
+            });
+        }
+        
+        // Add event listener to close modal when clicking outside
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    };
+    
+    // Initialize comparison tray on page load
+    function initializeMapComparisonTray() {
+        // Get selected colleges from sessionStorage
+        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        const count = selectedColleges.length;
+        
+        // Update comparison tray UI
+        const comparisonTray = document.getElementById('comparison-tray');
+        const compareCountSpan = document.getElementById('compare-count');
+        const compareNowBtn = document.getElementById('compare-now-btn');
+        
+        if (comparisonTray) {
+            if (compareCountSpan) {
+                compareCountSpan.textContent = count;
+            }
+            
+            // Show/hide tray based on selection count
+            if (count > 0) {
+                comparisonTray.classList.add('visible');
+                comparisonTray.classList.remove('hidden');
+            } else {
+                comparisonTray.classList.remove('visible');
+                comparisonTray.classList.add('hidden');
+            }
+            
+            // Enable/disable compare button
+            if (compareNowBtn) {
+                compareNowBtn.disabled = count < 2;
+            }
+        }
+    }
+    
+    // Add event listener for compare now button
+    document.addEventListener('DOMContentLoaded', function() {
+        // Use event delegation to handle dynamically added elements
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'compare-now-btn' || (e.target.closest('#compare-now-btn'))) {
+                openMapComparisonModal();
+            }
+        });
+    });
+    
+    // Also attach the event listener when the page loads
+    setTimeout(function() {
+        const compareNowBtn = document.getElementById('compare-now-btn');
+        if (compareNowBtn) {
+            compareNowBtn.addEventListener('click', function() {
+                openMapComparisonModal();
+            });
+        }
+    }, 1000);
+    
+    // Expose loadColleges function globally for refresh button
+    window.loadColleges = loadColleges;
 });

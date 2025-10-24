@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+
 </head>
 <body>
     <header class="page-header">
@@ -23,6 +25,9 @@
                 <a href="branch-comparison.html" class="nav-link active"><i class="fas fa-code-branch"></i> Compare Branches</a>
             </nav>
             <div class="header-controls">
+                <button id="refreshBtn" class="btn-secondary" style="margin-right: 1rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-sync-alt"></i> Refresh Page
+                </button>
                 <label class="dark-mode-toggle" for="darkModeSwitch">
                     <input type="checkbox" id="darkModeSwitch" />
                     <div class="toggle-slider">
@@ -77,12 +82,17 @@
                 <div class="chart-container">
                     <h3><i class="fas fa-table"></i> Detailed Comparison</h3>
                     <div style="overflow-x: auto;">
-                        <table id="comparisonTable" style="width: 100%; border-collapse: collapse;"></table>
+                        <table id="comparisonTable" class="comparison-table" style="width: 100%; border-collapse: collapse;"></table>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+
+    <div class="scroll-buttons" id="scrollButtons">
+        <button id="scrollTopBtn" title="Scroll to Top"><i class="fa-solid fa-arrow-up"></i></button>
+        <button id="scrollBottomBtn" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
+    </div>
 
     <footer class="page-footer">
         <div class="footer-container">
@@ -91,6 +101,47 @@
     </footer>
 
     <script src="branch-comparison.js"></script>
+    
+    <script>
+        // Scroll button functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const scrollButtons = document.getElementById('scrollButtons');
+            const scrollTopBtn = document.getElementById('scrollTopBtn');
+            const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+            
+            // Show/hide scroll buttons based on scroll position
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 300) {
+                    scrollButtons.classList.add('visible');
+                } else {
+                    scrollButtons.classList.remove('visible');
+                }
+            });
+            
+            // Scroll to top
+            scrollTopBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Scroll to bottom
+            scrollBottomBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Refresh button functionality
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.addEventListener('click', function() {
+                // Reload data
+                reloadBranchData();
+            });
+        });
+    </script>
     
     <style>
         .chart-container {
@@ -125,10 +176,23 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
+            accent-color: #dc3545; /* Red color */
         }
         .branch-checkbox.selected {
-            border-color: var(--color-accent);
-            background: var(--color-accent-light);
+            /* Remove background and border styling, only checkbox should be highlighted */
+        }
+        
+        /* Dark mode branch checkbox styles */
+        body.dark-mode .branch-checkbox {
+            background: var(--card-dark);
+            border: 2px solid var(--border-dark);
+            color: var(--color-text-light);
+        }
+        body.dark-mode .branch-checkbox input[type="checkbox"] {
+            accent-color: #dc3545; /* Red color */
+        }
+        body.dark-mode .branch-checkbox.selected {
+            /* Remove background and border styling, only checkbox should be highlighted */
         }
         #comparisonTable th,
         #comparisonTable td {
@@ -141,22 +205,45 @@
             color: white;
             font-weight: 600;
         }
+        
+        /* Light mode even row styling */
+        #comparisonTable tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        #comparisonTable tr:nth-child(even) td {
+            background: #f8f9fa;
+        }
         #comparisonTable tr:nth-child(even) {
             background: var(--color-accent-light);
         }
         body.dark-mode .chart-container {
             background: var(--card-dark);
         }
-        body.dark-mode .branch-checkbox {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
+        /* Reversed dark mode styles */
+        body.dark-mode #comparisonTable th {
+            background: #e9ecef; /* Light gray instead of dark */
+            color: #212529; /* Dark text instead of light */
+            border-right-color: var(--color-accent);
+        }
+        body.dark-mode #comparisonTable .college-name-row {
+            color: #212529; /* Dark text instead of white */
         }
         body.dark-mode #comparisonTable th,
         body.dark-mode #comparisonTable td {
-            border-color: var(--border-dark);
+            border: 1px solid var(--border-light); /* Light border instead of dark */
+            color: #212529; /* Dark text instead of light */
+            background: white; /* Light background instead of dark */
+        }
+        body.dark-mode #comparisonTable th.text-center {
+            background: #f8f9fa; /* Light gray instead of cyan */
+            color: #212529; /* Dark text instead of white */
         }
         body.dark-mode #comparisonTable tr:nth-child(even) {
-            background: #30363d;
+            background: #f8f9fa; /* Light gray instead of dark */
+        }
+        body.dark-mode #comparisonTable tr:nth-child(even) td {
+            background: #f8f9fa; /* Light gray instead of dark */
         }
     </style>
 </body>
