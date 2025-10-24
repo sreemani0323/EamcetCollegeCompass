@@ -61,17 +61,25 @@ document.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem("theme", newTheme);
     });
     
-    // Check if we have cached data in session storage
-    const cachedData = sessionStorage.getItem('calculatorCollegesData');
-    if (cachedData) {
-        try {
-            const data = JSON.parse(cachedData);
-            allColleges = data;
-            console.log(`Loaded ${allColleges.length} colleges from cache`);
-            loadingDiv.style.display = "none";
-        } catch (e) {
-            console.error("Failed to parse cached calculator data:", e);
-            // Load fresh data if cache is corrupted
+    // Check if we have cached data in localStorage
+    const cachedData = localStorage.getItem('calculatorCollegesData');
+    const cacheTimestamp = localStorage.getItem('calculatorCollegesDataTimestamp');
+    
+    if (cachedData && cacheTimestamp) {
+        const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
+        if (ageInMinutes < 60) { // Cache is valid for 1 hour
+            try {
+                const data = JSON.parse(cachedData);
+                allColleges = data;
+                console.log(`Loaded ${allColleges.length} colleges from localStorage cache`);
+                loadingDiv.style.display = "none";
+            } catch (e) {
+                console.error("Failed to parse cached calculator data:", e);
+                // Load fresh data if cache is corrupted
+                loadColleges();
+            }
+        } else {
+            // Cache is too old, load fresh data
             loadColleges();
         }
     } else {
@@ -84,16 +92,37 @@ document.addEventListener("DOMContentLoaded", function () {
         loadingDiv.innerHTML = '<div class="spinner"></div>';
         loadingDiv.style.display = "flex";
         
-    fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+        // Check if we have cached data that's not too old (less than 1 hour)
+        const cachedData = localStorage.getItem('calculatorCollegesData');
+        const cacheTimestamp = localStorage.getItem('calculatorCollegesDataTimestamp');
+        
+        if (cachedData && cacheTimestamp) {
+            const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
+            if (ageInMinutes < 60) { // Cache is valid for 1 hour
+                try {
+                    const data = JSON.parse(cachedData);
+                    allColleges = data;
+                    console.log(`Loaded ${allColleges.length} colleges from localStorage cache`);
+                    loadingDiv.style.display = "none";
+                    return;
+                } catch (e) {
+                    console.warn("Failed to parse cached calculator data:", e);
+                }
+            }
+        }
+        
+        // If no valid cache, fetch fresh data
+    fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({})
     })
     .then(res => res.json())
     .then(data => {
-        // Cache the data in session storage
+        // Cache the data in localStorage with timestamp
         try {
-            sessionStorage.setItem('calculatorCollegesData', JSON.stringify(data));
+            localStorage.setItem('calculatorCollegesData', JSON.stringify(data));
+            localStorage.setItem('calculatorCollegesDataTimestamp', Date.now().toString());
         } catch (e) {
             console.warn("Failed to cache calculator data:", e);
         }
@@ -163,7 +192,7 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Load branches for selected college
     function loadBranches(instcode) {
-        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/colleges/${instcode}/branches`)
+        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/colleges/${instcode}/branches?_=${new Date().getTime()}`)
             .then(res => res.json())
             .then(branches => {
                 branchSelect.innerHTML = '<option value="">Select Branch</option>' +
@@ -191,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function () {
         loadingDiv.style.display = "flex";
         resultDiv.style.display = "none";
         
-        fetch("https://theeamcetcollegeprediction-2.onrender.com/api/reverse-calculator", {
+        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/reverse-calculator?_=${new Date().getTime()}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestData)

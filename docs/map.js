@@ -195,7 +195,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Initialize map with fixed zoom controls
     map = L.map('map', {
         zoomControl: false // Disable default zoom control
-    }).setView([15.9129, 79.7400], 7); // Center of Andhra Pradesh
+    }).setView([15.9129, 79.7400], window.innerWidth < 768 ? 6 : 7); // Center of Andhra Pradesh
     
     // Add custom fixed zoom controls
     L.control.zoom({
@@ -207,17 +207,26 @@ document.addEventListener("DOMContentLoaded", function () {
         zIndex: 1000
     }).addTo(map);
     
-    // Check if we have cached data in session storage
-    const cachedData = sessionStorage.getItem('mapCollegesData');
-    if (cachedData) {
-        try {
-            const data = JSON.parse(cachedData);
-            allColleges = data;
-            filterAndDisplay();
-            loadingSpinner.style.display = "none";
-        } catch (e) {
-            console.error("Failed to parse cached map data:", e);
-            // Load fresh data if cache is corrupted
+    // Check if we have cached data in localStorage
+    const cachedData = localStorage.getItem('mapCollegesData');
+    const cacheTimestamp = localStorage.getItem('mapCollegesDataTimestamp');
+    
+    if (cachedData && cacheTimestamp) {
+        const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
+        if (ageInMinutes < 60) { // Cache is valid for 1 hour
+            try {
+                const data = JSON.parse(cachedData);
+                allColleges = data;
+                filterAndDisplay();
+                loadingSpinner.style.display = "none";
+                console.log("Loaded map data from localStorage cache");
+            } catch (e) {
+                console.error("Failed to parse cached map data:", e);
+                // Load fresh data if cache is corrupted
+                loadColleges();
+            }
+        } else {
+            // Cache is too old, load fresh data
             loadColleges();
         }
     } else {
@@ -307,16 +316,38 @@ document.addEventListener("DOMContentLoaded", function () {
         loadingSpinner.style.display = "flex";
         collegeList.innerHTML = "";
         
-        fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+        // Check if we have cached data that's not too old (less than 1 hour)
+        const cachedData = localStorage.getItem('mapCollegesData');
+        const cacheTimestamp = localStorage.getItem('mapCollegesDataTimestamp');
+        
+        if (cachedData && cacheTimestamp) {
+            const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
+            if (ageInMinutes < 60) { // Cache is valid for 1 hour
+                try {
+                    const data = JSON.parse(cachedData);
+                    allColleges = data;
+                    filterAndDisplay();
+                    loadingSpinner.style.display = "none";
+                    console.log("Loaded map data from localStorage cache");
+                    return;
+                } catch (e) {
+                    console.warn("Failed to parse cached map data:", e);
+                }
+            }
+        }
+        
+        // If no valid cache, fetch fresh data
+        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({})
         })
         .then(res => res.json())
         .then(data => {
-            // Cache the data in session storage
+            // Cache the data in localStorage with timestamp
             try {
-                sessionStorage.setItem('mapCollegesData', JSON.stringify(data));
+                localStorage.setItem('mapCollegesData', JSON.stringify(data));
+                localStorage.setItem('mapCollegesDataTimestamp', Date.now().toString());
             } catch (e) {
                 console.warn("Failed to cache map data:", e);
             }
@@ -516,8 +547,8 @@ document.addEventListener("DOMContentLoaded", function () {
             return nameA.localeCompare(nameB);
         });
         
-        // Get selected colleges from sessionStorage
-        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        // Get selected colleges from localStorage
+        const selectedColleges = JSON.parse(localStorage.getItem('mapSelectedColleges') || '[]');
         
         // First try to get coordinates by place name for each college
         sortedColleges.forEach(college => {

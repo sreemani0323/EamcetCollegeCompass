@@ -1,4 +1,21 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // Add hamburger menu functionality
+    const navToggle = document.querySelector('.nav-toggle');
+    const mainNav = document.querySelector('.main-nav');
+    
+    if (navToggle && mainNav) {
+        navToggle.addEventListener('click', function() {
+            mainNav.classList.toggle('active');
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!mainNav.contains(event.target) && !navToggle.contains(event.target)) {
+                mainNav.classList.remove('active');
+            }
+        });
+    }
+    
     // === BACKGROUND ANIMATION ===
     // No longer needed as we're using CSS-based animations now
 
@@ -190,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
             setTimeout(() => {
                 // Make API call to filter by instcode
                 showSpinner(true);
-                fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+                fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ instcode: instcode })
@@ -217,8 +234,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     function loadSavedResults() {
-        const savedData = sessionStorage.getItem('collegeResults');
-        const savedSorted = sessionStorage.getItem('sortedResults');
+        const savedData = localStorage.getItem('collegeResults');
+        const savedSorted = localStorage.getItem('sortedResults');
         
         if (savedData && savedSorted) {
             try {
@@ -235,15 +252,33 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     function saveResults() {
-        sessionStorage.setItem('collegeResults', JSON.stringify(rawData));
-        sessionStorage.setItem('sortedResults', JSON.stringify(sortedData));
+        localStorage.setItem('collegeResults', JSON.stringify(rawData));
+        localStorage.setItem('sortedResults', JSON.stringify(sortedData));
     }
     
     /**
      * Load all colleges data for caching (used by map, analytics, etc.)
      */
     function loadAllCollegesCache() {
-        fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+        // Check if we have cached data that's not too old (less than 1 hour)
+        const cachedData = localStorage.getItem('allCollegesCache');
+        const cacheTimestamp = localStorage.getItem('allCollegesCacheTimestamp');
+        
+        if (cachedData && cacheTimestamp) {
+            const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
+            if (ageInMinutes < 60) { // Cache is valid for 1 hour
+                try {
+                    allCollegesCache = JSON.parse(cachedData);
+                    console.log(`Loaded ${allCollegesCache.length} colleges from localStorage cache`);
+                    return;
+                } catch (e) {
+                    console.warn("Failed to parse cached colleges data:", e);
+                }
+            }
+        }
+        
+        // If no valid cache, fetch fresh data
+        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({})
@@ -251,6 +286,9 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(res => res.json())
         .then(data => {
             allCollegesCache = data;
+            // Save to localStorage with timestamp
+            localStorage.setItem('allCollegesCache', JSON.stringify(data));
+            localStorage.setItem('allCollegesCacheTimestamp', Date.now().toString());
             console.log(`Loaded ${allCollegesCache.length} colleges into cache`);
         })
         .catch(err => console.error("Failed to load colleges cache:", err));
@@ -449,99 +487,26 @@ document.addEventListener("DOMContentLoaded", function () {
     updateDependentOptions('placementQualityFilter', 'placementQualityFilter', allowedValues);
 }
 
-    // === 7. PREDICTION & RENDERING LOGIC ===
-    function handlePrediction(event) {
-        event.preventDefault();
-        
-        // --- Input Validation Check ---
-        const rankValue = rankInput.value ? parseInt(rankInput.value, 10) : null;
-        
-        // Retrieve values directly from their respective hidden inputs
-        const branchValue = document.getElementById("desiredBranch").value;
-        const quotaValue = document.getElementById("quota").value;
-        const genderValue = document.getElementById("gender").value;
-        const districtValue = document.getElementById("district").value;
-        const regionValue = document.getElementById("region").value;
-        const tierValue = document.getElementById("tier").value;
-        const placementQualityValue = document.getElementById("placementQualityFilter").value;
-
-        // Check if any filter input has a value
-        const filterInputs = [
-            branchValue,
-            quotaValue,
-            genderValue,
-            districtValue,
-            regionValue,
-            tierValue,
-            placementQualityValue
-        ];
-        
-        const hasFilters = filterInputs.some(val => val !== null && val !== "" && val !== "null");
-
-        // NEW: Validate rank <= 0 with pop-up
-        if (rankValue !== null && rankValue <= 0) {
-            showValidationModal(
-                ValidationMessages.invalidRank.title,
-                ValidationMessages.invalidRank.message,
-                ValidationMessages.invalidRank.type
-            );
-            return;
+    // === 7. EVENT LISTENERS & INITIALIZATION ===
+    predictForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const formData = new FormData(predictForm);
+        const filters = {};
+        for (const [key, value] of formData.entries()) {
+            if (value) filters[key] = value.split(',').filter(Boolean);
         }
-
-        // Check if no input at all
-        if ((!rankValue || rankValue <= 0) && !hasFilters) {
-            showValidationModal(
-                ValidationMessages.noInput.title,
-                ValidationMessages.noInput.message,
-                ValidationMessages.noInput.type
-            );
-            return;
-        }
-        // --- END Input Validation Check ---
-
+        const rank = parseInt(rankInput.value) || 0;
         showSpinner(true);
-        collegeListDiv.innerHTML = '';
-        resultsHeader.style.display = 'none';
-        
-        comparisonModal.style.display = 'none';
-
-        // --- CORRECTED LOGIC: Constructing requestData to match backend expectations ---
-        const requestData = {};
-
-        // Only add rank if it's a valid positive number
-        if (rankValue && rankValue > 0) {
-            requestData.rank = rankValue;
-        }
-        
-        // Only add fields if their values are non-empty strings
-        if (branchValue) requestData.branch = branchValue;
-        if (districtValue) requestData.district = districtValue;
-        if (regionValue) requestData.region = regionValue;
-        if (tierValue) requestData.tier = tierValue;
-        if (placementQualityValue) requestData.placementQualityFilter = placementQualityValue;
-
-        // CRITICAL FIX: Backend expects 'category' (quota like "oc", "sc") and 'gender' as SEPARATE parameters
-        // The backend service's setupFilters() method handles combining them into "oc_boys", "sc_girls", etc.
-        if (quotaValue) {
-            requestData.category = quotaValue; // Send quota value (e.g., "oc", "sc", "bca")
-        }
-        if (genderValue) {
-            requestData.gender = genderValue; // Send gender value (e.g., "boys", "girls")
-        }
-        // --- END CORRECTED LOGIC ---
-
-        // Use the reliable POST endpoint for prediction/filtering
-        // FIXED: Removed double /api/ - backend has no context-path, just controller @RequestMapping("/api")
-        fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify(requestData) // Use the correct variable name
+        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rank, ...filters })
         })
         .then(response => { if (!response.ok) throw new Error(`API Error: ${response.statusText}`); return response.json(); })
         .then(data => { rawData = data; filterAndRenderColleges(); })
         .catch(error => { console.error("Fetch Error:", error); renderEmptyState(translations.fetchError); })
         .finally(() => showSpinner(false));
-    }
+    });
 
     function filterAndRenderColleges() {
         // Clear any previous comparison selections 
@@ -896,5 +861,10 @@ document.addEventListener("DOMContentLoaded", function () {
             multiselectContainers.forEach(dropdown => { if (!dropdown.contains(e.target)) dropdown.classList.remove('open'); });
             if (downloadBtn && !downloadBtn.contains(e.target) && !downloadMenu.contains(e.target)) downloadMenu.style.display = 'none';
         });
+    }
+
+    function handlePrediction() {
+        // Trigger form submission
+        predictForm.dispatchEvent(new Event('submit'));
     }
 });

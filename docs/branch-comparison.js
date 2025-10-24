@@ -61,36 +61,68 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Auto-show branch selection on load
     branchSelection.parentElement.style.display = "block";
     
-    // Check if we have cached data in session storage
-    const cachedBranches = sessionStorage.getItem('branchComparisonBranchesData');
-    const cachedColleges = sessionStorage.getItem('branchComparisonCollegesData');
+    // Check if we have cached data in localStorage
+    const cachedBranches = localStorage.getItem('branchComparisonBranchesData');
+    const cachedColleges = localStorage.getItem('branchComparisonCollegesData');
+    const branchesCacheTimestamp = localStorage.getItem('branchComparisonBranchesDataTimestamp');
+    const collegesCacheTimestamp = localStorage.getItem('branchComparisonCollegesDataTimestamp');
     
-    if (cachedBranches && cachedColleges) {
-        try {
-            branches = JSON.parse(cachedBranches);
-            const allColleges = JSON.parse(cachedColleges);
-            console.log(`Loaded ${branches.length} branches and ${allColleges.length} colleges from cache`);
-            
-            // Render branch checkboxes
-            renderBranchCheckboxes();
-            
-            loadingSpinner.style.display = "none";
-        } catch (e) {
-            console.error("Failed to parse cached branch comparison data:", e);
-            // Load fresh data if cache is corrupted
-            loadInitialData();
+    if (cachedBranches && cachedColleges && branchesCacheTimestamp && collegesCacheTimestamp) {
+        const branchesAgeInMinutes = (Date.now() - parseInt(branchesCacheTimestamp)) / (1000 * 60);
+        const collegesAgeInMinutes = (Date.now() - parseInt(collegesCacheTimestamp)) / (1000 * 60);
+        
+        // Cache is valid for 30 minutes for branches and 1 hour for colleges
+        if (branchesAgeInMinutes < 30 && collegesAgeInMinutes < 60) {
+            try {
+                branches = JSON.parse(cachedBranches);
+                const allColleges = JSON.parse(cachedColleges);
+                console.log(`Loaded ${branches.length} branches and ${allColleges.length} colleges from localStorage cache`);
+                
+                // Render branch checkboxes
+                renderBranchCheckboxes();
+                
+                loadingSpinner.style.display = "none";
+                return;
+            } catch (e) {
+                console.error("Failed to parse cached branch comparison data:", e);
+                // Load fresh data if cache is corrupted
+                loadInitialData();
+            }
         }
-    } else {
-        // Load branches and colleges from backend
-        loadInitialData();
     }
+    
+    // Load branches and colleges from backend
+    loadInitialData();
     
     async function loadInitialData() {
         try {
             loadingSpinner.style.display = "flex";
             loadingSpinner.innerHTML = '<div class="spinner"></div><p>Loading available branches...</p>';
             
-            const response = await fetch("https://theeamcetcollegeprediction-2.onrender.com/api/analytics/branches");
+            // Check if we have cached branches data that's not too old (less than 30 minutes)
+            const cachedBranches = localStorage.getItem('branchComparisonBranchesData');
+            const cacheTimestamp = localStorage.getItem('branchComparisonBranchesDataTimestamp');
+            
+            if (cachedBranches && cacheTimestamp) {
+                const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
+                if (ageInMinutes < 30) { // Cache is valid for 30 minutes
+                    try {
+                        branches = JSON.parse(cachedBranches);
+                        console.log(`Loaded ${branches.length} branches from localStorage cache`);
+                        
+                        // Render branch checkboxes
+                        renderBranchCheckboxes();
+                        
+                        loadingSpinner.style.display = "none";
+                        return;
+                    } catch (e) {
+                        console.warn("Failed to parse cached branch comparison branches data:", e);
+                    }
+                }
+            }
+            
+            // If no valid cache, fetch fresh data
+            const response = await fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/analytics/branches?_=${new Date().getTime()}`);
             if (!response.ok) {
                 throw new Error(`Failed to load branches: ${response.status}`);
             }
@@ -98,9 +130,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             branches = await response.json();
             console.log(`Loaded ${branches.length} branches from backend:`, branches);
             
-            // Cache the branches data
+            // Cache the branches data in localStorage with timestamp
             try {
-                sessionStorage.setItem('branchComparisonBranchesData', JSON.stringify(branches));
+                localStorage.setItem('branchComparisonBranchesData', JSON.stringify(branches));
+                localStorage.setItem('branchComparisonBranchesDataTimestamp', Date.now().toString());
             } catch (e) {
                 console.warn("Failed to cache branch comparison branches data:", e);
             }
@@ -174,25 +207,30 @@ document.addEventListener("DOMContentLoaded", async function () {
         branchData = {};
         
         try {
-            // Check if we have cached colleges data
-            let allColleges;
-            const cachedColleges = sessionStorage.getItem('branchComparisonCollegesData');
+            // Check if we have cached colleges data that's not too old (less than 1 hour)
+            const cachedColleges = localStorage.getItem('branchComparisonCollegesData');
+            const cacheTimestamp = localStorage.getItem('branchComparisonCollegesDataTimestamp');
             
-            if (cachedColleges) {
-                try {
-                    allColleges = JSON.parse(cachedColleges);
-                    console.log(`Loaded ${allColleges.length} colleges from cache`);
-                } catch (e) {
-                    console.warn("Failed to parse cached colleges data:", e);
-                    // Load fresh data if cache is corrupted
-                    allColleges = null;
+            let allColleges;
+            
+            if (cachedColleges && cacheTimestamp) {
+                const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
+                if (ageInMinutes < 60) { // Cache is valid for 1 hour
+                    try {
+                        allColleges = JSON.parse(cachedColleges);
+                        console.log(`Loaded ${allColleges.length} colleges from localStorage cache`);
+                    } catch (e) {
+                        console.warn("Failed to parse cached colleges data:", e);
+                        // Load fresh data if cache is corrupted
+                        allColleges = null;
+                    }
                 }
             }
             
-            // If no cached data or parsing failed, fetch from backend
+            // If no valid cached data, fetch from backend
             if (!allColleges) {
                 console.log('Fetching all colleges data from backend...');
-                const response = await fetch("https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges", {
+                const response = await fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({})
@@ -205,9 +243,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                 allColleges = await response.json();
                 console.log(`Fetched ${allColleges.length} colleges from backend`);
                 
-                // Cache the colleges data
+                // Cache the colleges data in localStorage with timestamp
                 try {
-                    sessionStorage.setItem('branchComparisonCollegesData', JSON.stringify(allColleges));
+                    localStorage.setItem('branchComparisonCollegesData', JSON.stringify(allColleges));
+                    localStorage.setItem('branchComparisonCollegesDataTimestamp', Date.now().toString());
                 } catch (e) {
                     console.warn("Failed to cache branch comparison colleges data:", e);
                 }
@@ -351,17 +390,32 @@ document.addEventListener("DOMContentLoaded", async function () {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: { precision: 0 }
+                        ticks: { 
+                            precision: 0,
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
+                        }
                     },
                     x: {
                         ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
+                            maxRotation: window.innerWidth < 480 ? 60 : 45,
+                            minRotation: window.innerWidth < 480 ? 60 : 45,
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
                         }
                     }
                 },
                 plugins: {
-                    legend: { display: false }
+                    legend: { 
+                        display: false,
+                        labels: {
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -389,18 +443,31 @@ document.addEventListener("DOMContentLoaded", async function () {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: value => '₹' + value + 'L'
+                            callback: value => '₹' + value + 'L',
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
                         }
                     },
                     x: {
                         ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
+                            maxRotation: window.innerWidth < 480 ? 60 : 45,
+                            minRotation: window.innerWidth < 480 ? 60 : 45,
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
                         }
                     }
                 },
                 plugins: {
-                    legend: { display: false }
+                    legend: { 
+                        display: false,
+                        labels: {
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
+                        }
+                    }
                 }
             }
         });

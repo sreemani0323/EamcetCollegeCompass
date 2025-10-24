@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>EAMCET College Predictor</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=1.0.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -19,9 +22,14 @@
 <body>
     <header class="page-header">
         <div class="header-container">
-            <a href="index.html" class="site-title-link">
-                <h1 id="siteTitle"><i class="fas fa-graduation-cap"></i> EAMCET Predictor</h1>
-            </a>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <a href="index.html" class="site-title-link">
+                    <h1 id="siteTitle"><i class="fas fa-graduation-cap"></i> EAMCET Predictor</h1>
+                </a>
+                <button class="nav-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
             <nav class="main-nav">
                 <a href="index.html" class="nav-link active"><i class="fas fa-home"></i> Home</a>
                 <a href="analytics.html" class="nav-link"><i class="fas fa-chart-bar"></i> Analytics</a>
@@ -47,7 +55,6 @@
                 <h2>College Compass <i class="fa-solid fa-compass-drafting"></i></h2>
                 <p>Get instant college and branch predictions from your EAMCET rank.</p>
                 <div class="hero-rank-input">
-                    <i class="fa-solid fa-ranking-star"></i>
                     <input type="number" id="rank" name="rank" placeholder="Enter your rank here (↓)" min="1" />
                     <button type="button" id="predictButton" class="btn-primary" data-lang-key="btnPredict">
                         Predict Now <i class="fa-solid fa-arrow-right"></i>
@@ -280,18 +287,59 @@
             const refreshBtn = document.getElementById('refreshBtn');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', function() {
-                    // Clear session storage cache for all tabs
-                    sessionStorage.removeItem('collegeResults');
-                    sessionStorage.removeItem('sortedResults');
-                    sessionStorage.removeItem('analyticsData');
-                    sessionStorage.removeItem('mapCollegesData');
-                    sessionStorage.removeItem('calculatorData');
-                    sessionStorage.removeItem('branchComparisonData');
+                    // Clear localStorage cache for all tabs
+                    localStorage.removeItem('collegeResults');
+                    localStorage.removeItem('sortedResults');
+                    localStorage.removeItem('analyticsData');
+                    localStorage.removeItem('analyticsDataTimestamp');
+                    localStorage.removeItem('mapCollegesData');
+                    localStorage.removeItem('mapCollegesDataTimestamp');
+                    localStorage.removeItem('calculatorCollegesData');
+                    localStorage.removeItem('calculatorCollegesDataTimestamp');
+                    localStorage.removeItem('branchComparisonBranchesData');
+                    localStorage.removeItem('branchComparisonBranchesDataTimestamp');
+                    localStorage.removeItem('branchComparisonCollegesData');
+                    localStorage.removeItem('branchComparisonCollegesDataTimestamp');
+                    localStorage.removeItem('allCollegesCache');
+                    localStorage.removeItem('allCollegesCacheTimestamp');
                     
                     // Reload the page to get fresh data
                     location.reload();
                 });
             }
+            
+            // Set a flag to indicate this is a navigation (not a reload)
+            sessionStorage.setItem('isNavigation', 'true');
+        });
+        
+        // Handle page reload vs navigation
+        window.addEventListener('beforeunload', function() {
+            // Check if this is a navigation or a reload
+            const isNavigation = sessionStorage.getItem('isNavigation');
+            
+            // If it's not a navigation (i.e., it's a reload), clear cache
+            if (!isNavigation) {
+                // Clear all cache items when page is reloaded
+                localStorage.removeItem('collegeResults');
+                localStorage.removeItem('sortedResults');
+                localStorage.removeItem('analyticsData');
+                localStorage.removeItem('analyticsDataTimestamp');
+                localStorage.removeItem('mapCollegesData');
+                localStorage.removeItem('mapCollegesDataTimestamp');
+                localStorage.removeItem('calculatorCollegesData');
+                localStorage.removeItem('calculatorCollegesDataTimestamp');
+                localStorage.removeItem('branchComparisonBranchesData');
+                localStorage.removeItem('branchComparisonBranchesDataTimestamp');
+                localStorage.removeItem('branchComparisonCollegesData');
+                localStorage.removeItem('branchComparisonCollegesDataTimestamp');
+                localStorage.removeItem('allCollegesCache');
+                localStorage.removeItem('allCollegesCacheTimestamp');
+            }
+        });
+        
+        // Clear the navigation flag when page is fully loaded
+        window.addEventListener('load', function() {
+            sessionStorage.removeItem('isNavigation');
         });
     </script>
 </body>

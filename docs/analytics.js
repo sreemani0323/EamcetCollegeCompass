@@ -45,12 +45,35 @@ document.addEventListener("DOMContentLoaded", function () {
         loadingSpinner.style.display = "flex";
         loadingSpinner.innerHTML = '<div class="spinner"></div>';
         
-        fetch("https://theeamcetcollegeprediction-2.onrender.com/api/analytics/summary")
+        // Check if we have cached data that's not too old (less than 30 minutes)
+        const cachedData = localStorage.getItem('analyticsData');
+        const cacheTimestamp = localStorage.getItem('analyticsDataTimestamp');
+        
+        if (cachedData && cacheTimestamp) {
+            const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
+            if (ageInMinutes < 30) { // Cache is valid for 30 minutes
+                try {
+                    const data = JSON.parse(cachedData);
+                    updateSummaryCards(data);
+                    renderCharts(data);
+                    loadingSpinner.style.display = "none";
+                    analyticsContent.style.display = "block";
+                    console.log("Loaded analytics data from localStorage cache");
+                    return;
+                } catch (e) {
+                    console.warn("Failed to parse cached analytics data:", e);
+                }
+            }
+        }
+        
+        // If no valid cache, fetch fresh data
+        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/analytics/summary?_=${new Date().getTime()}`)
             .then(res => res.json())
             .then(data => {
-                // Cache the data in session storage
+                // Cache the data in localStorage with timestamp
                 try {
-                    sessionStorage.setItem('analyticsData', JSON.stringify(data));
+                    localStorage.setItem('analyticsData', JSON.stringify(data));
+                    localStorage.setItem('analyticsDataTimestamp', Date.now().toString());
                 } catch (e) {
                     console.warn("Failed to cache analytics data:", e);
                 }
@@ -135,7 +158,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 maintainAspectRatio: true,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
+                        }
                     }
                 }
             }
@@ -165,19 +193,30 @@ document.addEventListener("DOMContentLoaded", function () {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            precision: 0
+                            precision: 0,
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
                         }
                     },
                     x: {
                         ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
+                            maxRotation: window.innerWidth < 480 ? 60 : 45,
+                            minRotation: window.innerWidth < 480 ? 60 : 45,
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
                         }
                     }
                 },
                 plugins: {
                     legend: {
-                        display: false
+                        display: false,
+                        labels: {
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 12
+                            }
+                        }
                     }
                 }
             }
