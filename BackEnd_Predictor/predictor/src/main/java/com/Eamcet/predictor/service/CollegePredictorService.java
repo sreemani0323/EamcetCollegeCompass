@@ -88,20 +88,33 @@ public class CollegePredictorService {
                 predicates.add(root.get("placementDriveQuality").in(placementQualities));
             }
 
+            // If no predicates, return null to avoid unnecessary filtering
+            if (predicates.isEmpty()) {
+                return null;
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
         List<College> colleges = repo.findAll(spec);
+        log.debug("Found {} colleges after applying filters", colleges.size());
 
         Set<String> categoriesToCheck = getEffectiveCategories(category, gender);
+        log.debug("Effective categories to check: {}", categoriesToCheck);
 
         List<CollegeResult> results = colleges.stream()
                 .flatMap(college -> categoriesToCheck.stream()
                         .map(cat -> {
                             Integer cutoff = getCutoffForCategory(college, cat);
+                            log.debug("College: {}, Category: {}, Cutoff: {}", college.getInstcode(), cat, cutoff);
                             
+                            // Allow colleges with null cutoffs to pass through when no rank is provided
                             if (cutoff == null || cutoff == 0) {
-                                return null;
+                                if (rank != null) {
+                                    return null; // Only filter out null cutoffs when rank is provided
+                                }
+                                // When no rank is provided, include colleges even with null cutoffs
+                                return new CollegeResult(college, cutoff, cat, null);
                             }
 
                             Double probability = null;
@@ -173,13 +186,35 @@ public class CollegePredictorService {
                 })
                 .limit(100)
                 .collect(Collectors.toList());
-
+        
+        log.debug("Returning {} college results after all processing", results.size());
         return results;
     }
     
-    private Set<String> getEffectiveCategories(String category, String gender) {
+    public Set<String> getEffectiveCategories(String category, String gender) {
         Set<String> effectiveCategories = new HashSet<>();
 
+        // If both category and gender are explicitly provided, use only that specific combination
+        if (category != null && !category.trim().isEmpty() && 
+            gender != null && !gender.trim().isEmpty()) {
+            String categoryLower = category.toLowerCase();
+            String genderLower = gender.toLowerCase();
+            
+            // Normalize gender values
+            String normalizedGender;
+            if ("boys".equals(genderLower) || "male".equals(genderLower)) {
+                normalizedGender = "boys";
+            } else if ("girls".equals(genderLower) || "female".equals(genderLower)) {
+                normalizedGender = "girls";
+            } else {
+                normalizedGender = genderLower; // fallback to the original value
+            }
+            
+            effectiveCategories.add(categoryLower + "_" + normalizedGender);
+            return effectiveCategories;
+        }
+
+        // Original logic for when one or both parameters are missing
         List<String> gendersToCheck = new ArrayList<>();
         if (gender != null && !gender.trim().isEmpty()) {
             String genderLower = gender.toLowerCase();

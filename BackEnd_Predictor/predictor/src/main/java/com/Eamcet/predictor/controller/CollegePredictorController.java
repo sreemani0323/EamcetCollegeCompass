@@ -434,10 +434,10 @@ public class CollegePredictorController {
             request.getRank(),
             request.getBranch() != null ? List.of(request.getBranch()) : null,
             request.getCategory(),
-            null,
-            request.getPreferredRegions(),
-            null,
-            null,
+            null, // districts
+            request.getPreferredRegions(), // regions
+            null, // tiers
+            null, // placementQualities
             request.getGender()
         );
         
