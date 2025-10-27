@@ -9,21 +9,20 @@ public class CollegeDataDto {
     private String place;
     private String district;
     private String region;
-    private String division; // Add gender/division information
+    private String division;
     private String branch;
     private String tier;
     private Double averagePackage;
     private Double highestPackage;
     private String placementDriveQuality;
 
-    // Constructor to easily convert from the database entity
     public CollegeDataDto(College college) {
         this.instcode = college.getInstcode();
         this.name = college.getInstitution_name();
         this.place = college.getPlace();
         this.district = college.getDistrict();
         this.region = college.getRegion();
-        this.division = college.getDivision(); // Include division (gender info)
+        this.division = college.getDivision();
         this.branch = college.getBranchCode();
         this.tier = college.getTier();
         this.averagePackage = college.getAveragePackage();
@@ -31,7 +30,6 @@ public class CollegeDataDto {
         this.placementDriveQuality = college.getPlacementDriveQuality();
     }
 
-    // Getters for all fields
     public String getInstcode() { return instcode; }
     public String getName() { return name; }
     public String getPlace() { return place; }

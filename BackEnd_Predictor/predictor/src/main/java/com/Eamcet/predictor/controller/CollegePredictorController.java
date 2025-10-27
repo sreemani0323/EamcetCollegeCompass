@@ -30,19 +30,10 @@ public class CollegePredictorController {
         this.repo = repo;
     }
 
-    /**
-     * Endpoint to predict or filter colleges based on user criteria.
-     * Returns all college data if payload is empty (for analytics/map features).
-     * Returns filtered/predicted results based on criteria provided.
-     * 
-     * @param payload A map containing rank and filter options.
-     * @return List of predicted/filtered colleges or all colleges if no criteria
-     */
     @PostMapping("/predict-colleges")
     public ResponseEntity<?> predict(@RequestBody Map<String, Object> payload) {
         log.debug("Received predict request with payload: {}", payload);
         
-        // Helper function to extract and parse comma-separated values into a List
         Function<String, List<String>> extractAndSplit = key ->
                 Optional.ofNullable(payload.get(key))
                         .filter(obj -> obj instanceof String)
@@ -55,7 +46,6 @@ public class CollegePredictorController {
                         .filter(list -> !list.isEmpty())
                         .orElse(null);
         
-        // Helper function for single-value extraction
         Function<String, String> extractSingle = key ->
                 Optional.ofNullable(payload.get(key))
                         .filter(obj -> obj instanceof String)
@@ -63,7 +53,6 @@ public class CollegePredictorController {
                         .filter(s -> !s.trim().isEmpty())
                         .orElse(null);
 
-        // Extract and validate rank
         Integer rank = null;
         Object rankObj = payload.get("rank");
         if (rankObj instanceof Number) {
@@ -75,14 +64,12 @@ public class CollegePredictorController {
             }
         }
 
-        // Extract multi-select filters (comma-separated values from frontend)
         List<String> branches = extractAndSplit.apply("branch");
         List<String> districts = extractAndSplit.apply("district");
         List<String> regions = extractAndSplit.apply("region");
         List<String> tiers = extractAndSplit.apply("tier");
         List<String> placementQualities = extractAndSplit.apply("placementQualityFilter");
         
-        // Extract single-select filters (category and gender are single-select)
         String category = extractSingle.apply("category");
         String gender = extractSingle.apply("gender");
 
@@ -92,7 +79,6 @@ public class CollegePredictorController {
         log.info("Request parameters: rank={}, branches={}, category={}, districts={}, regions={}, tiers={}, gender={}, placementQualities={}, hasFilters={}",
                 rank, branches, category, districts, regions, tiers, gender, placementQualities, hasFilters);
 
-        // If payload is empty (no rank and no filters), return all college data
         if (rank == null && !hasFilters) {
             log.info("No filters provided, returning all colleges");
             try {
@@ -108,7 +94,6 @@ public class CollegePredictorController {
             }
         }
 
-        // Perform prediction/filtering with all parameters
         List<CollegeResult> results = service.findColleges(
                 rank,
                 branches,
@@ -124,9 +109,6 @@ public class CollegePredictorController {
         return ResponseEntity.ok(results);
     }
     
-    /**
-     * Analytics endpoint - Get overall statistics
-     */
     @GetMapping("/analytics/summary")
     public ResponseEntity<AnalyticsSummaryDto> getAnalyticsSummary() {
         log.info("Fetching analytics summary");
@@ -170,10 +152,6 @@ public class CollegePredictorController {
         return ResponseEntity.ok(summary);
     }
     
-    /**
-     * Get all unique branch codes from database
-     * Diagnostic endpoint to help frontend match branch names
-     */
     @GetMapping("/analytics/branches")
     public ResponseEntity<List<String>> getAllBranches() {
         log.info("Fetching all unique branches");
@@ -189,9 +167,6 @@ public class CollegePredictorController {
         return ResponseEntity.ok(branches);
     }
     
-    /**
-     * Get statistics for a specific branch
-     */
     @GetMapping("/analytics/branch-stats/{branch}")
     public ResponseEntity<BranchStatsDto> getBranchStats(@PathVariable String branch) {
         log.info("Fetching branch stats for: {}", branch);
@@ -216,9 +191,6 @@ public class CollegePredictorController {
         return ResponseEntity.ok(stats);
     }
     
-    /**
-     * Search colleges by name
-     */
     @GetMapping("/search/by-name")
     public ResponseEntity<List<CollegeDataDto>> searchByName(@RequestParam String query) {
         log.info("Searching colleges by name: {}", query);
@@ -233,9 +205,6 @@ public class CollegePredictorController {
             .collect(Collectors.toList()));
     }
     
-    /**
-     * Get all branches offered by a specific college
-     */
     @GetMapping("/colleges/{instcode}/branches")
     public ResponseEntity<List<String>> getAvailableBranches(@PathVariable String instcode) {
         log.info("Fetching available branches for college: {}", instcode);
@@ -251,9 +220,6 @@ public class CollegePredictorController {
         return ResponseEntity.ok(branches);
     }
     
-    /**
-     * Reverse calculator - Calculate required rank for desired probability
-     */
     @PostMapping("/reverse-calculator")
     public ResponseEntity<ReverseCalculatorDto> reverseCalculate(
             @RequestBody ReverseCalculatorRequestDto request) {
@@ -271,7 +237,6 @@ public class CollegePredictorController {
             throw new InvalidRequestException("No cutoff data for this category");
         }
         
-        // Reverse the probability formula
         Integer requiredRank;
         Double desiredProb = request.getDesiredProbability();
         
@@ -294,9 +259,6 @@ public class CollegePredictorController {
         ));
     }
     
-    /**
-     * Get colleges offering a specific branch
-     */
     @GetMapping("/branches/availability")
     public ResponseEntity<List<BranchAvailabilityDto>> getBranchAvailability(
             @RequestParam String branch) {
@@ -322,9 +284,6 @@ public class CollegePredictorController {
         return ResponseEntity.ok(result);
     }
     
-    /**
-     * Get cutoff distribution across all categories for a college-branch
-     */
     @GetMapping("/cutoff-distribution/{instcode}/{branch}")
     public ResponseEntity<CutoffDistributionDto> getCutoffDistribution(
             @PathVariable String instcode,
@@ -373,9 +332,6 @@ public class CollegePredictorController {
         ));
     }
     
-    /**
-     * Rank colleges by placement quality
-     */
     @GetMapping("/rankings/by-placement")
     public ResponseEntity<List<PlacementRankingDto>> getRankingsByPlacement(
             @RequestParam(required = false) String branch,
@@ -419,9 +375,6 @@ public class CollegePredictorController {
         return ResponseEntity.ok(rankings);
     }
     
-    /**
-     * Find colleges similar to the selected one
-     */
     @GetMapping("/similar-colleges/{instcode}/{branch}")
     public ResponseEntity<List<SimilarCollegeDto>> findSimilarColleges(
             @PathVariable String instcode,
@@ -472,9 +425,6 @@ public class CollegePredictorController {
         return ResponseEntity.ok(similar);
     }
     
-    /**
-     * Smart recommendations based on user preferences
-     */
     @PostMapping("/recommendations")
     public ResponseEntity<List<RecommendationDto>> getRecommendations(
             @RequestBody RecommendationRequestDto request) {
