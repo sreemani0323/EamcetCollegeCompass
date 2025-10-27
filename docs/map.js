@@ -294,6 +294,9 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Search button click
     searchBtn.addEventListener('click', function() {
+        // Reset on New Input: Clear existing results before fetching new ones
+        resetMapResults();
+        
         if (selectedSearchCollege) {
             // Filter to show only selected college
             displaySingleCollege(selectedSearchCollege);
@@ -302,6 +305,19 @@ document.addEventListener("DOMContentLoaded", function () {
             filterAndDisplay();
         }
     });
+    
+    // Add function to reset map results
+    function resetMapResults() {
+        // Clear existing markers
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+        
+        // Clear college list
+        collegeList.innerHTML = '';
+        
+        // Show loading spinner
+        loadingSpinner.style.display = "flex";
+    }
     
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
@@ -312,6 +328,9 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Load colleges
     function loadColleges() {
+        // Reset on New Input: Clear existing results before fetching new ones
+        resetMapResults();
+        
         loadingSpinner.innerHTML = '<div class="spinner"></div>';
         loadingSpinner.style.display = "flex";
         collegeList.innerHTML = "";
@@ -382,7 +401,11 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
     
-    filterBtn.addEventListener("click", filterAndDisplay);
+    filterBtn.addEventListener("click", function() {
+        // Reset on New Input: Clear existing results before applying new filters
+        resetMapResults();
+        filterAndDisplay();
+    });
     
     function filterAndDisplay() {
         const region = regionFilter.value;
@@ -470,6 +493,9 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Reset selected search college after filtering
         selectedSearchCollege = null;
+        
+        // Hide loading spinner
+        loadingSpinner.style.display = "none";
     }
     
     function displaySingleCollege(college) {

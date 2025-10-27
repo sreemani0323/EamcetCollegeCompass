@@ -402,6 +402,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function initializeMultiselect(dropdown) {
         const id = dropdown.getAttribute('data-id');
         const hiddenInput = document.getElementById(id);
+        console.log(`Initializing multiselect ${id}, hidden input:`, hiddenInput);
         const optionsList = dropdown.querySelector('.options-list');
         const dataSourceKey = optionsList.getAttribute('data-source');
         const data = optionData[dataSourceKey];
@@ -435,6 +436,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 const selectedValues = Array.from(optionElements).map(l => l.querySelector('input[type="checkbox"]')).filter(cb => cb.checked).map(cb => cb.value);
                 hiddenInput.value = selectedValues.join(',');
+                
+                // Debug logging
+                console.log(`Multiselect ${id} hidden input updated:`, hiddenInput.value);
+                console.log(`Multiselect ${id} selected values:`, selectedValues);
+                console.log(`Multiselect ${id} hidden input element:`, hiddenInput);
+                
                 updateSelectedItemsDisplay(dropdown, selectedValues);
 
                 // REMOVED: if (id === 'quota' || id === 'gender') updateFinalCategory();
@@ -490,23 +497,139 @@ document.addEventListener("DOMContentLoaded", function () {
     // === 7. EVENT LISTENERS & INITIALIZATION ===
     predictForm.addEventListener("submit", function (e) {
         e.preventDefault();
-        const formData = new FormData(predictForm);
-        const filters = {};
-        for (const [key, value] of formData.entries()) {
-            if (value) filters[key] = value.split(',').filter(Boolean);
-        }
-        const rank = parseInt(rankInput.value) || 0;
-        showSpinner(true);
-        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rank, ...filters })
-        })
-        .then(response => { if (!response.ok) throw new Error(`API Error: ${response.statusText}`); return response.json(); })
-        .then(data => { rawData = data; filterAndRenderColleges(); })
-        .catch(error => { console.error("Fetch Error:", error); renderEmptyState(translations.fetchError); })
-        .finally(() => showSpinner(false));
+        
+        // Manual check of all input values before processing
+        console.log('=== MANUAL INPUT VALUE CHECK ===');
+        const inputIds = ['desiredBranch', 'quota', 'gender', 'region', 'district', 'tier', 'placementQualityFilter'];
+        inputIds.forEach(id => {
+            const element = document.getElementById(id);
+            console.log(`${id}:`, element ? element.value : 'NOT FOUND');
+        });
+        console.log('=== END MANUAL CHECK ===');
+        
+        // Force a small delay to ensure all DOM updates are complete
+        setTimeout(() => {
+            console.log('=== Form Submission Debug ===');
+            
+            // Get form values directly from input elements instead of FormData
+            const rank = parseInt(rankInput.value) || 0;
+            const rankValue = rankInput.value.trim(); // Get the actual input value
+            
+            // Validate rank - show popup if rank is exactly 0 or negative
+            // But don't show popup if input is empty (user hasn't entered anything)
+            if (rankValue !== '' && rank <= 0) {
+                showValidationModal(
+                    ValidationMessages.invalidRank.title,
+                    ValidationMessages.invalidRank.message,
+                    ValidationMessages.invalidRank.type
+                );
+                return;
+            }
+            
+            // Get values from hidden input fields with more robust error handling
+            const filters = {};
+            
+            // List of all filter input IDs we want to check
+            const filterInputs = [
+                { id: 'desiredBranch', paramName: 'branch' },
+                { id: 'quota', paramName: 'quota' },
+                { id: 'gender', paramName: 'gender' },
+                { id: 'region', paramName: 'region' },
+                { id: 'district', paramName: 'district' },
+                { id: 'tier', paramName: 'tier' },
+                { id: 'placementQualityFilter', paramName: 'placementQualityFilter' }
+            ];
+            
+            filterInputs.forEach(filter => {
+                try {
+                    const inputElement = document.getElementById(filter.id);
+                    console.log(`Checking ${filter.id}:`, inputElement);
+                    if (inputElement) {
+                        console.log(`${filter.id} value:`, inputElement.value);
+                        if (inputElement.value) {
+                            // The backend expects comma-separated values as a single string, not an array
+                            filters[filter.paramName] = inputElement.value;
+                            console.log(`Added ${filter.paramName} to filters:`, inputElement.value);
+                        }
+                    } else {
+                        console.log(`Element with ID ${filter.id} not found`);
+                    }
+                } catch (error) {
+                    console.error(`Error reading ${filter.id}:`, error);
+                }
+            });
+            
+            // Debug logging
+            console.log('Form submission - Rank:', rank);
+            console.log('Form submission - Raw filters object:', filters);
+            
+            // Combine quota and gender into category parameter for backend
+            let requestData = { rank: rankValue !== '' ? rank : null }; // Send null if no rank provided
+            
+            // Add all filters with correct parameter names for backend
+            Object.keys(filters).forEach(key => {
+                if (key === 'quota') {
+                    // For quota, we send it as 'category' to match backend expectations
+                    const quotaValues = filters[key].split(',').filter(Boolean);
+                    if (quotaValues.length > 0) {
+                        requestData['category'] = quotaValues[0]; // Only send first quota value
+                        console.log('Setting category parameter to:', quotaValues[0]);
+                    }
+                } else if (key === 'gender') {
+                    // Send gender as is
+                    const genderValues = filters[key].split(',').filter(Boolean);
+                    if (genderValues.length > 0) {
+                        requestData['gender'] = genderValues[0]; // Only send first gender value
+                        console.log('Setting gender parameter to:', genderValues[0]);
+                    }
+                } else {
+                    // For all other filters, send as comma-separated string
+                    if (filters[key]) {
+                        requestData[key] = filters[key];
+                        console.log('Setting', key, 'parameter to:', filters[key]);
+                    }
+                }
+            });
+            
+            // Debug logging
+            console.log('Final request data being sent:', requestData);
+            console.log('=== End Form Submission Debug ===');
+            
+            // Reset on New Input: Clear existing results before fetching new ones
+            resetResults();
+            
+            showSpinner(true);
+            fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => { if (!response.ok) throw new Error(`API Error: ${response.statusText}`); return response.json(); })
+            .then(data => { rawData = data; filterAndRenderColleges(); })
+            .catch(error => { console.error("Fetch Error:", error); renderEmptyState(translations.fetchError); })
+            .finally(() => showSpinner(false));
+        }, 10); // Small delay to ensure DOM is fully updated
     });
+
+    // Function to reset results when new input is provided
+    function resetResults() {
+        // Clear existing data
+        rawData = [];
+        sortedData = [];
+        
+        // Clear college list display
+        collegeListDiv.innerHTML = '';
+        
+        // Hide results header
+        resultsHeader.style.display = 'none';
+        
+        // Clear comparison selections
+        selectedColleges = [];
+        updateComparisonTray();
+        
+        // Reset sort selection to default
+        sortBySelect.value = 'cutoff-asc';
+    }
 
     function filterAndRenderColleges() {
         // Clear any previous comparison selections 
@@ -796,11 +919,16 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         
         clearButton.addEventListener("click", () => {
+            console.log('Clear button clicked - clearing all form values');
             predictForm.reset();
             rankInput.value = '';
             // Note: The hidden input 'category' is still in the HTML, but now unused in prediction logic. 
             // It's still good practice to clear all hidden inputs that were associated with a state.
-            document.querySelectorAll('#predictForm input[type="hidden"]').forEach(input => input.value = '');
+            document.querySelectorAll('#predictForm input[type="hidden"]').forEach(input => {
+                console.log('Clearing hidden input:', input.id, 'value before:', input.value);
+                input.value = '';
+                console.log('Hidden input cleared:', input.id, 'value after:', input.value);
+            });
             multiselectContainers.forEach(dropdown => {
                 dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
                 updateSelectedItemsDisplay(dropdown, []);
