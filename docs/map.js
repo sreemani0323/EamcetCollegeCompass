@@ -246,9 +246,29 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Search box autocomplete
     searchBox.addEventListener('input', function() {
-        const query = searchBox.value.toLowerCase().trim();
+        const query = searchBox.value;
         
-        if (query.length < 2) {
+        // Validate input - only allow alphabetic characters and spaces
+        if (query && !/^[a-zA-Z\s]*$/.test(query)) {
+            // Show validation popup for invalid input
+            if (typeof showValidationModal === 'function' && typeof ValidationMessages !== 'undefined') {
+                showValidationModal(
+                    'Invalid Input',
+                    'Please enter only alphabetic characters and spaces.',
+                    'warning'
+                );
+            } else {
+                // Fallback to alert if validation popups are not available
+                alert('Please enter only alphabetic characters and spaces.');
+            }
+            // Remove invalid characters
+            searchBox.value = query.replace(/[^a-zA-Z\s]/g, '');
+            return;
+        }
+        
+        const trimmedQuery = query.toLowerCase().trim();
+        
+        if (trimmedQuery.length < 2) {
             searchDropdown.style.display = 'none';
             return;
         }
@@ -655,8 +675,8 @@ document.addEventListener("DOMContentLoaded", function () {
             return nameA.localeCompare(nameB);
         });
         
-        // Get selected colleges from localStorage
-        const selectedColleges = JSON.parse(localStorage.getItem('mapSelectedColleges') || '[]');
+        // Initialize empty selected colleges array (no storage)
+        const selectedColleges = [];
         
         // First try to get coordinates by place name for each college
         sortedColleges.forEach(college => {
@@ -674,11 +694,11 @@ document.addEventListener("DOMContentLoaded", function () {
             
             const card = document.createElement("div");
             card.className = "college-card";
-            card.style.cssText = "background: var(--card-light); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); transition: transform 0.3s; position: relative; padding-top: 4rem;";
+            card.style.cssText = "padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); transition: transform 0.3s; position: relative; padding-top: 4rem;";
             
             // Create a unique ID for comparison tracking
             const uniqueId = `${college.instcode}`;
-            const isSelected = selectedColleges.some(c => c.uniqueId === uniqueId);
+            const isSelected = false; // No persistence between page loads
             
             // Comparison Checkbox HTML
             const comparisonCheckbox = `
@@ -729,6 +749,9 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("displayCollegeList completed");
     }
     
+    // Global variable to track selected colleges in memory (no storage)
+    let selectedCollegesInMemory = [];
+    
     // Expose this function globally so it can be called from dynamically injected HTML
     window.handleMapCompareCheckbox = (event) => {
         const checkbox = event.target;
@@ -747,14 +770,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
         collegeData.uniqueId = uniqueId;
 
-        // Get current selected colleges from sessionStorage or initialize empty array
-        let selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        // Use in-memory array to track selected colleges
+        let selectedColleges = [...selectedCollegesInMemory];
         
         if (checkbox.checked) {
-            // Check if we already have 4 colleges selected
-            if (selectedColleges.length >= 4) {
+            // Check if we already have 6 colleges selected
+            if (selectedColleges.length >= 6) {
                 checkbox.checked = false;
-                alert('You can only select up to 4 colleges for comparison.');
+                if (typeof showValidationModal === 'function' && typeof ValidationMessages !== 'undefined' && ValidationMessages.comparisonLimit) {
+                    showValidationModal(
+                        ValidationMessages.comparisonLimit.title,
+                        ValidationMessages.comparisonLimit.message,
+                        ValidationMessages.comparisonLimit.type
+                    );
+                } else {
+                    // Fallback to alert if validation popups are not available
+                    alert('You can only select up to 6 colleges for comparison.');
+                }
                 return;
             }
             
@@ -767,8 +799,8 @@ document.addEventListener("DOMContentLoaded", function () {
             selectedColleges = selectedColleges.filter(c => c.uniqueId !== uniqueId);
         }
         
-        // Save updated selection to sessionStorage
-        sessionStorage.setItem('mapSelectedColleges', JSON.stringify(selectedColleges));
+        // Update in-memory array
+        selectedCollegesInMemory = selectedColleges;
         
         // Update comparison tray UI
         updateMapComparisonTray();
@@ -776,14 +808,14 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Add function to remove college from comparison
     window.removeCollegeFromMapComparison = (uniqueId) => {
-        // Get current selected colleges
-        let selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        // Use in-memory array
+        let selectedColleges = [...selectedCollegesInMemory];
         
         // Remove college from selection
         selectedColleges = selectedColleges.filter(c => c.uniqueId !== uniqueId);
         
-        // Save updated selection to sessionStorage
-        sessionStorage.setItem('mapSelectedColleges', JSON.stringify(selectedColleges));
+        // Update in-memory array
+        selectedCollegesInMemory = selectedColleges;
         
         // Uncheck the checkbox
         const checkbox = document.getElementById(`compare-${uniqueId}`);
@@ -883,8 +915,8 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Add function to update comparison tray UI
     function updateMapComparisonTray() {
-        // Get current selected colleges
-        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        // Use in-memory array
+        const selectedColleges = [...selectedCollegesInMemory];
         const count = selectedColleges.length;
         
         // Get the comparison tray elements
@@ -915,8 +947,8 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Add function to open comparison modal
     window.openMapComparisonModal = () => {
-        // Get selected colleges
-        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        // Use in-memory array
+        const selectedColleges = [...selectedCollegesInMemory];
         
         if (selectedColleges.length < 2) {
             alert('Please select at least 2 colleges to compare.');
@@ -975,8 +1007,8 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Initialize comparison tray on page load
     function initializeMapComparisonTray() {
-        // Get selected colleges from sessionStorage
-        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        // Use in-memory array
+        const selectedColleges = [...selectedCollegesInMemory];
         const count = selectedColleges.length;
         
         // Update comparison tray UI

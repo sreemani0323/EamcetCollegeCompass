@@ -201,9 +201,9 @@ body.dark-mode .main-views-container {
 .hero-content h2 { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 0.5rem; display: inline-flex; align-items: center; gap: 1rem; color: #FFFFFF; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); }
 .hero-content p { font-size: 1.1rem; color: #FFFFFF; margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto; font-weight: 500; }
 .hero-rank-input { position: relative; display: flex; max-width: 600px; margin: 0 auto; box-shadow: 0 10px 25px -3px rgba(26, 35, 126, 0.2), 0 4px 6px -4px rgba(26, 35, 126, 0.2); }
-.hero-rank-input .fa-ranking-star { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #FFFFFF; font-size: 1.2rem; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; height: 20px; margin-top: -10px; }
+.hero-rank-input .fa-ranking-star { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color:lab(2.74% 0 0 / 0.426) ; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; height: 20px; margin-top: -15px; z-index: 10; }
 body.dark-mode .hero-rank-input .fa-ranking-star {
-    color: #FFFFFF;
+    color: lab(8.76% 0 0);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -487,6 +487,9 @@ body.dark-mode .college-dropdown-item small {
 .comparison-tray.visible {
     transform: translateY(0);
 }
+.comparison-tray.hidden {
+    transform: translateY(100%);
+}
 .comparison-tray .tray-content {
     max-width: 1100px;
     margin: 0 auto;
@@ -661,7 +664,13 @@ body.dark-mode .page-footer {
 
 /* 10. DARK MODE INTEGRATION */
 body.dark-mode { background: var(--bg-dark); color: var(--color-text-light); }
-body.dark-mode .page-header, body.dark-mode .predict-form, body.dark-mode .college-card, body.dark-mode .multiselect-input, body.dark-mode .sort-control select, body.dark-mode #langSelect, body.dark-mode .multiselect-options-container, body.dark-mode .download-menu { background: var(--card-dark); border-color: var(--border-dark); color: var(--color-text-light); }
+body.dark-mode .page-header, body.dark-mode .predict-form, body.dark-mode #langSelect, body.dark-mode .multiselect-options-container, body.dark-mode .download-menu { background: var(--card-dark); border-color: var(--border-dark); color: var(--color-text-light); }
+
+/* Pure black background for college cards in dark mode */
+body.dark-mode .college-card { background: #000000; border-color: var(--border-dark); color: var(--color-text-light); }
+
+/* Off-white background for form inputs in dark mode for better readability */
+body.dark-mode .multiselect-input, body.dark-mode .sort-control select { background: #f8f9fa; border-color: var(--border-light); color: var(--color-text-dark); }
 body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode #siteTitle, body.dark-mode .card-details-item p, body.dark-mode .card-footer span strong { color: var(--color-text-light); }
 body.dark-mode .hero-section { background: var(--bg-hero) url('study.jpeg') no-repeat center center; background-size: cover; border-color: rgba(187, 222, 251, 0.3); }
 body.dark-mode .form-title, .form-title.is-open ~ #filtersContainer .filters-content-wrapper, body.dark-mode .form-actions, body.dark-mode .form-divider::before, body.dark-mode .form-divider::after, body.dark-mode .results-header, body.dark-mode .card-branch-info, body.dark-mode .card-footer { border-color: var(--border-dark); }
@@ -1719,7 +1728,7 @@ body.dark-mode .comparison-table .college-name-row { color: white; }
     
     /* Map card styles for dark mode */
     body.dark-mode .college-card {
-        background: var(--card-dark);
+        background: #000000; /* Black background in dark mode */
         color: var(--color-text-light);
         border: 1px solid var(--border-dark);
         transition: all 0.3s ease;
@@ -2157,6 +2166,28 @@ body.dark-mode .comparison-table .college-name-row { color: white; }
         background: var(--card-dark);
         color: #8b949e; /* Improved button text color */
         border-color: var(--border-dark);
+    }
+    
+    /* Validation modal dark mode */
+    body.dark-mode .validation-modal-content {
+        background: var(--card-dark);
+        color: #ffffff; /* White text in dark mode */
+    }
+    
+    body.dark-mode .validation-modal-header {
+        border-bottom: 1px solid var(--border-dark);
+    }
+    
+    body.dark-mode .validation-modal-title {
+        color: #ffffff; /* White title in dark mode */
+    }
+    
+    body.dark-mode .validation-modal-message {
+        color: #e6edf3; /* Light text for message */
+    }
+    
+    body.dark-mode .validation-modal-footer {
+        border-top: 1px solid var(--border-dark);
     }
     
     body.dark-mode .btn-secondary:hover {

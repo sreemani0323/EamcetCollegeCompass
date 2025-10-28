@@ -150,9 +150,29 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // College search
     collegeInput.addEventListener("input", function() {
-        const query = collegeInput.value.toLowerCase().trim();
+        const query = collegeInput.value;
         
-        if (query.length < 2) {
+        // Validate input - only allow alphabetic characters and spaces
+        if (query && !/^[a-zA-Z\s]*$/.test(query)) {
+            // Show validation popup for invalid input
+            if (typeof showValidationModal === 'function' && typeof ValidationMessages !== 'undefined') {
+                showValidationModal(
+                    'Invalid Input',
+                    'Please enter only alphabetic characters and spaces.',
+                    'warning'
+                );
+            } else {
+                // Fallback to alert if validation popups are not available
+                alert('Please enter only alphabetic characters and spaces.');
+            }
+            // Remove invalid characters
+            collegeInput.value = query.replace(/[^a-zA-Z\s]/g, '');
+            return;
+        }
+        
+        const trimmedQuery = query.toLowerCase().trim();
+        
+        if (trimmedQuery.length < 2) {
             collegeDropdown.classList.remove("show");
             return;
         }

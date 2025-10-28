@@ -12,13 +12,13 @@ function createValidationModal() {
             <div class="validation-modal-content">
                 <div class="validation-modal-header">
                     <i class="validation-icon fas fa-info-circle"></i>
-                    <h3 id="validation-modal-title">Notification</h3>
+                    <h3 id="validation-modal-title" class="validation-modal-title">Notification</h3>
                     <button class="validation-modal-close" onclick="closeValidationModal()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="validation-modal-body">
-                    <p id="validation-modal-message">Message</p>
+                    <p id="validation-modal-message" class="validation-modal-message">Message</p>
                 </div>
                 <div class="validation-modal-footer">
                     <button class="btn-primary" onclick="closeValidationModal()">OK</button>
@@ -112,7 +112,7 @@ const ValidationMessages = {
     },
     comparisonLimit: {
         title: 'Comparison Limit Reached',
-        message: 'You can only compare up to 4 colleges at a time. Please uncheck a college to add another.',
+        message: 'You can only compare up to 6 colleges at a time. Please uncheck a college to add another.',
         type: 'warning'
     },
     invalidSelection: {

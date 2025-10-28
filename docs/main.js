@@ -186,8 +186,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const pageState = sessionStorage.getItem('mainPageState');
     if (pageState === 'loaded') {
         isRefresh = true;
-        // Clear cache on refresh
-        clearCacheOnRefresh();
     }
     sessionStorage.setItem('mainPageState', 'loaded');
 
@@ -197,8 +195,6 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!isRefresh) {
             sessionStorage.setItem('mainPageNavigation', 'true');
         }
-        saveResults();
-        saveAllCollegesCache();
     });
 
     // Check if this is a navigation or refresh
@@ -214,29 +210,20 @@ document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'hidden') {
             // Save data when tab is hidden
-            saveResults();
-            saveAllCollegesCache();
         } else {
             // Restore data when tab becomes visible (only on navigation, not refresh)
-            if (navigationFlag && !isRefresh) {
-                loadSavedResults();
-            }
         }
     });
 
     // Also handle focus/blur events as a fallback
     window.addEventListener('blur', function() {
-        saveResults();
-        saveAllCollegesCache();
     });
 
     window.addEventListener('focus', function() {
-        if (navigationFlag && !isRefresh) {
-            loadSavedResults();
-        }
     });
 
     function initializePage() {
+        console.log('initializePage called');
         setTheme(localStorage.getItem("theme") || 'light');
         multiselectContainers.forEach(initializeMultiselect);
         setupEventListeners();
@@ -250,15 +237,99 @@ document.addEventListener("DOMContentLoaded", function () {
                     handlePrediction();
                 }
             });
+            
+            // Add input validation to ensure only numbers between 1 and 350000
+            rankInput.addEventListener('input', function(e) {
+                const value = e.target.value;
+                
+                // Remove any non-numeric characters
+                if (value && !/^[0-9]*$/.test(value)) {
+                    e.target.value = value.replace(/[^0-9]/g, '');
+                    return;
+                }
+                
+                // Convert to number for range checking
+                const numValue = parseInt(value) || 0;
+                
+                // If value exceeds 350000, show validation popup
+                if (numValue > 350000) {
+                    console.log('Rank value exceeds 350000:', numValue);
+                    // Show validation popup
+                    if (typeof showValidationModal === 'function') {
+                        console.log('Showing validation modal');
+                        showValidationModal(
+                            'Invalid Rank',
+                            'Please enter a rank between 1 and 350000.',
+                            'error'
+                        );
+                    } else {
+                        console.log('Showing alert');
+                        alert('Please enter a rank between 1 and 350000.');
+                    }
+                    // Clear the invalid value
+                    e.target.value = '';
+                }
+            });
+            
+            // Add blur event to validate range when user leaves the field
+            rankInput.addEventListener('blur', function(e) {
+                const value = e.target.value;
+                if (value) {
+                    const numValue = parseInt(value) || 0;
+                    if (numValue > 350000) {
+                        console.log('Rank value exceeds 350000 on blur:', numValue);
+                        // Show validation popup
+                        if (typeof showValidationModal === 'function') {
+                            console.log('Showing validation modal on blur');
+                            showValidationModal(
+                                'Invalid Rank',
+                                'Please enter a rank between 1 and 350000.',
+                                'error'
+                            );
+                        } else {
+                            console.log('Showing alert on blur');
+                            alert('Please enter a rank between 1 and 350000.');
+                        }
+                        // Clear the invalid value
+                        e.target.value = '';
+                    } else if (numValue < 1 && numValue !== 0) {
+                        e.target.value = '';
+                    }
+                }
+            });
+            
+            // Add paste event to handle pasted values
+            rankInput.addEventListener('paste', function(e) {
+                // Small delay to let paste operation complete
+                setTimeout(() => {
+                    const value = e.target.value;
+                    if (value && !/^[0-9]*$/.test(value)) {
+                        e.target.value = value.replace(/[^0-9]/g, '');
+                        return;
+                    }
+                    
+                    const numValue = parseInt(value) || 0;
+                    if (numValue > 350000) {
+                        console.log('Rank value exceeds 350000 on paste:', numValue);
+                        if (typeof showValidationModal === 'function') {
+                            console.log('Showing validation modal on paste');
+                            showValidationModal(
+                                'Invalid Rank',
+                                'Please enter a rank between 1 and 350000.',
+                                'error'
+                            );
+                        } else {
+                            console.log('Showing alert on paste');
+                            alert('Please enter a rank between 1 and 350000.');
+                        }
+                        e.target.value = '';
+                    }
+                }, 10);
+            });
         }
         
         // Check for URL parameters (e.g., from map "View Details" links)
         checkUrlParameters();
-        
-        // Load any saved results from localStorage (only on navigation, not refresh)
-        if (!isRefresh) {
-            loadSavedResults();
-        }
         
         if (rawData.length === 0) {
             renderEmptyState();
@@ -266,7 +337,10 @@ document.addEventListener("DOMContentLoaded", function () {
         translateUI();
         updateDistrictOptions();
         updatePlacementOptions();
-        loadAllCollegesCache(); // Load cache on startup
+        
+        // Initialize comparison tray
+        console.log('Initializing comparison tray in initializePage');
+        initializeMainComparisonTray();
         
         // Clear the page state after initialization
         setTimeout(() => {
@@ -290,6 +364,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Auto-search for this specific college by instcode
             setTimeout(() => {
                 // Make API call to filter by instcode
+                console.log('Calling showSpinner with true for instcode search');
                 showSpinner(true);
                 fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
                     method: "POST",
@@ -317,115 +392,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
-    function loadSavedResults() {
-        // Don't load saved results if this is a refresh
-        if (performance.navigation && performance.navigation.type === 1) {
-            return;
-        }
-        
-        const savedData = localStorage.getItem('collegeResults');
-        const savedSorted = localStorage.getItem('sortedResults');
-        const savedFormState = localStorage.getItem('collegeFormState');
-        
-        if (savedData && savedSorted) {
-            try {
-                rawData = JSON.parse(savedData);
-                sortedData = JSON.parse(savedSorted);
-                if (sortedData.length > 0) {
-                    renderColleges();
-                    resultsHeader.style.display = 'flex';
-                    
-                    // Restore form state if available
-                    if (savedFormState) {
-                        restoreFormState(JSON.parse(savedFormState));
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load saved results:', e);
-            }
-        }
-    }
-    
-    function saveResults() {
-        localStorage.setItem('collegeResults', JSON.stringify(rawData));
-        localStorage.setItem('sortedResults', JSON.stringify(sortedData));
-        localStorage.setItem('collegeFormState', JSON.stringify(getFormState()));
-    }
-    
-    function getFormState() {
-        // Save current form values
-        const formState = {};
-        const inputIds = ['rank', 'desiredBranch', 'quota', 'gender', 'region', 'district', 'tier', 'placementQualityFilter'];
-        
-        inputIds.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                formState[id] = element.value;
-            }
-        });
-        
-        // Also save sort order
-        formState.sortBy = sortBySelect.value;
-        
-        return formState;
-    }
-    
-    function restoreFormState(formState) {
-        // Restore form values
-        Object.keys(formState).forEach(id => {
-            if (id === 'sortBy') {
-                sortBySelect.value = formState[id];
-            } else {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.value = formState[id];
-                    
-                    // For multiselect dropdowns, update the display
-                    const dropdown = document.querySelector(`.multiselect-dropdown[data-id="${id}"]`);
-                    if (dropdown) {
-                        const selectedValues = formState[id].split(',').filter(Boolean);
-                        updateSelectedItemsDisplay(dropdown, selectedValues);
-                        
-                        // Also update the checkboxes
-                        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
-                        checkboxes.forEach(cb => {
-                            cb.checked = selectedValues.includes(cb.value);
-                        });
-                    }
-                }
-            }
-        });
-        
-        // Update dependent dropdowns
-        updateDistrictOptions();
-        updatePlacementOptions();
-        
-        // Translate UI to update any language-specific text
-        translateUI();
-    }
-    
     /**
-     * Load all colleges data for caching (used by map, analytics, etc.)
+     * Load all colleges data (used by map, analytics, etc.)
      */
     function loadAllCollegesCache() {
-        // Check if we have cached data that's not too old (less than 1 hour)
-        const cachedData = localStorage.getItem('allCollegesCache');
-        const cacheTimestamp = localStorage.getItem('allCollegesCacheTimestamp');
-        
-        if (cachedData && cacheTimestamp) {
-            const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
-            if (ageInMinutes < 60) { // Cache is valid for 1 hour
-                try {
-                    allCollegesCache = JSON.parse(cachedData);
-                    console.log(`Loaded ${allCollegesCache.length} colleges from localStorage cache`);
-                    return;
-                } catch (e) {
-                    console.warn("Failed to parse cached colleges data:", e);
-                }
-            }
-        }
-        
-        // If no valid cache, fetch fresh data
+        // Fetch fresh data every time
         fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -434,19 +405,9 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(res => res.json())
         .then(data => {
             allCollegesCache = data;
-            // Save to localStorage with timestamp
-            saveAllCollegesCache();
-            console.log(`Loaded ${allCollegesCache.length} colleges into cache`);
+            console.log(`Loaded ${allCollegesCache.length} colleges`);
         })
-        .catch(err => console.error("Failed to load colleges cache:", err));
-    }
-
-    // Add function to save all colleges cache
-    function saveAllCollegesCache() {
-        if (allCollegesCache.length > 0) {
-            localStorage.setItem('allCollegesCache', JSON.stringify(allCollegesCache));
-            localStorage.setItem('allCollegesCacheTimestamp', Date.now().toString());
-        }
+        .catch(err => console.error("Failed to load colleges:", err));
     }
 
     // === 5. CORE LOGIC & HELPER FUNCTIONS ===
@@ -459,6 +420,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function showSpinner(show) {
+        console.log('Setting spinner display to:', show ? "flex" : "none");
         loadingSpinner.style.display = show ? "flex" : "none";
     }
     
@@ -480,22 +442,34 @@ document.addEventListener("DOMContentLoaded", function () {
     // REMOVED: function updateFinalCategory() { ... }
 
     function multiSort(data, criteria) {
+        console.log('multiSort called with data length:', data.length, 'and criteria:', criteria);
         const [key, direction] = criteria.split("-");
         const sortConfig = SortMap[key];
-        if (!sortConfig) return data;
+        if (!sortConfig) {
+            console.log('No sortConfig found for key:', key);
+            return data;
+        }
         const directionNum = direction === "desc" ? -1 : 1;
         const prop = sortConfig.prop;
-        return [...data].sort((a, b) => {
-            let valA = a[prop], valB = b[prop];
-            if (sortConfig.order) {
-                valA = sortConfig.order[valA] || 0;
-                valB = sortConfig.order[valB] || 0;
-            }
-            if (valA == null) return 1; if (valB == null) return -1;
-            if (valA < valB) return -1 * directionNum;
-            if (valA > valB) return 1 * directionNum;
-            return 0;
-        });
+        console.log('Sorting by prop:', prop, 'directionNum:', directionNum);
+        try {
+            const result = [...data].sort((a, b) => {
+                let valA = a[prop], valB = b[prop];
+                if (sortConfig.order) {
+                    valA = sortConfig.order[valA] || 0;
+                    valB = sortConfig.order[valB] || 0;
+                }
+                if (valA == null) return 1; if (valB == null) return -1;
+                if (valA < valB) return -1 * directionNum;
+                if (valA > valB) return 1 * directionNum;
+                return 0;
+            });
+            console.log('multiSort completed, result length:', result.length);
+            return result;
+        } catch (error) {
+            console.error('Error in multiSort:', error);
+            return data;
+        }
     }
 
     function translateUI() {
@@ -671,29 +645,48 @@ document.addEventListener("DOMContentLoaded", function () {
         // Reset sort selection to default
         sortBySelect.value = 'cutoff-asc';
         
-        // Clear form state from localStorage
-        localStorage.removeItem('collegeFormState');
+
     }
 
     function filterAndRenderColleges() {
-        // Clear any previous comparison selections 
-        selectedColleges = [];
-        updateComparisonTray();
-
+        console.log('filterAndRenderColleges called with rawData length:', rawData.length);
+        // Preserve current comparison selections
+        const currentSelectedIds = selectedColleges.map(c => c.uniqueId);
+        console.log('filterAndRenderColleges called, preserving selected colleges:', currentSelectedIds);
+        
         sortedData = multiSort(rawData, sortBySelect.value);
+        
+        // Restore selected colleges that are still in the results
+        const newSelectedColleges = [];
+        sortedData.forEach(college => {
+            const uniqueId = `${college.instcode}-${college.branch}-${college.category}-${college.cutoff}`;
+            if (currentSelectedIds.includes(uniqueId)) {
+                college.uniqueId = uniqueId;
+                newSelectedColleges.push(college);
+            }
+        });
+        selectedColleges = newSelectedColleges;
+        console.log('Restored selected colleges:', selectedColleges.map(c => c.uniqueId));
+        
         renderColleges();
-        saveResults(); // Save results to sessionStorage
+        updateComparisonTray();
     }
 
     function renderColleges() {
+        console.log('renderColleges called with sortedData length:', sortedData.length);
         if (!sortedData || sortedData.length === 0) {
+            console.log('No data to render, calling renderEmptyState');
             renderEmptyState(translations.noDataText);
             return;
         }
+        console.log('Showing results header');
         resultsHeader.style.display = 'flex';
+        console.log('Clearing college list div');
         collegeListDiv.innerHTML = '';
         
-        sortedData.forEach(college => {
+        console.log('Creating college cards for', sortedData.length, 'colleges');
+        sortedData.forEach((college, index) => {
+            console.log('Creating card for college', index, ':', college);
             const card = document.createElement("div");
             // Create a unique ID for comparison tracking
             const uniqueId = `${college.instcode}-${college.branch}-${college.category}-${college.cutoff}`; 
@@ -720,6 +713,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     </label>
                 </div>
             `;
+            
+            console.log('Rendering college checkbox:', uniqueId, 'isSelected:', isSelected);
             
             const cutoffDisplay = college.cutoff ? college.cutoff.toLocaleString() : 'N/A';
             const avgPackageDisplay = college.averagePackage ? `₹${college.averagePackage.toFixed(2)} Lakhs` : 'N/A';
@@ -749,15 +744,35 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                 </div>
             `;
+            console.log('Appending card to collegeListDiv');
             collegeListDiv.appendChild(card);
         });
+        console.log('Finished creating college cards, collegeListDiv now has', collegeListDiv.children.length, 'children');
         
-        updateComparisonTray(); 
+        console.log('Finished rendering colleges, calling initializeMainComparisonTray');
+        initializeMainComparisonTray();
+        console.log('initializeMainComparisonTray completed');
     }
 
     function renderEmptyState(message) {
         resultsHeader.style.display = 'none';
         collegeListDiv.innerHTML = `<div class="empty-state"><i class="fas fa-search-location"></i><h2>Your Results Will Appear Here</h2><p>${message || "Enter your rank to see college predictions."}</p></div>`;
+        
+        // Show noResults popup if we have the ValidationMessages available and this is actually a "no results" scenario
+        // (not just the initial empty state)
+        if (message && message !== "Enter your rank to see college predictions." && 
+            typeof showValidationModal === 'function' && 
+            typeof ValidationMessages !== 'undefined' && 
+            ValidationMessages.noResults) {
+            showValidationModal(
+                ValidationMessages.noResults.title,
+                ValidationMessages.noResults.message,
+                ValidationMessages.noResults.type
+            );
+        }
+        
+        // Initialize comparison tray even when there are no results
+        initializeMainComparisonTray();
     }
 
     // --- Comparison Feature Logic ---
@@ -767,11 +782,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const checkbox = event.target;
         const uniqueId = checkbox.dataset.uniqueId;
         
+        console.log('handleCompareCheckbox called for', uniqueId, 'checked:', checkbox.checked);
+        console.log('Selected colleges before:', selectedColleges.length);
+        
         let collegeData;
         try {
             // Decode the string and parse JSON
             const dataString = checkbox.getAttribute('data-college').replace(/"/g, '"');
             collegeData = JSON.parse(dataString);
+            console.log('Parsed college data:', collegeData);
         } catch (e) {
             console.error("Error parsing college data, preventing selection:", e);
             checkbox.checked = false; 
@@ -781,9 +800,10 @@ document.addEventListener("DOMContentLoaded", function () {
         collegeData.uniqueId = uniqueId;
 
         if (checkbox.checked) {
-            if (selectedColleges.length < 4) { 
+            if (selectedColleges.length < 6) { 
                 if (!selectedColleges.some(c => c.uniqueId === uniqueId)) {
                     selectedColleges.push(collegeData);
+                    console.log('Added college to selection, total:', selectedColleges.length);
                 }
             } else {
                 checkbox.checked = false;
@@ -796,6 +816,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         } else {
             selectedColleges = selectedColleges.filter(c => c.uniqueId !== uniqueId);
+            console.log('Removed college from selection, total:', selectedColleges.length);
         }
         updateComparisonTray();
     };
@@ -820,15 +841,44 @@ document.addEventListener("DOMContentLoaded", function () {
         const count = selectedColleges.length;
         const countText = translations.compareCount;
         
-        comparisonTray.querySelector('p').innerHTML = `<span id="compare-count" style="color: var(--color-accent); margin-right: 0.25rem;">${count}</span> ${countText}`;
-
-        comparisonTray.classList.toggle('visible', count > 0);
+        console.log('Updating comparison tray, count:', count);
+        console.log('comparisonTray element in updateComparisonTray:', comparisonTray);
         
-        compareNowBtn.disabled = count < 2;
-        compareNowBtn.textContent = translations.compareNow;
+        if (comparisonTray) {
+            console.log('Comparison tray element found:', comparisonTray);
+            console.log('Current classes:', comparisonTray.className);
+        } else {
+            console.log('Comparison tray element NOT found!');
+        }
+        
+        if (comparisonTray && comparisonTray.querySelector('p')) {
+            comparisonTray.querySelector('p').innerHTML = `<span id="compare-count" style="color: var(--color-accent); margin-right: 0.25rem;">${count}</span> ${countText}`;
+        }
+
+        if (count > 0) {
+            if (comparisonTray) {
+                comparisonTray.classList.add('visible');
+                comparisonTray.classList.remove('hidden');
+                console.log('Showing comparison tray, new classes:', comparisonTray.className);
+            }
+        } else {
+            if (comparisonTray) {
+                comparisonTray.classList.remove('visible');
+                comparisonTray.classList.add('hidden');
+                console.log('Hiding comparison tray, new classes:', comparisonTray.className);
+            }
+        }
+        
+        if (compareNowBtn) {
+            compareNowBtn.disabled = count < 2;
+        }
+        if (compareNowBtn) {
+            compareNowBtn.textContent = translations.compareNow;
+        }
+        
+        console.log('Comparison tray updated with count:', count);
     }
     
-
     function openComparisonModal(isFirstOpen = true) {
         if (selectedColleges.length < 2) return;
         
@@ -911,6 +961,13 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // === 8. EVENT LISTENERS SETUP ===
     function setupEventListeners() {
+        console.log('setupEventListeners called');
+        
+        // Log comparison elements
+        console.log('comparisonTray:', comparisonTray);
+        console.log('compareNowBtn:', compareNowBtn);
+        console.log('clearCompareBtn:', clearCompareBtn);
+        
         // Advanced Filters Toggle (NOT the entire "Refine Your Search")
         const advancedFiltersHeader = document.getElementById("advancedFiltersHeader");
         const advancedFiltersContainer = document.getElementById("advancedFiltersContainer");
@@ -953,21 +1010,37 @@ document.addEventListener("DOMContentLoaded", function () {
         sortBySelect.addEventListener("change", filterAndRenderColleges);
 
         // Comparison Modal/Tray Listeners
-        compareNowBtn.addEventListener('click', () => openComparisonModal(true));
-        clearCompareBtn.addEventListener('click', () => {
-            selectedColleges.forEach(c => {
-                const checkbox = document.getElementById(`compare-${c.uniqueId}`);
-                if (checkbox) checkbox.checked = false;
-            });
-            selectedColleges = [];
-            updateComparisonTray();
-        });
-        closeModalBtn.addEventListener('click', () => comparisonModal.style.display = 'none');
-        comparisonModal.addEventListener('click', (e) => {
-            if (e.target === comparisonModal) {
-                comparisonModal.style.display = 'none';
+        if (compareNowBtn) {
+            compareNowBtn.addEventListener('click', () => openComparisonModal(true));
+        }
+        
+        // Add event delegation for dynamically added elements
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'compare-now-btn' || (e.target.closest && e.target.closest('#compare-now-btn'))) {
+                openComparisonModal(true);
             }
         });
+        
+        if (clearCompareBtn) {
+            clearCompareBtn.addEventListener('click', () => {
+                selectedColleges.forEach(c => {
+                    const checkbox = document.getElementById(`compare-${c.uniqueId}`);
+                    if (checkbox) checkbox.checked = false;
+                });
+                selectedColleges = [];
+                updateComparisonTray();
+            });
+        }
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => comparisonModal.style.display = 'none');
+        }
+        if (comparisonModal) {
+            comparisonModal.addEventListener('click', (e) => {
+                if (e.target === comparisonModal) {
+                    comparisonModal.style.display = 'none';
+                }
+            });
+        }
         
         // Custom Warning Modal Listener
         if (warningModal) {
@@ -1003,11 +1076,6 @@ document.addEventListener("DOMContentLoaded", function () {
             // Clear comparison on filter reset
             selectedColleges = [];
             updateComparisonTray();
-            
-            // Clear saved results and form state
-            localStorage.removeItem('collegeResults');
-            localStorage.removeItem('sortedResults');
-            localStorage.removeItem('collegeFormState');
         });
         
         // Download Listeners (No changes)
@@ -1070,14 +1138,35 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log('Parsed rank:', rank);
         
         // Validate rank
-        if (rankValue !== '' && rank <= 0) {
-            console.log('Invalid rank detected, showing validation modal');
-            showValidationModal(
-                ValidationMessages.invalidRank.title,
-                ValidationMessages.invalidRank.message,
-                ValidationMessages.invalidRank.type
-            );
-            return;
+        if (rankValue !== '') {
+            if (rank <= 0) {
+                console.log('Invalid rank detected, showing validation modal');
+                if (typeof showValidationModal === 'function' && ValidationMessages && ValidationMessages.invalidRank) {
+                    showValidationModal(
+                        ValidationMessages.invalidRank.title,
+                        ValidationMessages.invalidRank.message,
+                        ValidationMessages.invalidRank.type
+                    );
+                } else {
+                    console.error('showValidationModal function or ValidationMessages.invalidRank not available');
+                }
+                return;
+            }
+            
+            // Check if rank is within valid range (1-350000)
+            if (rank > 350000) {
+                console.log('Rank out of range, showing validation modal');
+                if (typeof showValidationModal === 'function') {
+                    showValidationModal(
+                        'Invalid Rank',
+                        'Please enter a rank between 1 and 350000.',
+                        'error'
+                    );
+                } else {
+                    alert('Please enter a rank between 1 and 350000.');
+                }
+                return;
+            }
         }
         
         // Get filter values
@@ -1110,11 +1199,15 @@ document.addEventListener("DOMContentLoaded", function () {
         // If no input at all, show validation message
         if (!hasRank && !hasFilters) {
             console.log('No input provided, showing validation modal');
-            showValidationModal(
-                ValidationMessages.noInput.title,
-                ValidationMessages.noInput.message,
-                ValidationMessages.noInput.type
-            );
+            if (typeof showValidationModal === 'function' && ValidationMessages && ValidationMessages.noInput) {
+                showValidationModal(
+                    ValidationMessages.noInput.title,
+                    ValidationMessages.noInput.message,
+                    ValidationMessages.noInput.type
+                );
+            } else {
+                console.error('showValidationModal function or ValidationMessages.noInput not available');
+            }
             return;
         }
         
@@ -1146,34 +1239,101 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log('Final request data being sent:', requestData);
         
         // Clear results and show spinner
+        console.log('Resetting results and showing spinner');
         resetResults();
+        console.log('Calling showSpinner with true');
         showSpinner(true);
         
         // Make API call
-        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
+        console.log('Making API call with requestData:', requestData);
+        const url = `https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`;
+        console.log('API URL:', url);
+        fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestData)
         })
         .then(response => { 
             console.log('API response status:', response.status);
+            console.log('API response headers:', response.headers);
+            console.log('API response ok:', response.ok);
             if (!response.ok) {
-                throw new Error(`API Error: ${response.statusText}`);
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
             } 
             return response.json(); 
         })
         .then(data => { 
-            console.log('API response data:', data);
+            console.log('API response data received:', data);
+            console.log('API response data type:', typeof data);
+            console.log('API response data is array:', Array.isArray(data));
+            if (!data || !Array.isArray(data)) {
+                throw new Error('Invalid data format received from API');
+            }
+            console.log('Setting rawData and calling filterAndRenderColleges');
             rawData = data; 
             filterAndRenderColleges(); 
         })
         .catch(error => { 
             console.error("Fetch Error:", error); 
-            renderEmptyState(translations.fetchError); 
+            console.error("Error name:", error.name);
+            console.error("Error message:", error.message);
+            if (typeof renderEmptyState === 'function' && translations && translations.fetchError) {
+                renderEmptyState(translations.fetchError + " " + error.message); 
+            } else {
+                console.error('renderEmptyState function or translations.fetchError not available');
+            }
         })
         .finally(() => {
             console.log('Fetch completed');
+            console.log('Hiding spinner');
             showSpinner(false);
         });
+    }
+    
+    // Also attach the event listener when the page loads
+    setTimeout(function() {
+        const compareNowBtn = document.getElementById('compare-now-btn');
+        if (compareNowBtn) {
+            compareNowBtn.addEventListener('click', function() {
+                openComparisonModal(true);
+            });
+        }
+        // Initialize the comparison tray
+        initializeMainComparisonTray();
+    }, 1000);
+
+    // Add function to initialize comparison tray on page load
+    function initializeMainComparisonTray() {
+        // Update comparison tray UI
+        const count = selectedColleges.length;
+        
+        console.log('initializeMainComparisonTray called, count:', count);
+        console.log('comparisonTray element:', comparisonTray);
+        
+        if (comparisonTray) {
+            console.log('Comparison tray found in initializeMainComparisonTray');
+            // Show/hide tray based on selection count
+            console.log('Updating comparison tray visibility, count:', count);
+            if (count > 0) {
+                console.log('Adding visible class and removing hidden class');
+                comparisonTray.classList.add('visible');
+                comparisonTray.classList.remove('hidden');
+                console.log('Set tray to visible');
+            } else {
+                console.log('Removing visible class and adding hidden class');
+                comparisonTray.classList.remove('visible');
+                comparisonTray.classList.add('hidden');
+                console.log('Set tray to hidden');
+            }
+            
+            // Enable/disable compare button
+            if (compareNowBtn) {
+                console.log('Setting compare button disabled state, count < 2:', count < 2);
+                compareNowBtn.disabled = count < 2;
+                console.log('Set compare button disabled:', count < 2);
+            }
+        } else {
+            console.log('Comparison tray NOT found in initializeMainComparisonTray');
+        }
     }
 });

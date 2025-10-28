@@ -115,11 +115,11 @@
 
         <div class="container">
             <!-- Location Accuracy Notice -->
-            <div class="location-accuracy-notice" style="background: #d4edda; border: 1px solid #c3e6cb; border-left: 4px solid #28a745; padding: 1rem 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
-                <p style="margin: 0; color: #155724; display: flex; align-items: center; gap: 0.5rem;">
+            <div class="location-accuracy-notice" style="background: #f8d7da; border: 1px solid #f5c6cb; border-left: 4px solid #dc3545; padding: 1rem 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
+                <p style="margin: 0; color: #721c24; display: flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-info-circle" style="font-size: 1.2rem;"></i>
                     <strong>Location Accuracy Note:</strong> 
-                    <span style="font-weight: normal;">Map now shows colleges based on place coordinates for better accuracy. Heatmap intensity represents college tier (Tier 1: High, Tier 2: Medium, Tier 3: Low).</span>
+                    <span style="font-weight: normal;">Map now shows colleges based on district coordinates . Exact locations may vary. Heatmap intensity represents college tier (Tier 1: High, Tier 2: Medium, Tier 3: Low).</span>
                 </p>
             </div>
 
@@ -176,7 +176,7 @@
             <!-- Map Controls -->
             <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
                 <button id="toggleMarkers" class="btn-primary">Hide Markers</button>
-                <button id="toggleHeatmap" class="btn-secondary">Show Heatmap</button>
+                <button id="toggleHeatmap" class="btn-primary" style="background: var(--color-accent); border-color: var(--color-accent); color: white;">Show Heatmap</button>
             </div>
             
             <!-- Map Container -->
@@ -208,10 +208,11 @@
 
     <footer class="page-footer">
         <div class="footer-container">
-            <p>&copy; 2025 EAMCET Predictor. All rights reserved.</p>
+            <p>&copy; 2025 EAMCET Predictor by Nallimilli Mani. All rights reserved.</p>
         </div>
     </footer>
 
+    <script src="validation-popups.js"></script>
     <script src="map.js"></script>
     
     <script>
@@ -280,7 +281,8 @@
                         window.toggleHeatmapVisibility(heatmapVisible);
                     }
                     this.textContent = heatmapVisible ? 'Hide Heatmap' : 'Show Heatmap';
-                    this.className = heatmapVisible ? 'btn-primary' : 'btn-secondary';
+                    // Always use btn-primary class for consistent styling
+                    this.className = 'btn-primary';
                 });
             }
             
@@ -311,8 +313,8 @@
             const clearCompareBtn = document.getElementById('clear-compare-btn');
             if (clearCompareBtn) {
                 clearCompareBtn.addEventListener('click', function() {
-                    // Clear selected colleges from localStorage
-                    localStorage.removeItem('mapSelectedColleges');
+                    // No storage to clear
+                    // Uncheck all checkboxes
                     
                     // Uncheck all checkboxes
                     document.querySelectorAll('.compare-checkbox').forEach(checkbox => {

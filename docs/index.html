@@ -24,7 +24,7 @@
         <div class="header-container">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <a href="index.html" class="site-title-link">
-                    <h1 id="siteTitle"><i class="fas fa-graduation-cap"></i> EAMCET Predictor</h1>
+                    <h1 id="siteTitle"><i class="fas fa-graduation-cap"></i> EAMCET Predictor <i class="fa-solid fa-school"></i></h1>
                 </a>
                 <button class="nav-toggle">
                     <i class="fas fa-bars"></i>
@@ -55,6 +55,7 @@
                 <h2>College Compass <i class="fa-solid fa-compass-drafting"></i></h2>
                 <p>Get instant college and branch predictions from your EAMCET rank.</p>
                 <div class="hero-rank-input">
+                    <i class="fas fa-graduation-cap fa-ranking-star" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #1A237E; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; height: 20px; margin-top: -27px; z-index: 10;"></i>
                     <input type="number" id="rank" name="rank" placeholder="Enter your rank here (↓)" min="1" />
                     <button type="button" id="predictButton" class="btn-primary" data-lang-key="btnPredict">
                         Predict Now <i class="fa-solid fa-arrow-right"></i>
@@ -66,7 +67,7 @@
         <div class="container main-views-container">
             
             <div id="predictor-view" class="view-content active">
-                <form id="predictForm" class="predict-form" autocomplete="off">
+                <form id="predictForm" class="predict-form" autocomplete="off" novalidate>
                     <h3 class="form-title">
                         <span><i class="fa-solid fa-sliders"></i> Refine Your Search</span>
                     </h3>
