@@ -139,8 +139,14 @@ public class CollegePredictorController {
                 Collectors.averagingDouble(College::getAveragePackage)
             ));
         
+        // Count unique colleges by instcode
+        long uniqueCollegesCount = allColleges.stream()
+            .map(College::getInstcode)
+            .distinct()
+            .count();
+        
         AnalyticsSummaryDto summary = new AnalyticsSummaryDto(
-            allColleges.size(),
+            (int) uniqueCollegesCount,
             collegesByRegion,
             collegesByTier,
             collegesByBranch,
