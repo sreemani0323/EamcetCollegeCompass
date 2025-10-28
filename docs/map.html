@@ -1,26 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map View - EAMCET College Predictor</title>
+    <link rel="stylesheet" href="style.css?v=1.0.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Map View - EAMCET Predictor</title>
-    <link rel="stylesheet" href="style.css?v=1.0.0" />
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-
+    <style>
+        /* Background animation styles to prevent empty space */
+        #backgroundAnimation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(13, 71, 161, 0.1);
+            animation: float 15s infinite linear;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(100px, -100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        /* Map controls */
+        #toggleMarkers, #toggleHeatmap {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        #toggleMarkers:hover, #toggleHeatmap:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        #toggleMarkers {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        #toggleHeatmap {
+            background: var(--color-secondary);
+            color: white;
+        }
+    </style>
 </head>
 <body>
+    <div id="backgroundAnimation"></div>
+    
     <header class="page-header">
         <div class="header-container">
-            <a href="index.html" class="site-title-link">
-                <h1 id="siteTitle"><i class="fas fa-graduation-cap"></i> EAMCET Predictor</h1>
-            </a>
+            <h1 id="siteTitle">EAMCET College Predictor</h1>
             <nav class="main-nav">
                 <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
                 <a href="analytics.html" class="nav-link"><i class="fas fa-chart-bar"></i> Analytics</a>
@@ -55,11 +115,11 @@
 
         <div class="container">
             <!-- Location Accuracy Notice -->
-            <div class="location-accuracy-notice" style="background: #fff3cd; border: 1px solid #ffc107; border-left: 4px solid #ffc107; padding: 1rem 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
-                <p style="margin: 0; color: #856404; display: flex; align-items: center; gap: 0.5rem;">
+            <div class="location-accuracy-notice" style="background: #d4edda; border: 1px solid #c3e6cb; border-left: 4px solid #28a745; padding: 1rem 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
+                <p style="margin: 0; color: #155724; display: flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-info-circle" style="font-size: 1.2rem;"></i>
                     <strong>Location Accuracy Note:</strong> 
-                    <span style="font-weight: normal;">Map markers show approximate locations at district level. Actual college addresses may vary.</span>
+                    <span style="font-weight: normal;">Map now shows colleges based on place coordinates for better accuracy. Heatmap intensity represents college tier (Tier 1: High, Tier 2: Medium, Tier 3: Low).</span>
                 </p>
             </div>
 
@@ -113,6 +173,12 @@
                 </div>
             </div>
 
+            <!-- Map Controls -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                <button id="toggleMarkers" class="btn-primary">Hide Markers</button>
+                <button id="toggleHeatmap" class="btn-secondary">Show Heatmap</button>
+            </div>
+            
             <!-- Map Container -->
             <div id="map" style="height: 600px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; position: relative;"></div>
 
@@ -149,11 +215,24 @@
     <script src="map.js"></script>
     
     <script>
-        // Scroll button functionality
+        console.log("HTML inline script started");
+        
+        // Wait for DOM to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("HTML inline script DOM loaded");
+            
+            // Map view toggle functionality
+            const toggleMarkersBtn = document.getElementById('toggleMarkers');
+            const toggleHeatmapBtn = document.getElementById('toggleHeatmap');
+            let markersVisible = true;
+            let heatmapVisible = false;
+            
+            // Scroll button functionality
             const scrollButtons = document.getElementById('scrollButtons');
             const scrollTopBtn = document.getElementById('scrollTopBtn');
             const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+            
+            console.log("Scroll buttons elements retrieved");
             
             // Show/hide scroll buttons based on scroll position
             window.addEventListener('scroll', function() {
@@ -180,9 +259,35 @@
                 });
             });
             
+            // Toggle markers visibility
+            if (toggleMarkersBtn) {
+                toggleMarkersBtn.addEventListener('click', function() {
+                    markersVisible = !markersVisible;
+                    // We'll update marker visibility through the global function
+                    if (typeof window.toggleMarkersVisibility === 'function') {
+                        window.toggleMarkersVisibility(markersVisible);
+                    }
+                    this.textContent = markersVisible ? 'Hide Markers' : 'Show Markers';
+                });
+            }
+            
+            // Toggle heatmap visibility
+            if (toggleHeatmapBtn) {
+                toggleHeatmapBtn.addEventListener('click', function() {
+                    heatmapVisible = !heatmapVisible;
+                    // We'll update heatmap visibility through the global function
+                    if (typeof window.toggleHeatmapVisibility === 'function') {
+                        window.toggleHeatmapVisibility(heatmapVisible);
+                    }
+                    this.textContent = heatmapVisible ? 'Hide Heatmap' : 'Show Heatmap';
+                    this.className = heatmapVisible ? 'btn-primary' : 'btn-secondary';
+                });
+            }
+            
             // Refresh button functionality
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.addEventListener('click', function() {
+                console.log("Refresh button clicked");
                 // Clear localStorage cache
                 localStorage.removeItem('mapCollegesData');
                 localStorage.removeItem('mapCollegesDataTimestamp');
@@ -193,7 +298,13 @@
                 document.getElementById('loadingSpinner').style.display = 'flex';
                 
                 // Reload data (this would call the same functions that load the initial data)
-                loadColleges();
+                if (typeof window.loadColleges === 'function') {
+                    console.log("Calling loadColleges function");
+                    window.loadColleges();
+                } else {
+                    console.log("loadColleges function not available, reloading page");
+                    location.reload();
+                }
             });
             
             // Clear comparison button functionality
@@ -210,34 +321,83 @@
                     
                     // Hide comparison tray
                     const tray = document.getElementById('comparison-tray');
-                    tray.classList.remove('visible');
+                    if (tray) {
+                        tray.classList.remove('visible');
+                    }
                 });
             }
-        });
-        
-        // Handle page reload vs navigation
-        window.addEventListener('beforeunload', function() {
-            // Check if this is a navigation or a reload
-            const isNavigation = sessionStorage.getItem('isNavigation');
             
-            // If it's not a navigation (i.e., it's a reload), clear cache
-            if (!isNavigation) {
-                // Clear map cache when page is reloaded
-                localStorage.removeItem('mapCollegesData');
-                localStorage.removeItem('mapCollegesDataTimestamp');
-                localStorage.removeItem('mapSelectedColleges');
-            }
-        });
-        
-        // Set a flag to indicate this is a navigation (not a reload)
-        window.addEventListener('DOMContentLoaded', function() {
-            sessionStorage.setItem('isNavigation', 'true');
-        });
-        
-        // Clear the navigation flag when page is fully loaded
-        window.addEventListener('load', function() {
-            sessionStorage.removeItem('isNavigation');
+            console.log("HTML inline script completed");
         });
     </script>
+    
+    <style>
+        /* Dark mode styles for map page */
+        body.dark-mode .location-accuracy-notice {
+            background: #3d2e00 !important;
+            border-color: #856404 !important;
+            color: #f8d7a3 !important;
+        }
+        
+        body.dark-mode .location-accuracy-notice p {
+            color: #f8d7a3 !important;
+        }
+        
+        body.dark-mode .location-accuracy-notice strong,
+        body.dark-mode .location-accuracy-notice span {
+            color: #f8d7a3 !important;
+        }
+        
+        body.dark-mode .college-dropdown {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+            color: var(--color-text-light);
+        }
+        
+        body.dark-mode .college-dropdown-item {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+            color: var(--color-text-light);
+        }
+        
+        body.dark-mode .college-dropdown-item:hover {
+            background: #30363d;
+        }
+        
+        body.dark-mode .college-dropdown-item strong {
+            color: #58a6ff;
+        }
+        
+        body.dark-mode .college-dropdown-item small {
+            color: #8b949e;
+        }
+        
+        body.dark-mode #searchBox,
+        body.dark-mode #regionFilter,
+        body.dark-mode #tierFilter {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+            color: var(--color-text-light);
+        }
+        
+        /* Add dark mode styles for autocomplete dropdown */
+        body.dark-mode .college-dropdown-item {
+            background: var(--card-dark);
+            border-bottom-color: var(--border-dark);
+            color: var(--color-text-light);
+        }
+        
+        body.dark-mode .college-dropdown-item:hover {
+            background: #30363d;
+        }
+        
+        body.dark-mode .college-dropdown-item strong {
+            color: #58a6ff;
+        }
+        
+        body.dark-mode .college-dropdown-item small {
+            color: #8b949e;
+        }
+    </style>
 </body>
 </html>

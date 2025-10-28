@@ -159,8 +159,14 @@ document.addEventListener("DOMContentLoaded", function () {
         
         const uniqueColleges = new Map();
         allColleges.forEach(c => {
-            if (c.name && c.name.toLowerCase().includes(query)) {
-                uniqueColleges.set(c.instcode, c);
+            if (c.name) {
+                const name = c.name.toLowerCase();
+                // Create versions without spaces for comparison
+                const nameNoSpaces = name.replace(/\s+/g, '');
+                const queryNoSpaces = query.replace(/\s+/g, '');
+                if (name.includes(query) || nameNoSpaces.includes(queryNoSpaces)) {
+                    uniqueColleges.set(c.instcode, c);
+                }
             }
         });
         

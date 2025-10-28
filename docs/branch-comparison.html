@@ -249,31 +249,33 @@
         }
         body.dark-mode .chart-container {
             background: var(--card-dark);
+            color: var(--color-text-light);
+            border-color: var(--border-dark);
         }
-        /* Reversed dark mode styles */
+        /* Dark mode table styles */
         body.dark-mode #comparisonTable th {
-            background: #e9ecef; /* Light gray instead of dark */
-            color: #212529; /* Dark text instead of light */
-            border-right-color: var(--color-accent);
+            background: #30363d;
+            color: var(--color-text-light);
+            border: 1px solid var(--border-dark);
         }
         body.dark-mode #comparisonTable .college-name-row {
-            color: #212529; /* Dark text instead of white */
+            color: white;
         }
         body.dark-mode #comparisonTable th,
         body.dark-mode #comparisonTable td {
-            border: 1px solid var(--border-light); /* Light border instead of dark */
-            color: #212529; /* Dark text instead of light */
-            background: white; /* Light background instead of dark */
+            border: 1px solid var(--border-dark);
+            color: var(--color-text-light);
+            background: var(--card-dark);
         }
         body.dark-mode #comparisonTable th.text-center {
-            background: #f8f9fa; /* Light gray instead of cyan */
-            color: #212529; /* Dark text instead of white */
+            background: #14a2b8; /* Cyan color only for college/branch name headers */
+            color: white;
         }
         body.dark-mode #comparisonTable tr:nth-child(even) {
-            background: #f8f9fa; /* Light gray instead of dark */
+            background: #161b22;
         }
         body.dark-mode #comparisonTable tr:nth-child(even) td {
-            background: #f8f9fa; /* Light gray instead of dark */
+            background: #161b22;
         }
     </style>
 </body>

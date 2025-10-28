@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // === BACKGROUND ANIMATION ===
-    // Create subtle floating particles for background
+    console.log("Map page DOM loaded");
+    
     function createBackgroundAnimation() {
         const container = document.getElementById('backgroundAnimation');
         if (!container) return;
@@ -33,7 +33,6 @@ document.addEventListener("DOMContentLoaded", function () {
             container.appendChild(particle);
         }
     }
-    
     // Initialize background animation
     createBackgroundAnimation();
 
@@ -50,10 +49,14 @@ document.addEventListener("DOMContentLoaded", function () {
     let allColleges = [];
     let map;
     let markers = [];
+    let heatmapLayer = null;
     let selectedSearchCollege = null;
+    
+    console.log("Elements retrieved");
     
     // Place-based coordinates (Andhra Pradesh cities/towns)
     // More accurate than district-level - uses actual place locations
+    // Heatmap intensity is based on college tier (Tier 1: High intensity, Tier 3: Low intensity)
     const placeCoords = {
         // Visakhapatnam District
         "Visakhapatnam": [17.6868, 83.2185],
@@ -90,7 +93,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // West Godavari District  
         "Eluru": [16.7107, 81.0953],
         "Bhimavaram": [16.5449, 81.5212],
-        "S R K R ENGINEERING COLLEGE": [16.5449, 81.5212],  // Add SRKR College location
+        "S R K R ENGINEERING COLLEGE": [16.5449, 81.5212], 
         "Tadepalligudem": [16.8147, 81.5270],
         "Tanuku": [16.7500, 81.6833],
         "Narsapuram": [16.4333, 81.6833],
@@ -112,6 +115,9 @@ document.addEventListener("DOMContentLoaded", function () {
         "Sattenapalle": [16.3953, 80.1514],
         "Bapatla": [15.9043, 80.4677],
         "Repalle": [16.0167, 80.8333],
+        "Ponnur": [16.2000, 80.5167],
+        "Vadlamudi": [16.3500, 80.9167],
+        "Kollipara": [16.2833, 80.3000],
         
         // Prakasam District
         "Ongole": [15.5057, 80.0499],
@@ -119,6 +125,9 @@ document.addEventListener("DOMContentLoaded", function () {
         "Markapur": [15.7353, 79.2705],
         "Kandukur": [15.2154, 79.9036],
         "Addanki": [15.8111, 79.9736],
+        "Singarayakonda": [15.9167, 79.3500],
+        "Kanigiri": [15.8000, 79.3667],
+        "Yerragondapalem": [15.5667, 79.7333],
         
         // Nellore District
         "Nellore": [14.4426, 79.9865],
@@ -126,6 +135,9 @@ document.addEventListener("DOMContentLoaded", function () {
         "Kavali": [14.9167, 79.9833],
         "Atmakur": [14.5833, 79.6000],
         "Venkatagiri": [13.9667, 79.5833],
+        "Udayagiri": [13.8167, 79.9167],
+        "Sullurpeta": [13.8667, 79.8667],
+        "Podalakur": [14.3167, 79.9167],
         
         // Chittoor District
         "Chittoor": [13.2172, 79.1003],
@@ -134,6 +146,8 @@ document.addEventListener("DOMContentLoaded", function () {
         "Puttur": [13.4419, 79.5533],
         "Srikalahasti": [13.7500, 79.7000],
         "Palamaner": [13.2000, 78.7667],
+        "Punganur": [13.3667, 79.0833],
+        "Vayalpad": [13.8000, 79.3000],
         
         // Kadapa District
         "Kadapa": [14.4673, 78.8242],
@@ -141,6 +155,9 @@ document.addEventListener("DOMContentLoaded", function () {
         "Proddatur": [14.7502, 78.5483],
         "Rayachoti": [14.0500, 78.7500],
         "Jammalamadugu": [14.8500, 78.3833],
+        "Pulivendla": [14.3833, 78.2333],
+        "Badvel": [14.7000, 79.0333],
+        "Kamalapuram": [14.5833, 78.8000],
         
         // Anantapur District
         "Anantapur": [14.6819, 77.6006],
@@ -148,13 +165,19 @@ document.addEventListener("DOMContentLoaded", function () {
         "Guntakal": [15.1667, 77.3667],
         "Dharmavaram": [14.4144, 77.7211],
         "Tadipatri": [14.9075, 78.0095],
+        "Hiriyur": [14.5167, 77.8333],
+        "Kalyandurg": [15.0833, 77.9667],
+        "Rayadurg": [15.1000, 77.8000],
         
         // Kurnool District
         "Kurnool": [15.8281, 78.0373],
         "Nandyal": [15.4769, 78.4830],
         "Adoni": [15.6281, 77.2750],
         "Yemmiganur": [15.7272, 77.4828],
-        "Nandikotkur": [15.8667, 78.2667]
+        "Nandikotkur": [15.8667, 78.2667],
+        "Pattikonda": [15.8333, 77.8667],
+        "Allagadda": [15.7333, 78.2833],
+        "Srisailam": [16.0667, 78.8667]
     };
     
     // Fallback to district coordinates if place not found
@@ -192,10 +215,14 @@ document.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem("theme", newTheme);
     });
     
+    console.log("Theme initialized");
+    
     // Initialize map with fixed zoom controls
     map = L.map('map', {
         zoomControl: false // Disable default zoom control
     }).setView([15.9129, 79.7400], window.innerWidth < 768 ? 6 : 7); // Center of Andhra Pradesh
+    
+    console.log("Map initialized");
     
     // Add custom fixed zoom controls
     L.control.zoom({
@@ -203,36 +230,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }).addTo(map);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '', // Remove attribution completely
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         zIndex: 1000
     }).addTo(map);
     
-    // Check if we have cached data in localStorage
-    const cachedData = localStorage.getItem('mapCollegesData');
-    const cacheTimestamp = localStorage.getItem('mapCollegesDataTimestamp');
+    // Initialize heatmap layer
+    heatmapLayer = L.heatLayer([], {
+        radius: 25,
+        blur: 15,
+        maxZoom: 17,
+        gradient: {0.4: 'blue', 0.65: 'lime', 1: 'red'}
+    });
     
-    if (cachedData && cacheTimestamp) {
-        const ageInMinutes = (Date.now() - parseInt(cacheTimestamp)) / (1000 * 60);
-        if (ageInMinutes < 60) { // Cache is valid for 1 hour
-            try {
-                const data = JSON.parse(cachedData);
-                allColleges = data;
-                filterAndDisplay();
-                loadingSpinner.style.display = "none";
-                console.log("Loaded map data from localStorage cache");
-            } catch (e) {
-                console.error("Failed to parse cached map data:", e);
-                // Load fresh data if cache is corrupted
-                loadColleges();
-            }
-        } else {
-            // Cache is too old, load fresh data
-            loadColleges();
-        }
-    } else {
-        // Auto-load colleges on page load
-        loadColleges();
-    }
+    console.log("Tile layer added");
     
     // Search box autocomplete
     searchBox.addEventListener('input', function() {
@@ -248,7 +258,10 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!uniqueColleges.has(c.instcode)) {
                 const name = (c.name || '').toLowerCase();
                 const place = (c.place || '').toLowerCase();
-                if (name.includes(query) || place.includes(query)) {
+                // Create versions without spaces for comparison
+                const nameNoSpaces = name.replace(/\s+/g, '');
+                const queryNoSpaces = query.replace(/\s+/g, '');
+                if (name.includes(query) || place.includes(query) || nameNoSpaces.includes(queryNoSpaces)) {
                     uniqueColleges.set(c.instcode, c);
                 }
             }
@@ -265,13 +278,20 @@ document.addEventListener("DOMContentLoaded", function () {
         
         searchDropdown.innerHTML = sortedColleges.map(c => `
             <div class="college-dropdown-item" data-instcode="${c.instcode}" 
-                 style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border-light); color: var(--color-text-primary);">
-                <strong>${c.name}</strong><br>
+                 style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border-light); color: var(--color-text-primary); background: var(--card-light);">
+                <strong style="color: var(--color-primary);">${c.name}</strong><br>
                 <small style="color: var(--color-text-secondary);">${c.place || 'N/A'} | ${c.district}</small>
             </div>
         `).join('');
         
         searchDropdown.style.display = 'block';
+        
+        // Remove existing event listeners by cloning and replacing elements
+        const items = searchDropdown.querySelectorAll('.college-dropdown-item');
+        items.forEach(item => {
+            const newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
+        });
         
         // Add click handlers to dropdown items
         searchDropdown.querySelectorAll('.college-dropdown-item').forEach(item => {
@@ -287,9 +307,18 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             
             item.addEventListener('mouseleave', function() {
-                this.style.background = 'transparent';
+                this.style.background = 'var(--card-light)';
             });
         });
+    });
+    
+    // Prevent form submission when Enter is pressed in search box
+    searchBox.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // Trigger search button click
+            searchBtn.click();
+        }
     });
     
     // Search button click
@@ -300,9 +329,16 @@ document.addEventListener("DOMContentLoaded", function () {
         if (selectedSearchCollege) {
             // Filter to show only selected college
             displaySingleCollege(selectedSearchCollege);
+            // Hide loading spinner after displaying results
+            loadingSpinner.style.display = "none";
         } else if (searchBox.value.trim()) {
             // Perform regular filter
             filterAndDisplay();
+            // Hide loading spinner after displaying results
+            loadingSpinner.style.display = "none";
+        } else {
+            // If no search term and no selected college, hide loading spinner
+            loadingSpinner.style.display = "none";
         }
     });
     
@@ -328,6 +364,8 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Load colleges
     function loadColleges() {
+        console.log("loadColleges called");
+        
         // Reset on New Input: Clear existing results before fetching new ones
         resetMapResults();
         
@@ -345,6 +383,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     const data = JSON.parse(cachedData);
                     allColleges = data;
+                    console.log("Using cached data in loadColleges");
                     filterAndDisplay();
                     loadingSpinner.style.display = "none";
                     console.log("Loaded map data from localStorage cache");
@@ -356,13 +395,20 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         
         // If no valid cache, fetch fresh data
+        console.log("Fetching fresh data from API");
+        
         fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({})
         })
-        .then(res => res.json())
+        .then(res => {
+            console.log("API response received");
+            return res.json();
+        })
         .then(data => {
+            console.log("API data parsed");
+            
             // Cache the data in localStorage with timestamp
             try {
                 localStorage.setItem('mapCollegesData', JSON.stringify(data));
@@ -372,15 +418,9 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             
             allColleges = data;
+            console.log(`Loaded ${allColleges.length} colleges from API`);
             
-            // Debug: Find SRKR colleges
-            const srkrColleges = allColleges.filter(c => c.name && c.name.toLowerCase().includes('srkr'));
-            console.log('SRKR Colleges found:', srkrColleges);
-            
-            // Debug: Find colleges with place containing 'bhim'
-            const bhimColleges = allColleges.filter(c => c.place && c.place.toLowerCase().includes('bhim'));
-            console.log('Colleges with place containing bhim:', bhimColleges);
-            
+            console.log("Data loaded, calling filterAndDisplay");
             filterAndDisplay();
             loadingSpinner.style.display = "none";
         })
@@ -408,6 +448,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     
     function filterAndDisplay() {
+        console.log("filterAndDisplay called");
+        
         const region = regionFilter.value;
         const tier = tierFilter.value;
         const searchTerm = searchBox.value.toLowerCase().trim();
@@ -429,7 +471,10 @@ document.addEventListener("DOMContentLoaded", function () {
             filtered = filtered.filter(c => {
                 const name = (c.name || '').toLowerCase();
                 const place = (c.place || '').toLowerCase();
-                return name.includes(searchTerm) || place.includes(searchTerm);
+                // Create versions without spaces for comparison
+                const nameNoSpaces = name.replace(/\s+/g, '');
+                const searchTermNoSpaces = searchTerm.replace(/\s+/g, '');
+                return name.includes(searchTerm) || place.includes(searchTerm) || nameNoSpaces.includes(searchTermNoSpaces);
             });
         }
         
@@ -445,8 +490,12 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
         
-        // Add individual markers for each unique college
-        // Use PLACE-based coordinates for better accuracy than district-level
+        console.log(`Filtered colleges: ${filtered.length}, Unique colleges: ${uniqueColleges.size}`);
+        
+        // Prepare data for heatmap using PLACE-based coordinates
+        const heatmapData = [];
+        let collegesWithCoords = 0;
+        let collegesWithoutCoords = 0;
         uniqueColleges.forEach(college => {
             // First try to get coordinates by place name
             let coords = placeCoords[college.place];
@@ -456,19 +505,26 @@ document.addEventListener("DOMContentLoaded", function () {
                 coords = districtCoords[college.district];
                 if (!coords) {
                     console.warn(`No coordinates for place: ${college.place} or district: ${college.district}`);
-                    return;
+                    collegesWithoutCoords++;
+                    // We still want to show these colleges in the list, so we'll use default coordinates
+                    coords = [15.9129, 79.7400]; // Default to center of Andhra Pradesh
                 } else {
                     console.log(`Using district coordinates for ${college.name}: ${college.district} -> [${coords[0]}, ${coords[1]}]`);
                 }
             } else {
                 console.log(`Using place coordinates for ${college.name}: ${college.place} -> [${coords[0]}, ${coords[1]}]`);
             }
+            collegesWithCoords++;
             
-            // Special debug for SRKR colleges
-            if (college.name && college.name.toLowerCase().includes('srkr')) {
-                console.log(`SRKR College Debug - Name: ${college.name}, Place: ${college.place}, District: ${college.district}, Coords: [${coords[0]}, ${coords[1]}]`);
-            }
+            // Add to heatmap data with intensity based on college tier
+            let intensity = 0.5; // Default intensity
+            if (college.tier === 'Tier 1') intensity = 1.0;
+            else if (college.tier === 'Tier 2') intensity = 0.7;
+            else if (college.tier === 'Tier 3') intensity = 0.3;
             
+            heatmapData.push([coords[0], coords[1], intensity]);
+            
+            // Also add individual markers for detailed information
             const marker = L.marker(coords).addTo(map);
             markers.push(marker);
             
@@ -488,7 +544,12 @@ document.addEventListener("DOMContentLoaded", function () {
             marker.bindPopup(popupContent);
         });
         
-        // Display all in list
+        // Update heatmap layer with place-based coordinates
+        heatmapLayer.setLatLngs(heatmapData);
+        
+        console.log(`Colleges with coordinates: ${collegesWithCoords}, Colleges without coordinates: ${collegesWithoutCoords}`);
+        
+        // Display all in list (including colleges without map coordinates)
         displayCollegeList(Array.from(uniqueColleges.values()));
         
         // Reset selected search college after filtering
@@ -496,12 +557,19 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Hide loading spinner
         loadingSpinner.style.display = "none";
+        
+        console.log("filterAndDisplay completed");
     }
     
     function displaySingleCollege(college) {
+        console.log("displaySingleCollege called");
+        
         // Clear existing markers
         markers.forEach(m => map.removeLayer(m));
         markers = [];
+        
+        // Clear heatmap
+        heatmapLayer.setLatLngs([]);
         
         // First try to get coordinates by place name
         let coords = placeCoords[college.place];
@@ -511,17 +579,13 @@ document.addEventListener("DOMContentLoaded", function () {
             coords = districtCoords[college.district];
             if (!coords) {
                 console.warn(`No coordinates for place: ${college.place} or district: ${college.district}`);
-                return;
+                // Use default coordinates instead of returning
+                coords = [15.9129, 79.7400]; // Default to center of Andhra Pradesh
             } else {
                 console.log(`Using district coordinates for ${college.name}: ${college.district} -> [${coords[0]}, ${coords[1]}]`);
             }
         } else {
             console.log(`Using place coordinates for ${college.name}: ${college.place} -> [${coords[0]}, ${coords[1]}]`);
-        }
-        
-        // Special debug for SRKR colleges
-        if (college.name && college.name.toLowerCase().includes('srkr')) {
-            console.log(`SRKR College Debug - Name: ${college.name}, Place: ${college.place}, District: ${college.district}, Coords: [${coords[0]}, ${coords[1]}]`);
         }
         
         const marker = L.marker(coords).addTo(map);
@@ -543,11 +607,27 @@ document.addEventListener("DOMContentLoaded", function () {
         marker.bindPopup(popupContent).openPopup();
         map.setView(coords, 12); // Zoom to college location
         
+        // Add to heatmap with place-based coordinates
+        let intensity = 0.5; // Default intensity
+        if (college.tier === 'Tier 1') intensity = 1.0;
+        else if (college.tier === 'Tier 2') intensity = 0.7;
+        else if (college.tier === 'Tier 3') intensity = 0.3;
+        
+        heatmapLayer.setLatLngs([[coords[0], coords[1], intensity]]);
+        
         // Display only this college in list
         displayCollegeList([college]);
+        
+        // Hide loading spinner
+        loadingSpinner.style.display = "none";
+        
+        console.log("displaySingleCollege completed");
     }
     
     function displayCollegeList(colleges, districtName = null) {
+        console.log("displayCollegeList called");
+        console.log(`Input colleges: ${colleges.length}`);
+        
         if (districtName) {
             collegeList.innerHTML = `<h3 style="grid-column: 1/-1; color: var(--color-primary);">
                 <i class="fas fa-map-marker-alt"></i> Colleges in ${districtName} (${colleges.length})
@@ -566,6 +646,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
         
+        console.log(`Unique colleges in displayCollegeList: ${uniqueColleges.size}`);
+        
         // Convert to array and SORT ALPHABETICALLY by college name
         const sortedColleges = Array.from(uniqueColleges.values()).sort((a, b) => {
             const nameA = (a.name || '').toLowerCase();
@@ -578,7 +660,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // First try to get coordinates by place name for each college
         sortedColleges.forEach(college => {
-            // First try to get coordinates by place name
+            // First try to get coordinates by place name (more accurate than district-level)
             let coords = placeCoords[college.place];
             
             // If place not found, fallback to district coordinates
@@ -644,8 +726,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Initialize comparison tray
         initializeMapComparisonTray();
         
-        // Don't scroll to list automatically - user can scroll if needed
-        // collegeList.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        console.log("displayCollegeList completed");
     }
     
     // Expose this function globally so it can be called from dynamically injected HTML
@@ -666,11 +747,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         collegeData.uniqueId = uniqueId;
 
-        // Get the comparison tray elements
-        const comparisonTray = document.getElementById('comparison-tray');
-        const compareCountSpan = document.getElementById('compare-count');
-        const compareNowBtn = document.getElementById('compare-now-btn');
-        
         // Get current selected colleges from sessionStorage or initialize empty array
         let selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
         
@@ -695,26 +771,7 @@ document.addEventListener("DOMContentLoaded", function () {
         sessionStorage.setItem('mapSelectedColleges', JSON.stringify(selectedColleges));
         
         // Update comparison tray UI
-        if (comparisonTray) {
-            const count = selectedColleges.length;
-            if (compareCountSpan) {
-                compareCountSpan.textContent = count;
-            }
-            
-            // Show/hide tray based on selection count
-            if (count > 0) {
-                comparisonTray.classList.add('visible');
-                comparisonTray.classList.remove('hidden');
-            } else {
-                comparisonTray.classList.remove('visible');
-                comparisonTray.classList.add('hidden');
-            }
-            
-            // Enable/disable compare button
-            if (compareNowBtn) {
-                compareNowBtn.disabled = count < 2;
-            }
-        }
+        updateMapComparisonTray();
     };
     
     // Add function to remove college from comparison
@@ -735,69 +792,33 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         
         // Update comparison tray UI
-        const comparisonTray = document.getElementById('comparison-tray');
-        const compareCountSpan = document.getElementById('compare-count');
-        const compareNowBtn = document.getElementById('compare-now-btn');
+        updateMapComparisonTray();
         
-        if (comparisonTray) {
-            const count = selectedColleges.length;
-            if (compareCountSpan) {
-                compareCountSpan.textContent = count;
-            }
-            
-            // Show/hide tray based on selection count
-            if (count > 0) {
-                comparisonTray.classList.add('visible');
-                comparisonTray.classList.remove('hidden');
+        // Refresh the comparison table if it's open
+        const modal = document.getElementById('map-comparison-modal');
+        if (modal) {
+            if (selectedColleges.length >= 2) {
+                // Update the table content with new data
+                updateComparisonTableContent(selectedColleges);
             } else {
-                comparisonTray.classList.remove('visible');
-                comparisonTray.classList.add('hidden');
-            }
-            
-            // Enable/disable compare button
-            if (compareNowBtn) {
-                compareNowBtn.disabled = count < 2;
+                // If less than 2 colleges, close the modal and show alert
+                modal.remove();
+                alert('You need at least 2 colleges to compare. Please select more colleges.');
             }
         }
     };
     
-    // Add function to open comparison modal
-    window.openMapComparisonModal = () => {
-        // Get selected colleges
-        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+    // Add function to update comparison table content without recreating the modal
+    function updateComparisonTableContent(selectedColleges) {
+        const tableContainer = document.querySelector('#map-comparison-modal .comparison-table-container');
+        if (!tableContainer) return;
         
-        if (selectedColleges.length < 2) {
-            alert('Please select at least 2 colleges to compare.');
-            return;
-        }
-        
-        // Remove existing modal if present
-        const existingModal = document.getElementById('map-comparison-modal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        // Create comparison modal
-        const modal = document.createElement('div');
-        modal.id = 'map-comparison-modal';
-        modal.className = 'modal';
-        modal.style.display = 'flex';
-        
-        // Modal content with default background (not cyan)
+        // Generate new table HTML
         let tableHTML = `
-            <div class="modal-content-large">
-                <div class="modal-header">
-                    <h3 class="modal-title"><i class="fa-solid fa-scale-balanced"></i> Side-by-Side College Comparison</h3>
-                    <button class="modal-close-btn" id="close-map-modal">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-                <div class="modal-body-wrapper">
-                    <div class="comparison-table-container">
-                        <table class="comparison-table">
-                            <thead>
-                                <tr>
-                                    <th class="sticky-feature">Feature</th>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th class="sticky-feature">Feature</th>
         `;
         
         // Add college headers with cyan background only for college names
@@ -805,7 +826,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tableHTML += `
                 <th class="text-center">
                     <span class="college-name-row">${college.name}</span>
-                    <button class="remove-col-btn mt-2" onclick="removeCollegeFromMapComparison('${college.uniqueId}')">
+                    <button class="remove-col-btn mt-2" onclick="removeCollegeFromMapComparison('${college.uniqueId}')" title="Remove College">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </th>
@@ -813,9 +834,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         
         tableHTML += `
-                                </tr>
-                            </thead>
-                            <tbody>
+                    </tr>
+                </thead>
+                <tbody>
         `;
         
         // Define features to compare
@@ -853,8 +874,78 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         
         tableHTML += `
-                            </tbody>
-                        </table>
+                </tbody>
+            </table>
+        `;
+        
+        tableContainer.innerHTML = tableHTML;
+    }
+    
+    // Add function to update comparison tray UI
+    function updateMapComparisonTray() {
+        // Get current selected colleges
+        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        const count = selectedColleges.length;
+        
+        // Get the comparison tray elements
+        const comparisonTray = document.getElementById('comparison-tray');
+        const compareCountSpan = document.getElementById('compare-count');
+        const compareNowBtn = document.getElementById('compare-now-btn');
+        
+        if (comparisonTray) {
+            if (compareCountSpan) {
+                compareCountSpan.textContent = count;
+            }
+            
+            // Show/hide tray based on selection count
+            if (count > 0) {
+                comparisonTray.classList.add('visible');
+                comparisonTray.classList.remove('hidden');
+            } else {
+                comparisonTray.classList.remove('visible');
+                comparisonTray.classList.add('hidden');
+            }
+            
+            // Enable/disable compare button
+            if (compareNowBtn) {
+                compareNowBtn.disabled = count < 2;
+            }
+        }
+    }
+    
+    // Add function to open comparison modal
+    window.openMapComparisonModal = () => {
+        // Get selected colleges
+        const selectedColleges = JSON.parse(sessionStorage.getItem('mapSelectedColleges') || '[]');
+        
+        if (selectedColleges.length < 2) {
+            alert('Please select at least 2 colleges to compare.');
+            return;
+        }
+        
+        // Remove existing modal if present
+        const existingModal = document.getElementById('map-comparison-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create comparison modal
+        const modal = document.createElement('div');
+        modal.id = 'map-comparison-modal';
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        
+        // Modal content with default background (not cyan)
+        let tableHTML = `
+            <div class="modal-content-large">
+                <div class="modal-header">
+                    <h3 class="modal-title"><i class="fa-solid fa-scale-balanced"></i> Side-by-Side College Comparison</h3>
+                    <button class="modal-close-btn" id="close-map-modal">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="modal-body-wrapper">
+                    <div class="comparison-table-container">
                     </div>
                 </div>
             </div>
@@ -862,6 +953,9 @@ document.addEventListener("DOMContentLoaded", function () {
         
         modal.innerHTML = tableHTML;
         document.body.appendChild(modal);
+        
+        // Update the table content
+        updateComparisonTableContent(selectedColleges);
         
         // Add event listener to close button
         const closeBtn = document.getElementById('close-map-modal');
@@ -912,13 +1006,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     // Add event listener for compare now button
-    document.addEventListener('DOMContentLoaded', function() {
-        // Use event delegation to handle dynamically added elements
-        document.addEventListener('click', function(e) {
-            if (e.target.id === 'compare-now-btn' || (e.target.closest('#compare-now-btn'))) {
-                openMapComparisonModal();
-            }
-        });
+    // Use event delegation to handle dynamically added elements
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'compare-now-btn' || (e.target.closest('#compare-now-btn'))) {
+            openMapComparisonModal();
+        }
     });
     
     // Also attach the event listener when the page loads
@@ -933,4 +1025,31 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Expose loadColleges function globally for refresh button
     window.loadColleges = loadColleges;
+    
+    // Expose marker and heatmap toggle functions globally
+    window.toggleMarkersVisibility = function(visible) {
+        markers.forEach(marker => {
+            if (visible) {
+                map.addLayer(marker);
+            } else {
+                map.removeLayer(marker);
+            }
+        });
+    };
+    
+    window.toggleHeatmapVisibility = function(visible) {
+        if (visible) {
+            map.addLayer(heatmapLayer);
+        } else {
+            map.removeLayer(heatmapLayer);
+        }
+    };
+    
+    // AUTO-LOAD COLLEGES WHEN PAGE IS READY
+    console.log("Initializing colleges data load...");
+    setTimeout(function() {
+        loadColleges();
+    }, 100);
+    
+    console.log("Map page initialization completed");
 });

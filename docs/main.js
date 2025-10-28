@@ -177,16 +177,88 @@ document.addEventListener("DOMContentLoaded", function () {
     // === 4. INITIALIZATION ===
     initializePage();
 
+    // Add cache management for tab switching
+    let isPageActive = true;
+    let navigationFlag = false;
+    let isRefresh = false;
+
+    // Detect if this is a page refresh using sessionStorage
+    const pageState = sessionStorage.getItem('mainPageState');
+    if (pageState === 'loaded') {
+        isRefresh = true;
+        // Clear cache on refresh
+        clearCacheOnRefresh();
+    }
+    sessionStorage.setItem('mainPageState', 'loaded');
+
+    // Set navigation flag when leaving the page (but not on refresh)
+    window.addEventListener('beforeunload', function() {
+        // Only set navigation flag if this is not a refresh
+        if (!isRefresh) {
+            sessionStorage.setItem('mainPageNavigation', 'true');
+        }
+        saveResults();
+        saveAllCollegesCache();
+    });
+
+    // Check if this is a navigation or refresh
+    document.addEventListener('DOMContentLoaded', function() {
+        const navFlag = sessionStorage.getItem('mainPageNavigation');
+        if (navFlag) {
+            navigationFlag = true;
+            sessionStorage.removeItem('mainPageNavigation');
+        }
+    });
+
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            // Save data when tab is hidden
+            saveResults();
+            saveAllCollegesCache();
+        } else {
+            // Restore data when tab becomes visible (only on navigation, not refresh)
+            if (navigationFlag && !isRefresh) {
+                loadSavedResults();
+            }
+        }
+    });
+
+    // Also handle focus/blur events as a fallback
+    window.addEventListener('blur', function() {
+        saveResults();
+        saveAllCollegesCache();
+    });
+
+    window.addEventListener('focus', function() {
+        if (navigationFlag && !isRefresh) {
+            loadSavedResults();
+        }
+    });
+
     function initializePage() {
         setTheme(localStorage.getItem("theme") || 'light');
         multiselectContainers.forEach(initializeMultiselect);
         setupEventListeners();
         
+        // Add Enter key listener to rank input
+        if (rankInput) {
+            rankInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    console.log('Enter key pressed in rank input, triggering prediction');
+                    handlePrediction();
+                }
+            });
+        }
+        
         // Check for URL parameters (e.g., from map "View Details" links)
         checkUrlParameters();
         
-        // Load any saved results from sessionStorage
-        loadSavedResults();
+        // Load any saved results from localStorage (only on navigation, not refresh)
+        if (!isRefresh) {
+            loadSavedResults();
+        }
         
         if (rawData.length === 0) {
             renderEmptyState();
@@ -195,6 +267,18 @@ document.addEventListener("DOMContentLoaded", function () {
         updateDistrictOptions();
         updatePlacementOptions();
         loadAllCollegesCache(); // Load cache on startup
+        
+        // Clear the page state after initialization
+        setTimeout(() => {
+            sessionStorage.setItem('mainPageState', 'initialized');
+        }, 1000);
+    }
+    
+    // Function to clear cache on page refresh
+    function clearCacheOnRefresh() {
+        localStorage.removeItem('collegeResults');
+        localStorage.removeItem('sortedResults');
+        localStorage.removeItem('collegeFormState');
     }
     
     function checkUrlParameters() {
@@ -234,8 +318,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     function loadSavedResults() {
+        // Don't load saved results if this is a refresh
+        if (performance.navigation && performance.navigation.type === 1) {
+            return;
+        }
+        
         const savedData = localStorage.getItem('collegeResults');
         const savedSorted = localStorage.getItem('sortedResults');
+        const savedFormState = localStorage.getItem('collegeFormState');
         
         if (savedData && savedSorted) {
             try {
@@ -244,6 +334,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (sortedData.length > 0) {
                     renderColleges();
                     resultsHeader.style.display = 'flex';
+                    
+                    // Restore form state if available
+                    if (savedFormState) {
+                        restoreFormState(JSON.parse(savedFormState));
+                    }
                 }
             } catch (e) {
                 console.error('Failed to load saved results:', e);
@@ -254,6 +349,59 @@ document.addEventListener("DOMContentLoaded", function () {
     function saveResults() {
         localStorage.setItem('collegeResults', JSON.stringify(rawData));
         localStorage.setItem('sortedResults', JSON.stringify(sortedData));
+        localStorage.setItem('collegeFormState', JSON.stringify(getFormState()));
+    }
+    
+    function getFormState() {
+        // Save current form values
+        const formState = {};
+        const inputIds = ['rank', 'desiredBranch', 'quota', 'gender', 'region', 'district', 'tier', 'placementQualityFilter'];
+        
+        inputIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                formState[id] = element.value;
+            }
+        });
+        
+        // Also save sort order
+        formState.sortBy = sortBySelect.value;
+        
+        return formState;
+    }
+    
+    function restoreFormState(formState) {
+        // Restore form values
+        Object.keys(formState).forEach(id => {
+            if (id === 'sortBy') {
+                sortBySelect.value = formState[id];
+            } else {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.value = formState[id];
+                    
+                    // For multiselect dropdowns, update the display
+                    const dropdown = document.querySelector(`.multiselect-dropdown[data-id="${id}"]`);
+                    if (dropdown) {
+                        const selectedValues = formState[id].split(',').filter(Boolean);
+                        updateSelectedItemsDisplay(dropdown, selectedValues);
+                        
+                        // Also update the checkboxes
+                        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+                        checkboxes.forEach(cb => {
+                            cb.checked = selectedValues.includes(cb.value);
+                        });
+                    }
+                }
+            }
+        });
+        
+        // Update dependent dropdowns
+        updateDistrictOptions();
+        updatePlacementOptions();
+        
+        // Translate UI to update any language-specific text
+        translateUI();
     }
     
     /**
@@ -287,11 +435,18 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(data => {
             allCollegesCache = data;
             // Save to localStorage with timestamp
-            localStorage.setItem('allCollegesCache', JSON.stringify(data));
-            localStorage.setItem('allCollegesCacheTimestamp', Date.now().toString());
+            saveAllCollegesCache();
             console.log(`Loaded ${allCollegesCache.length} colleges into cache`);
         })
         .catch(err => console.error("Failed to load colleges cache:", err));
+    }
+
+    // Add function to save all colleges cache
+    function saveAllCollegesCache() {
+        if (allCollegesCache.length > 0) {
+            localStorage.setItem('allCollegesCache', JSON.stringify(allCollegesCache));
+            localStorage.setItem('allCollegesCacheTimestamp', Date.now().toString());
+        }
     }
 
     // === 5. CORE LOGIC & HELPER FUNCTIONS ===
@@ -495,121 +650,7 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
     // === 7. EVENT LISTENERS & INITIALIZATION ===
-    predictForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        
-        // Manual check of all input values before processing
-        console.log('=== MANUAL INPUT VALUE CHECK ===');
-        const inputIds = ['desiredBranch', 'quota', 'gender', 'region', 'district', 'tier', 'placementQualityFilter'];
-        inputIds.forEach(id => {
-            const element = document.getElementById(id);
-            console.log(`${id}:`, element ? element.value : 'NOT FOUND');
-        });
-        console.log('=== END MANUAL CHECK ===');
-        
-        // Force a small delay to ensure all DOM updates are complete
-        setTimeout(() => {
-            console.log('=== Form Submission Debug ===');
-            
-            // Get form values directly from input elements instead of FormData
-            const rank = parseInt(rankInput.value) || 0;
-            const rankValue = rankInput.value.trim(); // Get the actual input value
-            
-            // Validate rank - show popup if rank is exactly 0 or negative
-            // But don't show popup if input is empty (user hasn't entered anything)
-            if (rankValue !== '' && rank <= 0) {
-                showValidationModal(
-                    ValidationMessages.invalidRank.title,
-                    ValidationMessages.invalidRank.message,
-                    ValidationMessages.invalidRank.type
-                );
-                return;
-            }
-            
-            // Get values from hidden input fields with more robust error handling
-            const filters = {};
-            
-            // List of all filter input IDs we want to check
-            const filterInputs = [
-                { id: 'desiredBranch', paramName: 'branch' },
-                { id: 'quota', paramName: 'quota' },
-                { id: 'gender', paramName: 'gender' },
-                { id: 'region', paramName: 'region' },
-                { id: 'district', paramName: 'district' },
-                { id: 'tier', paramName: 'tier' },
-                { id: 'placementQualityFilter', paramName: 'placementQualityFilter' }
-            ];
-            
-            filterInputs.forEach(filter => {
-                try {
-                    const inputElement = document.getElementById(filter.id);
-                    console.log(`Checking ${filter.id}:`, inputElement);
-                    if (inputElement) {
-                        console.log(`${filter.id} value:`, inputElement.value);
-                        if (inputElement.value) {
-                            // The backend expects comma-separated values as a single string, not an array
-                            filters[filter.paramName] = inputElement.value;
-                            console.log(`Added ${filter.paramName} to filters:`, inputElement.value);
-                        }
-                    } else {
-                        console.log(`Element with ID ${filter.id} not found`);
-                    }
-                } catch (error) {
-                    console.error(`Error reading ${filter.id}:`, error);
-                }
-            });
-            
-            // Debug logging
-            console.log('Form submission - Rank:', rank);
-            console.log('Form submission - Raw filters object:', filters);
-            
-            // Combine quota and gender into category parameter for backend
-            let requestData = { rank: rankValue !== '' ? rank : null }; // Send null if no rank provided
-            
-            // Add all filters with correct parameter names for backend
-            Object.keys(filters).forEach(key => {
-                if (key === 'quota') {
-                    // For quota, we send it as 'category' to match backend expectations
-                    const quotaValues = filters[key].split(',').filter(Boolean);
-                    if (quotaValues.length > 0) {
-                        requestData['category'] = quotaValues[0]; // Only send first quota value
-                        console.log('Setting category parameter to:', quotaValues[0]);
-                    }
-                } else if (key === 'gender') {
-                    // Send gender as is
-                    const genderValues = filters[key].split(',').filter(Boolean);
-                    if (genderValues.length > 0) {
-                        requestData['gender'] = genderValues[0]; // Only send first gender value
-                        console.log('Setting gender parameter to:', genderValues[0]);
-                    }
-                } else {
-                    // For all other filters, send as comma-separated string
-                    if (filters[key]) {
-                        requestData[key] = filters[key];
-                        console.log('Setting', key, 'parameter to:', filters[key]);
-                    }
-                }
-            });
-            
-            // Debug logging
-            console.log('Final request data being sent:', requestData);
-            console.log('=== End Form Submission Debug ===');
-            
-            // Reset on New Input: Clear existing results before fetching new ones
-            resetResults();
-            
-            showSpinner(true);
-            fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestData)
-            })
-            .then(response => { if (!response.ok) throw new Error(`API Error: ${response.statusText}`); return response.json(); })
-            .then(data => { rawData = data; filterAndRenderColleges(); })
-            .catch(error => { console.error("Fetch Error:", error); renderEmptyState(translations.fetchError); })
-            .finally(() => showSpinner(false));
-        }, 10); // Small delay to ensure DOM is fully updated
-    });
+    // Removed form submit event listener - handling everything directly in button click handler
 
     // Function to reset results when new input is provided
     function resetResults() {
@@ -629,6 +670,9 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Reset sort selection to default
         sortBySelect.value = 'cutoff-asc';
+        
+        // Clear form state from localStorage
+        localStorage.removeItem('collegeFormState');
     }
 
     function filterAndRenderColleges() {
@@ -814,7 +858,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tableHTML += `
                 <th class="text-center">
                     <span class="college-name-row">${safeCollegeName}</span>
-                    <button class="remove-col-btn mt-2" onclick="removeCollegeFromComparison('${college.uniqueId}')">
+                    <button class="remove-col-btn mt-2" onclick="removeCollegeFromComparison('${college.uniqueId}')" title="Remove College">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </th>
@@ -886,8 +930,25 @@ document.addEventListener("DOMContentLoaded", function () {
         darkModeSwitch.addEventListener("change", () => setTheme(darkModeSwitch.checked ? "dark" : "light"));
         
         // Attach handlers to all Predict buttons
-        predictButton.addEventListener("click", handlePrediction);
-        if(predictButtonBottom) predictButtonBottom.addEventListener("click", handlePrediction);
+        if (predictButton) {
+            console.log('Attaching event listener to predictButton');
+            predictButton.addEventListener("click", function(e) {
+                console.log('Predict button clicked directly');
+                handlePrediction();
+            });
+        } else {
+            console.error('predictButton not found');
+        }
+        
+        if (predictButtonBottom) {
+            console.log('Attaching event listener to predictButtonBottom');
+            predictButtonBottom.addEventListener("click", function(e) {
+                console.log('Predict button bottom clicked directly');
+                handlePrediction();
+            });
+        } else {
+            console.log('predictButtonBottom not found');
+        }
 
         sortBySelect.addEventListener("change", filterAndRenderColleges);
 
@@ -942,6 +1003,11 @@ document.addEventListener("DOMContentLoaded", function () {
             // Clear comparison on filter reset
             selectedColleges = [];
             updateComparisonTray();
+            
+            // Clear saved results and form state
+            localStorage.removeItem('collegeResults');
+            localStorage.removeItem('sortedResults');
+            localStorage.removeItem('collegeFormState');
         });
         
         // Download Listeners (No changes)
@@ -992,7 +1058,122 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function handlePrediction() {
-        // Trigger form submission
-        predictForm.dispatchEvent(new Event('submit'));
+        console.log('Predict button clicked - triggering form submission');
+        console.log('Form element:', predictForm);
+        console.log('Rank input value:', rankInput.value);
+        
+        // Get rank value
+        const rank = parseInt(rankInput.value) || 0;
+        const rankValue = rankInput.value.trim();
+        
+        console.log('Rank value:', rankValue);
+        console.log('Parsed rank:', rank);
+        
+        // Validate rank
+        if (rankValue !== '' && rank <= 0) {
+            console.log('Invalid rank detected, showing validation modal');
+            showValidationModal(
+                ValidationMessages.invalidRank.title,
+                ValidationMessages.invalidRank.message,
+                ValidationMessages.invalidRank.type
+            );
+            return;
+        }
+        
+        // Get filter values
+        const filters = {};
+        const filterInputs = [
+            { id: 'desiredBranch', paramName: 'branch' },
+            { id: 'quota', paramName: 'quota' },
+            { id: 'gender', paramName: 'gender' },
+            { id: 'region', paramName: 'region' },
+            { id: 'district', paramName: 'district' },
+            { id: 'tier', paramName: 'tier' },
+            { id: 'placementQualityFilter', paramName: 'placementQualityFilter' }
+        ];
+        
+        filterInputs.forEach(filter => {
+            const inputElement = document.getElementById(filter.id);
+            if (inputElement && inputElement.value) {
+                filters[filter.paramName] = inputElement.value;
+                console.log(`Added ${filter.paramName} to filters:`, inputElement.value);
+            }
+        });
+        
+        // Check if we have any input at all
+        const hasRank = rankValue !== '';
+        const hasFilters = Object.keys(filters).some(key => filters[key]);
+        
+        console.log('Has rank:', hasRank);
+        console.log('Has filters:', hasFilters);
+        
+        // If no input at all, show validation message
+        if (!hasRank && !hasFilters) {
+            console.log('No input provided, showing validation modal');
+            showValidationModal(
+                ValidationMessages.noInput.title,
+                ValidationMessages.noInput.message,
+                ValidationMessages.noInput.type
+            );
+            return;
+        }
+        
+        // Build request data
+        let requestData = { rank: hasRank ? rank : null };
+        
+        // Process filters
+        Object.keys(filters).forEach(key => {
+            if (key === 'quota') {
+                const quotaValues = filters[key].split(',').filter(Boolean);
+                if (quotaValues.length > 0) {
+                    requestData['category'] = quotaValues[0];
+                    console.log('Setting category parameter to:', quotaValues[0]);
+                }
+            } else if (key === 'gender') {
+                const genderValues = filters[key].split(',').filter(Boolean);
+                if (genderValues.length > 0) {
+                    requestData['gender'] = genderValues[0];
+                    console.log('Setting gender parameter to:', genderValues[0]);
+                }
+            } else {
+                if (filters[key]) {
+                    requestData[key] = filters[key];
+                    console.log('Setting', key, 'parameter to:', filters[key]);
+                }
+            }
+        });
+        
+        console.log('Final request data being sent:', requestData);
+        
+        // Clear results and show spinner
+        resetResults();
+        showSpinner(true);
+        
+        // Make API call
+        fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => { 
+            console.log('API response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.statusText}`);
+            } 
+            return response.json(); 
+        })
+        .then(data => { 
+            console.log('API response data:', data);
+            rawData = data; 
+            filterAndRenderColleges(); 
+        })
+        .catch(error => { 
+            console.error("Fetch Error:", error); 
+            renderEmptyState(translations.fetchError); 
+        })
+        .finally(() => {
+            console.log('Fetch completed');
+            showSpinner(false);
+        });
     }
 });
