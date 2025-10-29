@@ -1,40 +1,33 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // === BACKGROUND ANIMATION ===
-    // Create subtle floating particles for background
+
+
     function createBackgroundAnimation() {
         const container = document.getElementById('backgroundAnimation');
         if (!container) return;
-        
-        // Clear any existing particles
+
         container.innerHTML = '';
-        
-        // Create 15 particles
+
         for (let i = 0; i < 15; i++) {
             const particle = document.createElement('div');
             particle.classList.add('particle');
-            
-            // Random size between 2px and 8px
+
             const size = Math.random() * 6 + 2;
             particle.style.width = `${size}px`;
             particle.style.height = `${size}px`;
-            
-            // Random position
+
             particle.style.left = `${Math.random() * 100}%`;
             particle.style.top = `${Math.random() * 100}%`;
-            
-            // Random animation duration between 10s and 25s
+
             const duration = Math.random() * 15 + 10;
             particle.style.animationDuration = `${duration}s`;
-            
-            // Random delay
+
             const delay = Math.random() * 5;
             particle.style.animationDelay = `${delay}s`;
             
             container.appendChild(particle);
         }
     }
-    
-    // Initialize background animation
+
     createBackgroundAnimation();
 
     const darkModeSwitch = document.getElementById("darkModeSwitch");
@@ -50,8 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
     
     let allColleges = [];
     let selectedCollege = null;
-    
-    // Theme
+
     const theme = localStorage.getItem("theme") || 'light';
     document.body.classList.toggle("dark-mode", theme === "dark");
     darkModeSwitch.checked = theme === "dark";
@@ -60,8 +52,7 @@ document.addEventListener("DOMContentLoaded", function () {
         document.body.classList.toggle("dark-mode", newTheme === "dark");
         localStorage.setItem("theme", newTheme);
     });
-    
-    // Check if we have cached data in localStorage
+
     const cachedData = localStorage.getItem('calculatorCollegesData');
     const cacheTimestamp = localStorage.getItem('calculatorCollegesDataTimestamp');
     
@@ -75,24 +66,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 loadingDiv.style.display = "none";
             } catch (e) {
                 console.error("Failed to parse cached calculator data:", e);
-                // Load fresh data if cache is corrupted
+
                 loadColleges();
             }
         } else {
-            // Cache is too old, load fresh data
+
             loadColleges();
         }
     } else {
-        // Auto-load colleges on page load
+
         loadColleges();
     }
-    
-    // Load all colleges
+
     function loadColleges() {
         loadingDiv.innerHTML = '<div class="spinner"></div>';
         loadingDiv.style.display = "flex";
-        
-        // Check if we have cached data that's not too old (less than 1 hour)
+
         const cachedData = localStorage.getItem('calculatorCollegesData');
         const cacheTimestamp = localStorage.getItem('calculatorCollegesDataTimestamp');
         
@@ -110,8 +99,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         }
-        
-        // If no valid cache, fetch fresh data
+
     fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .then(res => res.json())
     .then(data => {
-        // Cache the data in localStorage with timestamp
+
         try {
             localStorage.setItem('calculatorCollegesData', JSON.stringify(data));
             localStorage.setItem('calculatorCollegesDataTimestamp', Date.now().toString());
@@ -147,14 +135,12 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
     });
 }
-    
-    // College search
+
     collegeInput.addEventListener("input", function() {
         const query = collegeInput.value;
-        
-        // Validate input - only allow alphabetic characters and spaces
+
         if (query && !/^[a-zA-Z\s]*$/.test(query)) {
-            // Show validation popup for invalid input
+
             if (typeof showValidationModal === 'function' && typeof ValidationMessages !== 'undefined') {
                 showValidationModal(
                     'Invalid Input',
@@ -162,10 +148,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     'warning'
                 );
             } else {
-                // Fallback to alert if validation popups are not available
+
                 alert('Please enter only alphabetic characters and spaces.');
             }
-            // Remove invalid characters
+
             collegeInput.value = query.replace(/[^a-zA-Z\s]/g, '');
             return;
         }
@@ -181,7 +167,7 @@ document.addEventListener("DOMContentLoaded", function () {
         allColleges.forEach(c => {
             if (c.name) {
                 const name = c.name.toLowerCase();
-                // Create versions without spaces for comparison
+
                 const nameNoSpaces = name.replace(/\s+/g, '');
                 const queryNoSpaces = query.replace(/\s+/g, '');
                 if (name.includes(query) || nameNoSpaces.includes(queryNoSpaces)) {
@@ -215,8 +201,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     });
-    
-    // Load branches for selected college
+
     function loadBranches(instcode) {
         fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/colleges/${instcode}/branches?_=${new Date().getTime()}`)
             .then(res => res.json())
@@ -226,8 +211,7 @@ document.addEventListener("DOMContentLoaded", function () {
             })
             .catch(err => console.error("Failed to load branches:", err));
     }
-    
-    // Form submission
+
     form.addEventListener("submit", function(e) {
         e.preventDefault();
         
@@ -304,14 +288,12 @@ document.addEventListener("DOMContentLoaded", function () {
         resultDiv.style.display = "block";
         resultDiv.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
-    
-    // Close dropdown when clicking outside
+
     document.addEventListener("click", function(e) {
         if (!collegeInput.contains(e.target) && !collegeDropdown.contains(e.target)) {
             collegeDropdown.classList.remove("show");
         }
     });
-    
-    // Expose loadColleges function globally for refresh button
+
     window.loadColleges = loadColleges;
 });

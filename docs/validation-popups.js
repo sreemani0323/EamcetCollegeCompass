@@ -1,9 +1,16 @@
 /**
- * Validation Pop-up System
- * Provides user-friendly alerts for various validation scenarios
+ * Validation popup system for the College Predictor frontend.
+ * Provides a consistent way to display error, warning, and informational messages
+ * to users throughout the application.
+ * 
+ * This module creates and manages modal dialogs for user notifications,
+ * with different styling based on message type (error, warning, success, info).
  */
 
-// Create modal HTML if it doesn't exist
+/**
+ * Creates the validation modal element if it doesn't already exist.
+ * This function ensures only one modal is created per page load.
+ */
 function createValidationModal() {
     if (document.getElementById('validation-modal')) return;
     
@@ -30,7 +37,13 @@ function createValidationModal() {
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
-// Show validation modal
+/**
+ * Displays a validation modal with the specified title, message, and type.
+ * 
+ * @param {string} title - The title to display in the modal header
+ * @param {string} message - The message to display in the modal body
+ * @param {string} type - The type of message (error, warning, success, info)
+ */
 function showValidationModal(title, message, type = 'info') {
     createValidationModal();
     
@@ -41,8 +54,7 @@ function showValidationModal(title, message, type = 'info') {
     
     titleEl.textContent = title;
     messageEl.textContent = message;
-    
-    // Set icon based on type
+
     icon.className = 'validation-icon fas ';
     switch(type) {
         case 'error':
@@ -65,7 +77,9 @@ function showValidationModal(title, message, type = 'info') {
     modal.style.display = 'flex';
 }
 
-// Close validation modal
+/**
+ * Closes the validation modal by hiding it.
+ */
 function closeValidationModal() {
     const modal = document.getElementById('validation-modal');
     if (modal) {
@@ -73,7 +87,10 @@ function closeValidationModal() {
     }
 }
 
-// Validation functions
+/**
+ * Predefined validation messages for common scenarios in the application.
+ * Provides consistent messaging and reduces duplication of message strings.
+ */
 const ValidationMessages = {
     invalidRank: {
         title: 'Invalid Rank',
@@ -122,7 +139,7 @@ const ValidationMessages = {
     }
 };
 
-// Export functions for global use
+// Make functions globally available for inline event handlers
 window.showValidationModal = showValidationModal;
 window.closeValidationModal = closeValidationModal;
 window.ValidationMessages = ValidationMessages;

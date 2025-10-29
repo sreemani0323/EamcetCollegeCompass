@@ -1,10 +1,16 @@
 <!DOCTYPE html>
+<!-- 
+Test Endpoints Page for the College Predictor API
+This page provides a simple interface to test various API endpoints of the College Predictor backend.
+It allows developers and administrators to quickly verify that API endpoints are working correctly.
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Backend Endpoint Tester</title>
     <style>
+        /* Basic styling for the test interface */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 1000px;
@@ -92,13 +98,17 @@
 </head>
 <body>
     <h1>🧪 Backend Endpoint Tester</h1>
+    <!-- Display the backend URL being tested -->
     <p><strong>Backend URL:</strong> https://theeamcetcollegeprediction-2.onrender.com</p>
 
+    <!-- Container for dynamically generated endpoint test elements -->
     <div id="endpoints"></div>
 
     <script>
+        // Base URL for the API endpoints
         const BASE_URL = 'https://theeamcetcollegeprediction-2.onrender.com';
         
+        // List of endpoints to test with their configurations
         const endpoints = [
             {
                 name: 'Main Prediction (Empty)',
@@ -145,8 +155,10 @@
             }
         ];
 
+        // Get the container element for endpoint tests
         const container = document.getElementById('endpoints');
         
+        // Dynamically generate HTML elements for each endpoint
         endpoints.forEach((endpoint, index) => {
             const div = document.createElement('div');
             div.className = 'endpoint';
@@ -165,11 +177,17 @@
             container.appendChild(div);
         });
 
+        /**
+         * Tests a specific API endpoint and displays the results.
+         * 
+         * @param {number} index - The index of the endpoint to test
+         */
         async function testEndpoint(index) {
             const endpoint = endpoints[index];
             const statusDiv = document.getElementById(`status-${index}`);
             const responseDiv = document.getElementById(`response-${index}`);
             
+            // Show loading status
             statusDiv.className = 'status loading';
             statusDiv.textContent = '⏳ Testing...';
             responseDiv.innerHTML = '';
@@ -177,6 +195,7 @@
             const startTime = Date.now();
             
             try {
+                // Configure the fetch request
                 const options = {
                     method: endpoint.method,
                     headers: {
@@ -184,13 +203,16 @@
                     }
                 };
                 
+                // Add request body for POST requests
                 if (endpoint.body) {
                     options.body = JSON.stringify(endpoint.body);
                 }
                 
+                // Make the API request
                 const response = await fetch(BASE_URL + endpoint.path, options);
                 const duration = Date.now() - startTime;
                 
+                // Handle successful response
                 if (response.ok) {
                     const data = await response.json();
                     statusDiv.className = 'status success';
@@ -199,22 +221,31 @@
                     responseDiv.className = 'response';
                     responseDiv.textContent = JSON.stringify(data, null, 2);
                 } else {
-                    const errorText = await response.text();
+                    // Handle HTTP error responses
                     statusDiv.className = 'status error';
-                    statusDiv.textContent = `❌ Error ${response.status} - ${duration}ms`;
+                    statusDiv.textContent = `❌ HTTP Error (${response.status}) - ${duration}ms`;
                     
-                    responseDiv.className = 'response';
-                    responseDiv.textContent = errorText || 'No error message';
+                    try {
+                        const errorData = await response.json();
+                        responseDiv.className = 'response';
+                        responseDiv.textContent = JSON.stringify(errorData, null, 2);
+                    } catch (e) {
+                        responseDiv.className = 'response';
+                        responseDiv.textContent = `Error: ${response.statusText}`;
+                    }
                 }
             } catch (error) {
+                // Handle network errors
                 const duration = Date.now() - startTime;
                 statusDiv.className = 'status error';
                 statusDiv.textContent = `❌ Network Error - ${duration}ms`;
-                
                 responseDiv.className = 'response';
-                responseDiv.textContent = error.message;
+                responseDiv.textContent = `Error: ${error.message}`;
             }
         }
+
+        // Make the testEndpoint function globally available for button onclick handlers
+        window.testEndpoint = testEndpoint;
     </script>
 </body>
 </html>

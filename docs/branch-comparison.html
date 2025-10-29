@@ -53,7 +53,7 @@
         </section>
 
         <div class="container">
-            <!-- Branch Selection -->
+            
             <div style="background: var(--card-light); padding: 2rem; border-radius: var(--radius); margin-bottom: 2rem; box-shadow: var(--shadow);">
                 <h3 style="margin-bottom: 1.5rem; color: var(--color-primary);"><i class="fas fa-code-branch"></i> Select Branches to Compare</h3>
                 <div id="branchSelection" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;"></div>
@@ -64,12 +64,12 @@
 
             <div id="loadingSpinner" class="loading-spinner" style="display: flex;"><div class="spinner"></div></div>
 
-            <!-- Comparison Results -->
+            
             <div id="comparisonResults" style="display: none;">
-                <!-- Summary Cards -->
+                
                 <div id="summaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;"></div>
 
-                <!-- Charts -->
+                
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
                     <div class="chart-container">
                         <h3><i class="fas fa-university"></i> Number of Colleges</h3>
@@ -81,7 +81,7 @@
                     </div>
                 </div>
 
-                <!-- Detailed Table -->
+                
                 <div class="chart-container">
                     <h3><i class="fas fa-table"></i> Detailed Comparison</h3>
                     <div style="overflow-x: auto;">
@@ -106,13 +106,12 @@
     <script src="branch-comparison.js"></script>
     
     <script>
-        // Scroll button functionality
+
         document.addEventListener('DOMContentLoaded', function() {
             const scrollButtons = document.getElementById('scrollButtons');
             const scrollTopBtn = document.getElementById('scrollTopBtn');
             const scrollBottomBtn = document.getElementById('scrollBottomBtn');
-            
-            // Show/hide scroll buttons based on scroll position
+
             window.addEventListener('scroll', function() {
                 if (window.scrollY > 300) {
                     scrollButtons.classList.add('visible');
@@ -120,58 +119,50 @@
                     scrollButtons.classList.remove('visible');
                 }
             });
-            
-            // Scroll to top
+
             scrollTopBtn.addEventListener('click', function() {
                 window.scrollTo({
                     top: 0,
                     behavior: 'smooth'
                 });
             });
-            
-            // Scroll to bottom
+
             scrollBottomBtn.addEventListener('click', function() {
                 window.scrollTo({
                     top: document.body.scrollHeight,
                     behavior: 'smooth'
                 });
             });
-            
-            // Refresh button functionality
+
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.addEventListener('click', function() {
-                // Clear localStorage cache
+
                 localStorage.removeItem('branchComparisonBranchesData');
                 localStorage.removeItem('branchComparisonBranchesDataTimestamp');
                 localStorage.removeItem('branchComparisonCollegesData');
                 localStorage.removeItem('branchComparisonCollegesDataTimestamp');
-                
-                // Reload the page to get fresh data
+
                 location.reload();
             });
         });
-        
-        // Handle page reload vs navigation
+
         window.addEventListener('beforeunload', function() {
-            // Check if this is a navigation or a reload
+
             const isNavigation = sessionStorage.getItem('isNavigation');
-            
-            // If it's not a navigation (i.e., it's a reload), clear cache
+
             if (!isNavigation) {
-                // Clear branch comparison cache when page is reloaded
+
                 localStorage.removeItem('branchComparisonBranchesData');
                 localStorage.removeItem('branchComparisonBranchesDataTimestamp');
                 localStorage.removeItem('branchComparisonCollegesData');
                 localStorage.removeItem('branchComparisonCollegesDataTimestamp');
             }
         });
-        
-        // Set a flag to indicate this is a navigation (not a reload)
+
         window.addEventListener('DOMContentLoaded', function() {
             sessionStorage.setItem('isNavigation', 'true');
         });
-        
-        // Clear the navigation flag when page is fully loaded
+
         window.addEventListener('load', function() {
             sessionStorage.removeItem('isNavigation');
         });

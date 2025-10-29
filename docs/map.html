@@ -114,7 +114,7 @@
         </section>
 
         <div class="container">
-            <!-- Location Accuracy Notice -->
+            
             <div class="location-accuracy-notice" style="background: #f8d7da; border: 1px solid #f5c6cb; border-left: 4px solid #dc3545; padding: 1rem 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
                 <p style="margin: 0; color: #721c24; display: flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-info-circle" style="font-size: 1.2rem;"></i>
@@ -123,9 +123,9 @@
                 </p>
             </div>
 
-            <!-- Filters with Search -->
+            
             <div style="background: var(--card-light); padding: 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: var(--shadow);">
-                <!-- Search Box with Autocomplete -->
+                
                 <div style="margin-bottom: 1rem;">
                     <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--color-text-primary);">
                         <i class="fas fa-search"></i> Search Colleges
@@ -145,7 +145,7 @@
                     </button>
                 </div>
                 
-                <!-- Filters -->
+                
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                     <div>
                         <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--color-text-primary);">Region</label>
@@ -173,16 +173,16 @@
                 </div>
             </div>
 
-            <!-- Map Controls -->
+            
             <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
                 <button id="toggleMarkers" class="btn-primary">Hide Markers</button>
                 <button id="toggleHeatmap" class="btn-primary" style="background: var(--color-accent); border-color: var(--color-accent); color: white;">Show Heatmap</button>
             </div>
             
-            <!-- Map Container -->
+            
             <div id="map" style="height: 600px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 2rem; position: relative;"></div>
 
-            <!-- College List -->
+            
             <div id="collegeList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;"></div>
             <div id="loadingSpinner" class="loading-spinner" style="display: flex;"><div class="spinner"></div></div>
         </div>
@@ -193,7 +193,7 @@
         <button id="scrollBottomBtn" title="Scroll to Bottom"><i class="fa-solid fa-arrow-down"></i></button>
     </div>
 
-    <!-- Comparison Tray (Fixed to Bottom) -->
+    
     <div id="comparison-tray" class="comparison-tray hidden">
         <div class="tray-content">
             <p><span id="compare-count">0</span> Colleges Selected for Comparison</p>

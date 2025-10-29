@@ -13,7 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
 
-    <!-- Libraries for PDF Generation (Keep as per history) -->
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     
@@ -74,7 +74,7 @@
                     
                     <div id="filtersContainer" class="filters-container is-open"> 
                         <div class="filters-content-wrapper">
-                            <!-- Basic Filters (Always Visible) -->
+                            
                             <div class="form-grid">
                                 <div class="form-group">
                                     <label for="desiredBranch" data-lang-key="labelBranch">Branch Preference</label>
@@ -172,7 +172,7 @@
                         <button type="button" id="clearButton" class="btn-secondary" data-lang-key="btnClear">
                             <i class="fa-solid fa-xmark"></i> Clear All Filters
                         </button>
-                        <!-- NEW: SECOND PREDICT BUTTON -->
+                        
                         <button type="button" id="predictButtonBottom" class="btn-primary" data-lang-key="btnPredict">
                             Predict Now <i class="fa-solid fa-arrow-right"></i>
                         </button>
@@ -214,7 +214,7 @@
                         </div>
                     </div>
                     <div id="collegeList" class="college-list">
-                        <!-- JS renders empty state or results here -->
+                        
                     </div>
                 </div>
             </div> 
@@ -231,7 +231,7 @@
         </div>
     </main>
 
-    <!-- Comparison Tray (Fixed to Bottom) -->
+    
     <div id="comparison-tray" class="comparison-tray hidden">
         <div class="tray-content">
             <p><span id="compare-count">0</span> Colleges Selected for Comparison</p>
@@ -244,7 +244,7 @@
         </div>
     </div>
 
-    <!-- Comparison Modal (Hidden Pop-up) -->
+    
     <div id="comparison-modal" class="modal" style="display: none;">
         <div class="modal-content-large">
             <div class="modal-header">
@@ -253,13 +253,13 @@
             </div>
             <div class="modal-body-wrapper">
                 <div id="comparison-table-container" class="comparison-table-container">
-                    <!-- Comparison table will be dynamically generated here -->
+                    
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Custom Warning Modal (Hidden Pop-up) -->
+    
     <div id="custom-warning-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -278,17 +278,16 @@
         </div>
     </footer>
 
-    <!-- Libraries for PDF Generation (Keep as per history) -->
+    
     <script src="validation-popups.js"></script>
     <script src="main.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            
-            // Add refresh button functionality
+
             const refreshBtn = document.getElementById('refreshBtn');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', function() {
-                    // Clear localStorage cache for all tabs
+
                     localStorage.removeItem('collegeResults');
                     localStorage.removeItem('sortedResults');
                     localStorage.removeItem('analyticsData');
@@ -303,24 +302,20 @@
                     localStorage.removeItem('branchComparisonCollegesDataTimestamp');
                     localStorage.removeItem('allCollegesCache');
                     localStorage.removeItem('allCollegesCacheTimestamp');
-                    
-                    // Reload the page to get fresh data
+
                     location.reload();
                 });
             }
-            
-            // Set a flag to indicate this is a navigation (not a reload)
+
             sessionStorage.setItem('isNavigation', 'true');
         });
-        
-        // Handle page reload vs navigation
+
         window.addEventListener('beforeunload', function() {
-            // Check if this is a navigation or a reload
+
             const isNavigation = sessionStorage.getItem('isNavigation');
-            
-            // If it's not a navigation (i.e., it's a reload), clear cache
+
             if (!isNavigation) {
-                // Clear all cache items when page is reloaded
+
                 localStorage.removeItem('collegeResults');
                 localStorage.removeItem('sortedResults');
                 localStorage.removeItem('analyticsData');
@@ -337,8 +332,7 @@
                 localStorage.removeItem('allCollegesCacheTimestamp');
             }
         });
-        
-        // Clear the navigation flag when page is fully loaded
+
         window.addEventListener('load', function() {
             sessionStorage.removeItem('isNavigation');
         });

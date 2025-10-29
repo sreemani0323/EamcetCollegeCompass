@@ -129,13 +129,12 @@
     <script src="calculator.js"></script>
     
     <script>
-        // Scroll button functionality
+
         document.addEventListener('DOMContentLoaded', function() {
             const scrollButtons = document.getElementById('scrollButtons');
             const scrollTopBtn = document.getElementById('scrollTopBtn');
             const scrollBottomBtn = document.getElementById('scrollBottomBtn');
-            
-            // Show/hide scroll buttons based on scroll position
+
             window.addEventListener('scroll', function() {
                 if (window.scrollY > 300) {
                     scrollButtons.classList.add('visible');
@@ -143,66 +142,55 @@
                     scrollButtons.classList.remove('visible');
                 }
             });
-            
-            // Scroll to top
+
             scrollTopBtn.addEventListener('click', function() {
                 window.scrollTo({
                     top: 0,
                     behavior: 'smooth'
                 });
             });
-            
-            // Scroll to bottom
+
             scrollBottomBtn.addEventListener('click', function() {
                 window.scrollTo({
                     top: document.body.scrollHeight,
                     behavior: 'smooth'
                 });
             });
-            
-            // Refresh button functionality
+
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.addEventListener('click', function() {
-                // Clear localStorage cache
+
                 localStorage.removeItem('calculatorCollegesData');
                 localStorage.removeItem('calculatorCollegesDataTimestamp');
-                
-                // Clear existing content
+
                 document.getElementById('result').style.display = 'none';
                 document.getElementById('collegeName').value = '';
                 document.getElementById('collegeDropdown').innerHTML = '';
-                
-                // Reset branch dropdown
+
                 const branchSelect = document.getElementById('branch');
                 branchSelect.innerHTML = '<option value="">First select a college</option>';
-                
-                // Show loading spinner
+
                 document.getElementById('loading').style.display = 'flex';
-                
-                // Reload data
+
                 loadColleges();
             });
         });
-        
-        // Handle page reload vs navigation
+
         window.addEventListener('beforeunload', function() {
-            // Check if this is a navigation or a reload
+
             const isNavigation = sessionStorage.getItem('isNavigation');
-            
-            // If it's not a navigation (i.e., it's a reload), clear cache
+
             if (!isNavigation) {
-                // Clear calculator cache when page is reloaded
+
                 localStorage.removeItem('calculatorCollegesData');
                 localStorage.removeItem('calculatorCollegesDataTimestamp');
             }
         });
-        
-        // Set a flag to indicate this is a navigation (not a reload)
+
         window.addEventListener('DOMContentLoaded', function() {
             sessionStorage.setItem('isNavigation', 'true');
         });
-        
-        // Clear the navigation flag when page is fully loaded
+
         window.addEventListener('load', function() {
             sessionStorage.removeItem('isNavigation');
         });

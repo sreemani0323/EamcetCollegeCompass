@@ -1,5 +1,24 @@
+/**
+ * Main JavaScript file for the College Predictor frontend application.
+ * Contains the core functionality for the college prediction interface,
+ * including form handling, API communication, result rendering, and UI interactions.
+ * 
+ * This file handles:
+ * - DOM initialization and event binding
+ * - Form submission and validation
+ * - API communication with the backend
+ * - Result processing and display
+ * - Multiselect dropdown functionality
+ * - Theme management (light/dark mode)
+ * - Comparison features
+ * - Sorting and filtering of results
+ */
+
 document.addEventListener("DOMContentLoaded", function () {
-    // Add hamburger menu functionality
+
+    /**
+     * Toggles the mobile navigation menu visibility.
+     */
     const navToggle = document.querySelector('.nav-toggle');
     const mainNav = document.querySelector('.main-nav');
     
@@ -7,28 +26,29 @@ document.addEventListener("DOMContentLoaded", function () {
         navToggle.addEventListener('click', function() {
             mainNav.classList.toggle('active');
         });
-        
-        // Close menu when clicking outside
+
         document.addEventListener('click', function(event) {
             if (!mainNav.contains(event.target) && !navToggle.contains(event.target)) {
                 mainNav.classList.remove('active');
             }
         });
     }
-    
-    // === BACKGROUND ANIMATION ===
-    // No longer needed as we're using CSS-based animations now
 
-    // === FIREBASE SETUP (Mandatory for Canvas Environment - currently unused for public API calls) ===
+    /**
+     * Configuration data for various form options and selections.
+     * Contains predefined lists for branches, quotas, genders, districts, regions, tiers, and placement qualities.
+     */
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
     if (firebaseConfig) {
-        // Placeholder for Firebase/Auth/Firestore imports and initialization
+        // Firebase initialization would go here if needed
     }
 
-    // === 1. DATA DEFINITIONS & CONFIGURATION ===
+    /**
+     * Static data for form options and selections.
+     */
     const optionData = {
         branches: [
             { value: "Civil Engineering", text: "Civil Engineering" },
@@ -61,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
             { value: "oc", text: "OC (Open Category)" }, { value: "sc", text: "SC (Scheduled Caste)" }, { value: "st", text: "ST (Scheduled Tribe)" }, { value: "bca", text: "BC-A" }, { value: "bcb", text: "BC-B" }, { value: "bcc", text: "BC-C" }, { value: "bcd", text: "BC-D" }, { value: "bce", text: "BC-E" }, { value: "oc_ews", text: "OC (EWS Quota)" },
         ],
         genders: [ { value: "boys", text: "Boys" }, { value: "girls", text: "Girls" } ],
-        // VALUE property uses the FULL NAME for API compatibility
+
         districts: [
             { value: "Anantapur", text: "Anantapur" }, { value: "Annamayya", text: "Annamayya" }, 
             { value: "Bapatla", text: "Bapatla" }, { value: "Chittoor", text: "Chittoor" }, 
@@ -84,13 +104,20 @@ document.addEventListener("DOMContentLoaded", function () {
         ]
     };
 
+    /**
+     * Mapping of regions to their corresponding districts.
+     * Used to filter district options based on selected regions.
+     */
     const regionDistrictMap = {
-        // Arrays use FULL DISTRICT NAMES
         "AU": ["Visakhapatnam", "Vizianagaram", "Srikakulam", "East Godavari", "West Godavari", "Eluru", "Bapatla"], 
         "SVU": ["Chittoor", "Kadapa", "Nellore", "Annamayya", "Tirupati", "YSR Kadapa"],
         "SW": ["Anantapur", "Kurnool", "Guntur", "Krishna", "Prakasam", "Nandyal", "NTR", "Palnadu"]
     };
 
+    /**
+     * Translation strings for UI elements.
+     * Used to support potential internationalization.
+     */
     const translations = {
         btnPredict: "Predict Now", btnClear: "Clear All Filters", disclaimerStrong: "Disclaimer:",
         disclaimerText: "Prediction is based on previous years' cutoff data and trends. Actual cutoffs may vary due to factors such as applicants and seat availability.",
@@ -120,13 +147,17 @@ document.addEventListener("DOMContentLoaded", function () {
         inputWarningText: "To get predictions, please enter your EAMCET rank or select at least one filter option."
     };
     
+    /**
+     * Configuration for sorting options.
+     * Maps UI sort options to their corresponding data properties and ordering logic.
+     */
     const SortMap = {
         'probability': { prop: 'probability' }, 'cutoff': { prop: 'cutoff' },
         'avgPackage': { prop: 'averagePackage' }, 'highestPackage': { prop: 'highestPackage' },
         'quality': { prop: 'placementDriveQuality', order: { "Excellent": 4, "Very Good": 3, "Good": 2, "Bad": 1 } }
     };
 
-    // === 2. ELEMENT SELECTORS ===
+    // DOM element references
     const body = document.body;
     const darkModeSwitch = document.getElementById("darkModeSwitch");
     const rankInput = document.getElementById("rank");
@@ -140,7 +171,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const filtersHeader = document.getElementById('filtersHeader');
     const filtersContainer = document.getElementById('filtersContainer');
     const multiselectContainers = document.querySelectorAll('.multiselect-dropdown');
-    // REMOVED: const finalCategoryInput = document.getElementById("category"); // No longer needed
+
     const downloadBtn = document.getElementById("downloadBtn");
     const downloadMenu = document.getElementById("downloadMenu");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
@@ -148,8 +179,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const scrollButtons = document.getElementById("scrollButtons");
     const scrollTopBtn = document.getElementById("scrollTopBtn");
     const scrollBottomBtn = document.getElementById("scrollBottomBtn");
-    
-    // COMPARISON ELEMENT SELECTORS
+
     const comparisonTray = document.getElementById('comparison-tray');
     const compareCountSpan = document.getElementById('compare-count');
     const compareNowBtn = document.getElementById('compare-now-btn');
@@ -157,47 +187,41 @@ document.addEventListener("DOMContentLoaded", function () {
     const comparisonModal = document.getElementById('comparison-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const comparisonTableContainer = document.getElementById('comparison-table-container');
-    
-    // WARNING MODAL ELEMENTS
+
     const warningModal = document.getElementById('custom-warning-modal');
     const warningModalTitle = document.getElementById('warning-modal-title');
     const warningModalText = document.getElementById('warning-modal-text');
     const warningModalCloseBtn = document.getElementById('warning-modal-close-btn');
-    
-    // NEW ELEMENT SELECTOR for the second button
+
     const predictButtonBottom = document.getElementById('predictButtonBottom');
 
-
-    // === 3. STATE VARIABLES ===
+    // Application state variables
     let rawData = [];
     let sortedData = [];
     let selectedColleges = []; 
     let allCollegesCache = []; // Cache for all colleges data
 
-    // === 4. INITIALIZATION ===
+    /**
+     * Initializes the page by setting up theme, multiselects, and event listeners.
+     */
     initializePage();
 
-    // Add cache management for tab switching
     let isPageActive = true;
     let navigationFlag = false;
     let isRefresh = false;
 
-    // Detect if this is a page refresh using sessionStorage
     const pageState = sessionStorage.getItem('mainPageState');
     if (pageState === 'loaded') {
         isRefresh = true;
     }
     sessionStorage.setItem('mainPageState', 'loaded');
 
-    // Set navigation flag when leaving the page (but not on refresh)
     window.addEventListener('beforeunload', function() {
-        // Only set navigation flag if this is not a refresh
         if (!isRefresh) {
             sessionStorage.setItem('mainPageNavigation', 'true');
         }
     });
 
-    // Check if this is a navigation or refresh
     document.addEventListener('DOMContentLoaded', function() {
         const navFlag = sessionStorage.getItem('mainPageNavigation');
         if (navFlag) {
@@ -206,29 +230,27 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Handle page visibility changes
     document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'hidden') {
-            // Save data when tab is hidden
-        } else {
-            // Restore data when tab becomes visible (only on navigation, not refresh)
-        }
+        // Visibility change handling would go here if needed
     });
 
-    // Also handle focus/blur events as a fallback
     window.addEventListener('blur', function() {
+        // Blur handling would go here if needed
     });
 
     window.addEventListener('focus', function() {
+        // Focus handling would go here if needed
     });
 
+    /**
+     * Initializes the page by setting up theme, multiselects, and event listeners.
+     */
     function initializePage() {
         console.log('initializePage called');
         setTheme(localStorage.getItem("theme") || 'light');
         multiselectContainers.forEach(initializeMultiselect);
         setupEventListeners();
-        
-        // Add Enter key listener to rank input
+
         if (rankInput) {
             rankInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
@@ -237,24 +259,20 @@ document.addEventListener("DOMContentLoaded", function () {
                     handlePrediction();
                 }
             });
-            
-            // Add input validation to ensure only numbers between 1 and 350000
+
             rankInput.addEventListener('input', function(e) {
                 const value = e.target.value;
-                
-                // Remove any non-numeric characters
+
                 if (value && !/^[0-9]*$/.test(value)) {
                     e.target.value = value.replace(/[^0-9]/g, '');
                     return;
                 }
-                
-                // Convert to number for range checking
+
                 const numValue = parseInt(value) || 0;
-                
-                // If value exceeds 350000, show validation popup
+
                 if (numValue > 350000) {
                     console.log('Rank value exceeds 350000:', numValue);
-                    // Show validation popup
+
                     if (typeof showValidationModal === 'function') {
                         console.log('Showing validation modal');
                         showValidationModal(
@@ -266,19 +284,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         console.log('Showing alert');
                         alert('Please enter a rank between 1 and 350000.');
                     }
-                    // Clear the invalid value
+
                     e.target.value = '';
                 }
             });
-            
-            // Add blur event to validate range when user leaves the field
+
             rankInput.addEventListener('blur', function(e) {
                 const value = e.target.value;
                 if (value) {
                     const numValue = parseInt(value) || 0;
                     if (numValue > 350000) {
                         console.log('Rank value exceeds 350000 on blur:', numValue);
-                        // Show validation popup
+
                         if (typeof showValidationModal === 'function') {
                             console.log('Showing validation modal on blur');
                             showValidationModal(
@@ -290,17 +307,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             console.log('Showing alert on blur');
                             alert('Please enter a rank between 1 and 350000.');
                         }
-                        // Clear the invalid value
+
                         e.target.value = '';
                     } else if (numValue < 1 && numValue !== 0) {
                         e.target.value = '';
                     }
                 }
             });
-            
-            // Add paste event to handle pasted values
+
             rankInput.addEventListener('paste', function(e) {
-                // Small delay to let paste operation complete
                 setTimeout(() => {
                     const value = e.target.value;
                     if (value && !/^[0-9]*$/.test(value)) {
@@ -327,8 +342,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, 10);
             });
         }
-        
-        // Check for URL parameters (e.g., from map "View Details" links)
+
         checkUrlParameters();
         
         if (rawData.length === 0) {
@@ -337,33 +351,34 @@ document.addEventListener("DOMContentLoaded", function () {
         translateUI();
         updateDistrictOptions();
         updatePlacementOptions();
-        
-        // Initialize comparison tray
+
         console.log('Initializing comparison tray in initializePage');
         initializeMainComparisonTray();
-        
-        // Clear the page state after initialization
+
         setTimeout(() => {
             sessionStorage.setItem('mainPageState', 'initialized');
         }, 1000);
     }
-    
-    // Function to clear cache on page refresh
+
+    /**
+     * Clears cached data on page refresh.
+     */
     function clearCacheOnRefresh() {
         localStorage.removeItem('collegeResults');
         localStorage.removeItem('sortedResults');
         localStorage.removeItem('collegeFormState');
     }
     
+    /**
+     * Checks URL parameters for direct college access.
+     */
     function checkUrlParameters() {
         const urlParams = new URLSearchParams(window.location.search);
         const instcode = urlParams.get('instcode');
         const view = urlParams.get('view');
         
         if (instcode && view === 'details') {
-            // Auto-search for this specific college by instcode
             setTimeout(() => {
-                // Make API call to filter by instcode
                 console.log('Calling showSpinner with true for instcode search');
                 showSpinner(true);
                 fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
@@ -373,15 +388,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
                 .then(res => res.json())
                 .then(data => {
-                    // FIXED: Ensure only the specific college is displayed
-                    // The API might return all colleges if the instcode filter isn't working properly
-                    // So we filter the data on the client side as well
                     const filteredData = data.filter(college => college.instcode === instcode);
                     rawData = filteredData;
                     filterAndRenderColleges();
                     showSpinner(false);
-                    
-                    // Clear URL parameters without reload
+
                     window.history.replaceState({}, document.title, window.location.pathname);
                 })
                 .catch(err => {
@@ -393,10 +404,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     /**
-     * Load all colleges data (used by map, analytics, etc.)
+     * Loads all colleges data into cache for faster access in other views.
      */
     function loadAllCollegesCache() {
-        // Fetch fresh data every time
         fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -410,21 +420,33 @@ document.addEventListener("DOMContentLoaded", function () {
         .catch(err => console.error("Failed to load colleges:", err));
     }
 
-    // === 5. CORE LOGIC & HELPER FUNCTIONS ===
+    /**
+     * Sets the application theme (light or dark mode).
+     * 
+     * @param {string} theme - The theme to set ('light' or 'dark')
+     */
     function setTheme(theme) {
-        // Set body class
         body.classList.toggle("dark-mode", theme === "dark");
-        // Ensure checkbox state matches theme state
         darkModeSwitch.checked = theme === "dark";
         localStorage.setItem("theme", theme);
     }
 
+    /**
+     * Shows or hides the loading spinner.
+     * 
+     * @param {boolean} show - Whether to show or hide the spinner
+     */
     function showSpinner(show) {
         console.log('Setting spinner display to:', show ? "flex" : "none");
         loadingSpinner.style.display = show ? "flex" : "none";
     }
-    
-    // Custom Warning Modal Function
+
+    /**
+     * Shows a warning modal with the specified title and text.
+     * 
+     * @param {string} title - The title for the modal
+     * @param {string} text - The text content for the modal
+     */
     function showWarningModal(title, text) {
         if (!warningModal) return;
         warningModalTitle.textContent = title;
@@ -432,15 +454,26 @@ document.addEventListener("DOMContentLoaded", function () {
         warningModal.style.display = 'flex';
     }
 
+    /**
+     * Creates a Google Maps URL for a college location.
+     * 
+     * @param {string} collegeName - The name of the college
+     * @param {string} districtCode - The district code
+     * @returns {string} The Google Maps URL
+     */
     function createLocationUrl(collegeName, districtCode) {
-        // districtCode is now the full name
         const fullDistrict = districtCode || '';
         const query = encodeURIComponent(`${collegeName}, ${fullDistrict}`);
         return `https://www.google.com/maps/search/?api=1&query=${query}`;
     }
 
-    // REMOVED: function updateFinalCategory() { ... }
-
+    /**
+     * Sorts data based on the specified criteria.
+     * 
+     * @param {Array} data - The data to sort
+     * @param {string} criteria - The sorting criteria (e.g., 'cutoff-asc', 'probability-desc')
+     * @returns {Array} The sorted data
+     */
     function multiSort(data, criteria) {
         console.log('multiSort called with data length:', data.length, 'and criteria:', criteria);
         const [key, direction] = criteria.split("-");
@@ -472,12 +505,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    /**
+     * Translates UI elements based on the translations object.
+     */
     function translateUI() {
         document.querySelectorAll("[data-lang-key]").forEach(el => {
             const key = el.getAttribute("data-lang-key");
             const text = translations[key];
             if (text) {
-               // Check if the element is a direct child of a label with select-all-label class
                 if (el.tagName === 'SPAN' && el.parentElement.classList.contains('select-all-label')) {
                     el.textContent = text;
                 } else {
@@ -495,7 +530,12 @@ document.addEventListener("DOMContentLoaded", function () {
         updateComparisonTray(); 
     }
 
-    // === 6. MULTI-SELECT & DEPENDENT DROPDOWN LOGIC ===
+    /**
+     * Updates the display of selected items in a multiselect dropdown.
+     * 
+     * @param {Element} dropdown - The multiselect dropdown element
+     * @param {Array} selectedValues - Array of selected values
+     */
     function updateSelectedItemsDisplay(dropdown, selectedValues) {
         const selectedItemsSpan = dropdown.querySelector(".selected-items");
         let placeholderText = selectedItemsSpan.dataset.originalText;
@@ -521,6 +561,11 @@ document.addEventListener("DOMContentLoaded", function () {
         selectedItemsSpan.textContent = selectedTexts.length === 1 ? selectedTexts[0] : `${selectedTexts.length} ${translations.itemsSelected}`;
     }
 
+    /**
+     * Toggles the visibility of a multiselect dropdown.
+     * 
+     * @param {Element} dropdown - The dropdown to toggle
+     */
     function toggleDropdown(dropdown) {
         document.querySelectorAll('.multiselect-dropdown.open').forEach(openDropdown => {
             if (openDropdown !== dropdown) openDropdown.classList.remove('open');
@@ -528,6 +573,11 @@ document.addEventListener("DOMContentLoaded", function () {
         dropdown.classList.toggle('open');
     }
 
+    /**
+     * Initializes a multiselect dropdown with options and event listeners.
+     * 
+     * @param {Element} dropdown - The dropdown element to initialize
+     */
     function initializeMultiselect(dropdown) {
         const id = dropdown.getAttribute('data-id');
         const hiddenInput = document.getElementById(id);
@@ -565,15 +615,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 const selectedValues = Array.from(optionElements).map(l => l.querySelector('input[type="checkbox"]')).filter(cb => cb.checked).map(cb => cb.value);
                 hiddenInput.value = selectedValues.join(',');
-                
-                // Debug logging
+
                 console.log(`Multiselect ${id} hidden input updated:`, hiddenInput.value);
                 console.log(`Multiselect ${id} selected values:`, selectedValues);
                 console.log(`Multiselect ${id} hidden input element:`, hiddenInput);
                 
                 updateSelectedItemsDisplay(dropdown, selectedValues);
 
-                // REMOVED: if (id === 'quota' || id === 'gender') updateFinalCategory();
                 if (id === 'region') updateDistrictOptions();
                 if (id === 'tier') updatePlacementOptions();
             });
@@ -591,6 +639,13 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
+    /**
+     * Updates dependent options based on selected values.
+     * 
+     * @param {string} controlId - The ID of the control element
+     * @param {string} hiddenInputId - The ID of the hidden input
+     * @param {Set} allowedValues - Set of allowed values
+     */
     function updateDependentOptions(controlId, hiddenInputId, allowedValues) {
         const dropdown = document.querySelector(`.multiselect-dropdown[data-id="${controlId}"]`);
         const checkboxes = dropdown.querySelectorAll('.options-list input[type="checkbox"]');
@@ -607,6 +662,9 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSelectedItemsDisplay(dropdown, stillSelectedValues);
     }
 
+    /**
+     * Updates district options based on selected regions.
+     */
     function updateDistrictOptions() {
         const selectedRegions = (document.getElementById('region').value || "").split(',').filter(Boolean);
         let allowedDistricts = new Set(optionData.districts.map(d => d.value));
@@ -617,46 +675,37 @@ document.addEventListener("DOMContentLoaded", function () {
         updateDependentOptions('district', 'district', allowedDistricts);
     }
 
-   function updatePlacementOptions() {
-    let allowedValues = new Set(['Excellent', 'Very Good', 'Good', 'Bad']);
-
-    updateDependentOptions('placementQualityFilter', 'placementQualityFilter', allowedValues);
-}
-
-    // === 7. EVENT LISTENERS & INITIALIZATION ===
-    // Removed form submit event listener - handling everything directly in button click handler
-
-    // Function to reset results when new input is provided
-    function resetResults() {
-        // Clear existing data
-        rawData = [];
-        sortedData = [];
-        
-        // Clear college list display
-        collegeListDiv.innerHTML = '';
-        
-        // Hide results header
-        resultsHeader.style.display = 'none';
-        
-        // Clear comparison selections
-        selectedColleges = [];
-        updateComparisonTray();
-        
-        // Reset sort selection to default
-        sortBySelect.value = 'cutoff-asc';
-        
-
+    /**
+     * Updates placement quality options.
+     */
+    function updatePlacementOptions() {
+        let allowedValues = new Set(['Excellent', 'Very Good', 'Good', 'Bad']);
+        updateDependentOptions('placementQualityFilter', 'placementQualityFilter', allowedValues);
     }
 
+    /**
+     * Resets the results display and clears data.
+     */
+    function resetResults() {
+        rawData = [];
+        sortedData = [];
+        collegeListDiv.innerHTML = '';
+        resultsHeader.style.display = 'none';
+        selectedColleges = [];
+        updateComparisonTray();
+        sortBySelect.value = 'cutoff-asc';
+    }
+
+    /**
+     * Filters and renders colleges based on current sort settings.
+     */
     function filterAndRenderColleges() {
         console.log('filterAndRenderColleges called with rawData length:', rawData.length);
-        // Preserve current comparison selections
         const currentSelectedIds = selectedColleges.map(c => c.uniqueId);
         console.log('filterAndRenderColleges called, preserving selected colleges:', currentSelectedIds);
         
         sortedData = multiSort(rawData, sortBySelect.value);
-        
-        // Restore selected colleges that are still in the results
+
         const newSelectedColleges = [];
         sortedData.forEach(college => {
             const uniqueId = `${college.instcode}-${college.branch}-${college.category}-${college.cutoff}`;
@@ -672,6 +721,9 @@ document.addEventListener("DOMContentLoaded", function () {
         updateComparisonTray();
     }
 
+    /**
+     * Renders college cards based on sorted data.
+     */
     function renderColleges() {
         console.log('renderColleges called with sortedData length:', sortedData.length);
         if (!sortedData || sortedData.length === 0) {
@@ -688,23 +740,20 @@ document.addEventListener("DOMContentLoaded", function () {
         sortedData.forEach((college, index) => {
             console.log('Creating card for college', index, ':', college);
             const card = document.createElement("div");
-            // Create a unique ID for comparison tracking
+
             const uniqueId = `${college.instcode}-${college.branch}-${college.category}-${college.cutoff}`; 
             card.className = "college-card";
             card.dataset.id = uniqueId; 
             
             const isSelected = selectedColleges.some(c => c.uniqueId === uniqueId);
-            
-            // Format data for display
+
             const collegeName = college.institution_name || college.name || "Unnamed College";
             const locationUrl = createLocationUrl(collegeName, college.district);
             const probClass = college.probability >= 75 ? 'prob-high' : college.probability >= 30 ? 'prob-medium' : 'prob-low';
             const qualityClass = `quality-${(college.placementDriveQuality || 'n/a').replace(/\s+/g, '-')}`;
 
-            // CRITICAL FIX: Use JSON.stringify and then replace double quotes with " for safer HTML embedding
             const collegeDataString = JSON.stringify(college).replace(/"/g, '"'); 
 
-            // Comparison Checkbox HTML (calls global function)
             const comparisonCheckbox = `
                 <div class="compare-checkbox-wrapper">
                     <label for="compare-${uniqueId}" title="${translations.compareCheck}">
@@ -754,12 +803,15 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log('initializeMainComparisonTray completed');
     }
 
+    /**
+     * Renders an empty state message when no data is available.
+     * 
+     * @param {string} message - The message to display
+     */
     function renderEmptyState(message) {
         resultsHeader.style.display = 'none';
         collegeListDiv.innerHTML = `<div class="empty-state"><i class="fas fa-search-location"></i><h2>Your Results Will Appear Here</h2><p>${message || "Enter your rank to see college predictions."}</p></div>`;
-        
-        // Show noResults popup if we have the ValidationMessages available and this is actually a "no results" scenario
-        // (not just the initial empty state)
+
         if (message && message !== "Enter your rank to see college predictions." && 
             typeof showValidationModal === 'function' && 
             typeof ValidationMessages !== 'undefined' && 
@@ -770,14 +822,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 ValidationMessages.noResults.type
             );
         }
-        
-        // Initialize comparison tray even when there are no results
+
         initializeMainComparisonTray();
     }
 
-    // --- Comparison Feature Logic ---
-
-    // Expose this function globally so it can be called from dynamically injected HTML
+    /**
+     * Handles the compare checkbox change event.
+     * 
+     * @param {Event} event - The checkbox change event
+     */
     window.handleCompareCheckbox = (event) => {
         const checkbox = event.target;
         const uniqueId = checkbox.dataset.uniqueId;
@@ -787,7 +840,6 @@ document.addEventListener("DOMContentLoaded", function () {
         
         let collegeData;
         try {
-            // Decode the string and parse JSON
             const dataString = checkbox.getAttribute('data-college').replace(/"/g, '"');
             collegeData = JSON.parse(dataString);
             console.log('Parsed college data:', collegeData);
@@ -821,6 +873,11 @@ document.addEventListener("DOMContentLoaded", function () {
         updateComparisonTray();
     };
 
+    /**
+     * Removes a college from the comparison selection.
+     * 
+     * @param {string} uniqueId - The unique ID of the college to remove
+     */
     window.removeCollegeFromComparison = (uniqueId) => {
         selectedColleges = selectedColleges.filter(c => c.uniqueId !== uniqueId);
         
@@ -837,6 +894,9 @@ document.addEventListener("DOMContentLoaded", function () {
         updateComparisonTray();
     };
 
+    /**
+     * Updates the comparison tray display based on selected colleges.
+     */
     function updateComparisonTray() {
         const count = selectedColleges.length;
         const countText = translations.compareCount;
@@ -879,6 +939,11 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log('Comparison tray updated with count:', count);
     }
     
+    /**
+     * Opens the comparison modal to display selected colleges side-by-side.
+     * 
+     * @param {boolean} isFirstOpen - Whether this is the first time opening the modal
+     */
     function openComparisonModal(isFirstOpen = true) {
         if (selectedColleges.length < 2) return;
         
@@ -898,8 +963,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ];
 
         let tableHTML = `<table class="comparison-table"><thead><tr>`;
-        
-        // First row: College Name/Remove Button
+
         tableHTML += `<th class="sticky-feature">${translations.tableFeature}</th>`; 
 
         selectedColleges.forEach(college => {
@@ -917,7 +981,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         tableHTML += `</tr></thead><tbody>`;
 
-        // Data rows
         features.forEach(feature => {
             let row = `<tr><th class="sticky-feature">${feature.label}</th>`;
             
@@ -938,9 +1001,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     displayValue = value;
                     className = `quality-${(value || 'n/a').replace(/\s+/g, '-')}`;
                 } else if (feature.key === 'category') {
-                    // The category field usually contains the quota (e.g., 'OC', 'BC-A')
                     const quotaCode = value.split('_')[0].toUpperCase();
-                    // Try to find the full text of the quota from the optionData.quotas
                     const quotaOption = optionData.quotas.find(q => q.value.toUpperCase() === quotaCode || q.text.toUpperCase() === value.toUpperCase());
                     displayValue = quotaOption?.text || value;
                 } else if (feature.key === 'cutoff') {
@@ -958,17 +1019,17 @@ document.addEventListener("DOMContentLoaded", function () {
         tableHTML += `</tbody></table>`;
         comparisonTableContainer.innerHTML = tableHTML;
     }
-    
-    // === 8. EVENT LISTENERS SETUP ===
+
+    /**
+     * Sets up event listeners for various UI elements.
+     */
     function setupEventListeners() {
         console.log('setupEventListeners called');
-        
-        // Log comparison elements
+
         console.log('comparisonTray:', comparisonTray);
         console.log('compareNowBtn:', compareNowBtn);
         console.log('clearCompareBtn:', clearCompareBtn);
-        
-        // Advanced Filters Toggle (NOT the entire "Refine Your Search")
+
         const advancedFiltersHeader = document.getElementById("advancedFiltersHeader");
         const advancedFiltersContainer = document.getElementById("advancedFiltersContainer");
         
@@ -985,8 +1046,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         
         darkModeSwitch.addEventListener("change", () => setTheme(darkModeSwitch.checked ? "dark" : "light"));
-        
-        // Attach handlers to all Predict buttons
+
         if (predictButton) {
             console.log('Attaching event listener to predictButton');
             predictButton.addEventListener("click", function(e) {
@@ -1009,12 +1069,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         sortBySelect.addEventListener("change", filterAndRenderColleges);
 
-        // Comparison Modal/Tray Listeners
         if (compareNowBtn) {
             compareNowBtn.addEventListener('click', () => openComparisonModal(true));
         }
-        
-        // Add event delegation for dynamically added elements
+
         document.addEventListener('click', function(e) {
             if (e.target.id === 'compare-now-btn' || (e.target.closest && e.target.closest('#compare-now-btn'))) {
                 openComparisonModal(true);
@@ -1041,8 +1099,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
         }
-        
-        // Custom Warning Modal Listener
+
         if (warningModal) {
             warningModalCloseBtn.addEventListener('click', () => warningModal.style.display = 'none');
             warningModal.addEventListener('click', (e) => {
@@ -1056,8 +1113,7 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log('Clear button clicked - clearing all form values');
             predictForm.reset();
             rankInput.value = '';
-            // Note: The hidden input 'category' is still in the HTML, but now unused in prediction logic. 
-            // It's still good practice to clear all hidden inputs that were associated with a state.
+
             document.querySelectorAll('#predictForm input[type="hidden"]').forEach(input => {
                 console.log('Clearing hidden input:', input.id, 'value before:', input.value);
                 input.value = '';
@@ -1072,13 +1128,11 @@ document.addEventListener("DOMContentLoaded", function () {
             renderEmptyState();
             rawData = [];
             sortedData = [];
-            
-            // Clear comparison on filter reset
+
             selectedColleges = [];
             updateComparisonTray();
         });
-        
-        // Download Listeners (No changes)
+
         downloadBtn.addEventListener('click', () => {
             if (sortedData.length === 0) {
                 console.warn(translations.downloadNoData);
@@ -1125,19 +1179,20 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    /**
+     * Handles the prediction process by collecting form data and calling the API.
+     */
     function handlePrediction() {
         console.log('Predict button clicked - triggering form submission');
         console.log('Form element:', predictForm);
         console.log('Rank input value:', rankInput.value);
-        
-        // Get rank value
+
         const rank = parseInt(rankInput.value) || 0;
         const rankValue = rankInput.value.trim();
         
         console.log('Rank value:', rankValue);
         console.log('Parsed rank:', rank);
-        
-        // Validate rank
+
         if (rankValue !== '') {
             if (rank <= 0) {
                 console.log('Invalid rank detected, showing validation modal');
@@ -1152,8 +1207,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 return;
             }
-            
-            // Check if rank is within valid range (1-350000)
+
             if (rank > 350000) {
                 console.log('Rank out of range, showing validation modal');
                 if (typeof showValidationModal === 'function') {
@@ -1168,8 +1222,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
         }
-        
-        // Get filter values
+
         const filters = {};
         const filterInputs = [
             { id: 'desiredBranch', paramName: 'branch' },
@@ -1188,15 +1241,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log(`Added ${filter.paramName} to filters:`, inputElement.value);
             }
         });
-        
-        // Check if we have any input at all
+
         const hasRank = rankValue !== '';
         const hasFilters = Object.keys(filters).some(key => filters[key]);
         
         console.log('Has rank:', hasRank);
         console.log('Has filters:', hasFilters);
-        
-        // If no input at all, show validation message
+
         if (!hasRank && !hasFilters) {
             console.log('No input provided, showing validation modal');
             if (typeof showValidationModal === 'function' && ValidationMessages && ValidationMessages.noInput) {
@@ -1210,11 +1261,9 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             return;
         }
-        
-        // Build request data
+
         let requestData = { rank: hasRank ? rank : null };
-        
-        // Process filters
+
         Object.keys(filters).forEach(key => {
             if (key === 'quota') {
                 const quotaValues = filters[key].split(',').filter(Boolean);
@@ -1237,14 +1286,12 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         
         console.log('Final request data being sent:', requestData);
-        
-        // Clear results and show spinner
+
         console.log('Resetting results and showing spinner');
         resetResults();
         console.log('Calling showSpinner with true');
         showSpinner(true);
-        
-        // Make API call
+
         console.log('Making API call with requestData:', requestData);
         const url = `https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`;
         console.log('API URL:', url);
@@ -1289,8 +1336,7 @@ document.addEventListener("DOMContentLoaded", function () {
             showSpinner(false);
         });
     }
-    
-    // Also attach the event listener when the page loads
+
     setTimeout(function() {
         const compareNowBtn = document.getElementById('compare-now-btn');
         if (compareNowBtn) {
@@ -1298,13 +1344,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 openComparisonModal(true);
             });
         }
-        // Initialize the comparison tray
+
         initializeMainComparisonTray();
     }, 1000);
 
-    // Add function to initialize comparison tray on page load
+    /**
+     * Initializes the main comparison tray on page load.
+     */
     function initializeMainComparisonTray() {
-        // Update comparison tray UI
         const count = selectedColleges.length;
         
         console.log('initializeMainComparisonTray called, count:', count);
@@ -1312,7 +1359,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         if (comparisonTray) {
             console.log('Comparison tray found in initializeMainComparisonTray');
-            // Show/hide tray based on selection count
+
             console.log('Updating comparison tray visibility, count:', count);
             if (count > 0) {
                 console.log('Adding visible class and removing hidden class');
@@ -1325,8 +1372,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 comparisonTray.classList.add('hidden');
                 console.log('Set tray to hidden');
             }
-            
-            // Enable/disable compare button
+
             if (compareNowBtn) {
                 console.log('Setting compare button disabled state, count < 2:', count < 2);
                 compareNowBtn.disabled = count < 2;

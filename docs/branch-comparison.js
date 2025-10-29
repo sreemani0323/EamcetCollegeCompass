@@ -1,40 +1,33 @@
 document.addEventListener("DOMContentLoaded", async function () {
-    // === BACKGROUND ANIMATION ===
-    // Create subtle floating particles for background
+
+
     function createBackgroundAnimation() {
         const container = document.getElementById('backgroundAnimation');
         if (!container) return;
-        
-        // Clear any existing particles
+
         container.innerHTML = '';
-        
-        // Create 15 particles
+
         for (let i = 0; i < 15; i++) {
             const particle = document.createElement('div');
             particle.classList.add('particle');
-            
-            // Random size between 2px and 8px
+
             const size = Math.random() * 6 + 2;
             particle.style.width = `${size}px`;
             particle.style.height = `${size}px`;
-            
-            // Random position
+
             particle.style.left = `${Math.random() * 100}%`;
             particle.style.top = `${Math.random() * 100}%`;
-            
-            // Random animation duration between 10s and 25s
+
             const duration = Math.random() * 15 + 10;
             particle.style.animationDuration = `${duration}s`;
-            
-            // Random delay
+
             const delay = Math.random() * 5;
             particle.style.animationDelay = `${delay}s`;
             
             container.appendChild(particle);
         }
     }
-    
-    // Initialize background animation
+
     createBackgroundAnimation();
 
     const darkModeSwitch = document.getElementById("darkModeSwitch");
@@ -47,8 +40,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     let branches = [];
     let selectedBranches = [];
     let branchData = {};
-    
-    // Theme
+
     const theme = localStorage.getItem("theme") || 'light';
     document.body.classList.toggle("dark-mode", theme === "dark");
     darkModeSwitch.checked = theme === "dark";
@@ -57,11 +49,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         document.body.classList.toggle("dark-mode", newTheme === "dark");
         localStorage.setItem("theme", newTheme);
     });
-    
-    // Auto-show branch selection on load
+
     branchSelection.parentElement.style.display = "block";
-    
-    // Check if we have cached data in localStorage
+
     const cachedBranches = localStorage.getItem('branchComparisonBranchesData');
     const cachedColleges = localStorage.getItem('branchComparisonCollegesData');
     const branchesCacheTimestamp = localStorage.getItem('branchComparisonBranchesDataTimestamp');
@@ -70,36 +60,32 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (cachedBranches && cachedColleges && branchesCacheTimestamp && collegesCacheTimestamp) {
         const branchesAgeInMinutes = (Date.now() - parseInt(branchesCacheTimestamp)) / (1000 * 60);
         const collegesAgeInMinutes = (Date.now() - parseInt(collegesCacheTimestamp)) / (1000 * 60);
-        
-        // Cache is valid for 30 minutes for branches and 1 hour for colleges
+
         if (branchesAgeInMinutes < 30 && collegesAgeInMinutes < 60) {
             try {
                 branches = JSON.parse(cachedBranches);
                 const allColleges = JSON.parse(cachedColleges);
                 console.log(`Loaded ${branches.length} branches and ${allColleges.length} colleges from localStorage cache`);
-                
-                // Render branch checkboxes
+
                 renderBranchCheckboxes();
                 
                 loadingSpinner.style.display = "none";
                 return;
             } catch (e) {
                 console.error("Failed to parse cached branch comparison data:", e);
-                // Load fresh data if cache is corrupted
+
                 loadInitialData();
             }
         }
     }
-    
-    // Load branches and colleges from backend
+
     loadInitialData();
     
     async function loadInitialData() {
         try {
             loadingSpinner.style.display = "flex";
             loadingSpinner.innerHTML = '<div class="spinner"></div><p>Loading available branches...</p>';
-            
-            // Check if we have cached branches data that's not too old (less than 30 minutes)
+
             const cachedBranches = localStorage.getItem('branchComparisonBranchesData');
             const cacheTimestamp = localStorage.getItem('branchComparisonBranchesDataTimestamp');
             
@@ -109,8 +95,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     try {
                         branches = JSON.parse(cachedBranches);
                         console.log(`Loaded ${branches.length} branches from localStorage cache`);
-                        
-                        // Render branch checkboxes
+
                         renderBranchCheckboxes();
                         
                         loadingSpinner.style.display = "none";
@@ -120,8 +105,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     }
                 }
             }
-            
-            // If no valid cache, fetch fresh data
+
             const response = await fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/analytics/branches?_=${new Date().getTime()}`);
             if (!response.ok) {
                 throw new Error(`Failed to load branches: ${response.status}`);
@@ -129,8 +113,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             
             branches = await response.json();
             console.log(`Loaded ${branches.length} branches from backend:`, branches);
-            
-            // Cache the branches data in localStorage with timestamp
+
             try {
                 localStorage.setItem('branchComparisonBranchesData', JSON.stringify(branches));
                 localStorage.setItem('branchComparisonBranchesDataTimestamp', Date.now().toString());
@@ -141,8 +124,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (branches.length === 0) {
                 throw new Error('No branches found in database');
             }
-            
-            // Render branch checkboxes
+
             renderBranchCheckboxes();
             
             loadingSpinner.style.display = "none";
@@ -177,10 +159,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             checkbox.addEventListener("change", function() {
                 if (this.checked) {
                     selectedBranches.push(branch);
-                    // Don't add selected class to container
+
                 } else {
                     selectedBranches = selectedBranches.filter(b => b !== branch);
-                    // Don't remove selected class from container
+
                 }
                 
                 compareBtn.disabled = selectedBranches.length < 2;
@@ -207,7 +189,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         branchData = {};
         
         try {
-            // Check if we have cached colleges data that's not too old (less than 1 hour)
+
             const cachedColleges = localStorage.getItem('branchComparisonCollegesData');
             const cacheTimestamp = localStorage.getItem('branchComparisonCollegesDataTimestamp');
             
@@ -221,13 +203,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                         console.log(`Loaded ${allColleges.length} colleges from localStorage cache`);
                     } catch (e) {
                         console.warn("Failed to parse cached colleges data:", e);
-                        // Load fresh data if cache is corrupted
+
                         allColleges = null;
                     }
                 }
             }
-            
-            // If no valid cached data, fetch from backend
+
             if (!allColleges) {
                 console.log('Fetching all colleges data from backend...');
                 const response = await fetch(`https://theeamcetcollegeprediction-2.onrender.com/api/predict-colleges?_=${new Date().getTime()}`, {
@@ -242,8 +223,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 
                 allColleges = await response.json();
                 console.log(`Fetched ${allColleges.length} colleges from backend`);
-                
-                // Cache the colleges data in localStorage with timestamp
+
                 try {
                     localStorage.setItem('branchComparisonCollegesData', JSON.stringify(allColleges));
                     localStorage.setItem('branchComparisonCollegesDataTimestamp', Date.now().toString());
@@ -251,16 +231,14 @@ document.addEventListener("DOMContentLoaded", async function () {
                     console.warn("Failed to cache branch comparison colleges data:", e);
                 }
             }
-            
-            // Log a sample college to see the structure
+
             if (allColleges.length > 0) {
                 console.log('Sample college data:', allColleges[0]);
             }
-            
-            // Calculate stats for each selected branch
+
             for (const branch of selectedBranches) {
                 console.log(`Calculating stats for branch: ${branch}`);
-                // Handle both 'branch' and 'branchCode' field names
+
                 const branchColleges = allColleges.filter(c => {
                     const collegeBranch = c.branch || c.branchCode || '';
                     return collegeBranch === branch;
@@ -293,7 +271,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     console.log(`Stats for ${branch}:`, branchData[branch]);
                 } else {
                     console.warn(`No colleges found for branch: ${branch}`);
-                    // Log available branch names for debugging
+
                     const availableBranches = [...new Set(allColleges.map(c => c.branch || c.branchCode).filter(Boolean))];
                     console.log('Available branches in data:', availableBranches.slice(0, 10));
                 }
@@ -327,7 +305,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     
     function renderComparison() {
-        // Summary Cards
+
         summaryCards.innerHTML = "";
         Object.entries(branchData).forEach(([branch, data]) => {
             const card = document.createElement("div");
@@ -348,11 +326,9 @@ document.addEventListener("DOMContentLoaded", async function () {
             `;
             summaryCards.appendChild(card);
         });
-        
-        // Charts
+
         renderCharts();
-        
-        // Table
+
         renderTable();
     }
     
@@ -367,8 +343,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const branchNames = Object.keys(branchData);
         const collegeCounts = branchNames.map(b => branchData[b].totalColleges);
         const avgPackages = branchNames.map(b => branchData[b].avgPackage);
-        
-        // Colleges Chart
+
         const collegesCtx = document.getElementById("collegesChart");
         if (collegesCtx.chart) collegesCtx.chart.destroy();
         
@@ -419,8 +394,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 }
             }
         });
-        
-        // Package Chart
+
         const packageCtx = document.getElementById("packageChart");
         if (packageCtx.chart) packageCtx.chart.destroy();
         
@@ -476,26 +450,22 @@ document.addEventListener("DOMContentLoaded", async function () {
     function renderTable() {
         const table = document.getElementById("comparisonTable");
         table.innerHTML = "";
-        
-        // Define features to compare (similar to home tab)
+
         const features = [
             { key: 'totalColleges', label: 'Total Colleges' },
             { key: 'avgPackage', label: 'Average Package (₹ Lakhs)', isCurrency: true },
             { key: 'maxPackage', label: 'Highest Package (₹ Lakhs)', isCurrency: true },
             { key: 'minPackage', label: 'Lowest Package (₹ Lakhs)', isCurrency: true }
         ];
-        
-        // Create table header
+
         const thead = document.createElement("thead");
         const headerRow = document.createElement("tr");
-        
-        // First column for feature names
+
         const featureHeader = document.createElement("th");
         featureHeader.textContent = "Feature";
         featureHeader.className = "sticky-feature";
         headerRow.appendChild(featureHeader);
-        
-        // Columns for each branch
+
         Object.keys(branchData).forEach(branch => {
             const th = document.createElement("th");
             th.textContent = branch;
@@ -505,21 +475,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         
         thead.appendChild(headerRow);
         table.appendChild(thead);
-        
-        // Create table body
+
         const tbody = document.createElement("tbody");
-        
-        // Add rows for each feature
+
         features.forEach(feature => {
             const row = document.createElement("tr");
-            
-            // Feature name cell
+
             const featureCell = document.createElement("td");
             featureCell.textContent = feature.label;
             featureCell.className = "sticky-feature";
             row.appendChild(featureCell);
-            
-            // Data cells for each branch
+
             Object.entries(branchData).forEach(([branch, data]) => {
                 const cell = document.createElement("td");
                 let value = data[feature.key];
@@ -540,17 +506,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         
         table.appendChild(tbody);
     }
-    
-    // Add reload function for refresh button
+
     function reloadBranchData() {
-        // Clear session storage cache
+
         sessionStorage.removeItem('branchComparisonBranchesData');
         sessionStorage.removeItem('branchComparisonCollegesData');
-        
-        // Reload the page to get fresh data
+
         location.reload();
     }
-    
-    // Expose reload function globally
+
     window.reloadBranchData = reloadBranchData;
 });

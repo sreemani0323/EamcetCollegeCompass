@@ -58,7 +58,7 @@
             </div>
 
             <div id="analyticsContent" style="display:none;">
-                <!-- Summary Cards -->
+                
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
                     <div class="stat-card">
                         <i class="fas fa-university"></i>
@@ -72,7 +72,7 @@
                     </div>
                     <div class="stat-card">
                         <i class="fas fa-rupee-sign"></i>
-                        <h3 id="avgPackage">₹0 L</h3>
+                        <h3 id="avgPackage">â‚¹0 L</h3>
                         <p>Avg. Package</p>
                     </div>
                     <div class="stat-card">
@@ -82,7 +82,7 @@
                     </div>
                 </div>
 
-                <!-- Charts Grid -->
+                
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem;">
                     <div class="chart-container">
                         <h3><i class="fas fa-chart-pie"></i> Colleges by Region</h3>
@@ -119,13 +119,12 @@
     <script src="analytics.js"></script>
     
     <script>
-        // Scroll button functionality
+
         document.addEventListener('DOMContentLoaded', function() {
             const scrollButtons = document.getElementById('scrollButtons');
             const scrollTopBtn = document.getElementById('scrollTopBtn');
             const scrollBottomBtn = document.getElementById('scrollBottomBtn');
-            
-            // Show/hide scroll buttons based on scroll position
+
             window.addEventListener('scroll', function() {
                 if (window.scrollY > 300) {
                     scrollButtons.classList.add('visible');
@@ -133,58 +132,49 @@
                     scrollButtons.classList.remove('visible');
                 }
             });
-            
-            // Scroll to top
+
             scrollTopBtn.addEventListener('click', function() {
                 window.scrollTo({
                     top: 0,
                     behavior: 'smooth'
                 });
             });
-            
-            // Scroll to bottom
+
             scrollBottomBtn.addEventListener('click', function() {
                 window.scrollTo({
                     top: document.body.scrollHeight,
                     behavior: 'smooth'
                 });
             });
-            
-            // Refresh button functionality
+
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.addEventListener('click', function() {
-                // Clear localStorage cache
+
                 localStorage.removeItem('analyticsData');
                 localStorage.removeItem('analyticsDataTimestamp');
-                
-                // Clear existing content
+
                 document.getElementById('analyticsContent').style.display = 'none';
                 document.getElementById('loadingSpinner').style.display = 'flex';
-                
-                // Reload data (this would call the same functions that load the initial data)
+
                 loadAnalytics();
             });
         });
-        
-        // Handle page reload vs navigation
+
         window.addEventListener('beforeunload', function() {
-            // Check if this is a navigation or a reload
+
             const isNavigation = sessionStorage.getItem('isNavigation');
-            
-            // If it's not a navigation (i.e., it's a reload), clear cache
+
             if (!isNavigation) {
-                // Clear analytics cache when page is reloaded
+
                 localStorage.removeItem('analyticsData');
                 localStorage.removeItem('analyticsDataTimestamp');
             }
         });
-        
-        // Set a flag to indicate this is a navigation (not a reload)
+
         window.addEventListener('DOMContentLoaded', function() {
             sessionStorage.setItem('isNavigation', 'true');
         });
-        
-        // Clear the navigation flag when page is fully loaded
+
         window.addEventListener('load', function() {
             sessionStorage.removeItem('isNavigation');
         });
