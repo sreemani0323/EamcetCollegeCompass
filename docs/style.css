@@ -781,13 +781,12 @@ body.dark-mode .comparison-table .college-name-row { color: white; }
 .nav-link:hover {
     background: rgba(255, 255, 255, 0.2);
     color: white;
-    transform: translateY(-3px);
     box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
     border-color: white;
 }
 
 .nav-link:hover i {
-    transform: scale(1.15) rotate(5deg);
+    /* Removed transform effects */
 }
 
 .nav-link.active {
@@ -797,8 +796,109 @@ body.dark-mode .comparison-table .college-name-row { color: white; }
     border-color: white;
 }
 
-.nav-link.active i {
-    animation: pulse 2s ease-in-out infinite;
+/* Add 4 shiny stars to the Calculator tab corner */
+.nav-link[href="calculator.html"]::before {
+    content: "★";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    color: gold;
+    font-size: 6px;
+    text-shadow: 0 0 2px gold;
+    z-index: 2;
+}
+
+.nav-link[href="calculator.html"]::after {
+    content: "★";
+    position: absolute;
+    top: 1px;
+    right: 8px;
+    color: gold;
+    font-size: 6px;
+    text-shadow: 0 0 2px gold;
+    z-index: 2;
+}
+
+.nav-link[href="calculator.html"] i::before {
+    content: "★";
+    position: absolute;
+    top: 8px;
+    right: 2px;
+    color: gold;
+    font-size: 8px;
+    text-shadow: 0 0 2px gold;
+    z-index: 2;
+}
+
+.nav-link[href="calculator.html"] i::after {
+    content: "★";
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    color: gold;
+    font-size: 5px;
+    text-shadow: 0 0 2px gold;
+    z-index: 2;
+}
+
+/* Add 4 shiny stars to the Calculator tab corner in dark mode */
+body.dark-mode .nav-link[href="calculator.html"]::before {
+    content: "★";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    color: gold;
+    font-size: 6px;
+    text-shadow: 0 0 2px gold;
+    z-index: 2;
+}
+
+body.dark-mode .nav-link[href="calculator.html"]::after {
+    content: "★";
+    position: absolute;
+    top: 1px;
+    right: 8px;
+    color: gold;
+    font-size: 6px;
+    text-shadow: 0 0 2px gold;
+    z-index: 2;
+}
+
+body.dark-mode .nav-link[href="calculator.html"] i::before {
+    content: "★";
+    position: absolute;
+    top: 8px;
+    right: 2px;
+    color: gold;
+    font-size: 8px;
+    text-shadow: 0 0 2px gold;
+    z-index: 2;
+}
+
+body.dark-mode .nav-link[href="calculator.html"] i::after {
+    content: "★";
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    color: gold;
+    font-size: 5px;
+    text-shadow: 0 0 2px gold;
+    z-index: 2;
+}
+
+body.dark-mode .favorite-btn {
+    color: #8b949e;
+}
+
+body.dark-mode .favorite-btn:hover,
+body.dark-mode .favorite-btn.favorited {
+    color: #ff6b81;
+}
+
+@keyframes shine {
+    0% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+    50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8), 0 0 35px rgba(255, 165, 0, 0.6); }
+    100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
 }
 
 @keyframes pulse {
@@ -1120,6 +1220,8 @@ body.dark-mode .comparison-table .college-name-row { color: white; }
         background: rgba(255, 255, 255, 0.2);
         color: white;
     }
+    
+
     
     body.dark-mode .favorite-btn {
         color: #8b949e;
